@@ -1,0 +1,101 @@
+Loan_ID,Loan_Amount,Credit_Score,Collateral_Value,Timestamp,Activity,User,Role,Decision,Notes
+LN-18231,45200,637,45567.57,01-01-2025 01:33,Application Received,System,System,Initiated,Application received via portal.
+LN-67978,74100,726,68990.25,01-01-2025 02:26,Application Received,System,System,Initiated,Application received via portal.
+LN-18231,45200,637,45567.57,01-01-2025 02:33,KYC Verification,j_doe,Junior Analyst,Pass,Docs verified.
+LN-26116,56800,660,70085.94,01-01-2025 04:06,Application Received,System,System,Initiated,Application received via portal.
+LN-26116,56800,660,70085.94,01-01-2025 05:06,KYC Verification,a_smith,Junior Analyst,Pass,Docs verified.
+LN-67978,74100,726,68990.25,01-01-2025 05:26,KYC Verification,j_doe,Junior Analyst,Pass,Docs verified.
+LN-67978,74100,726,68990.25,01-01-2025 06:26,Fraud Check,System,System,Clear,No database hits.
+LN-18231,45200,637,45567.57,01-01-2025 10:33,Fraud Check,System,System,Clear,No database hits.
+LN-67978,74100,726,68990.25,01-01-2025 11:26,Final Approval,d_vader,Regional Manager,Approved,High value approval granted.
+LN-18231,45200,637,45567.57,01-01-2025 12:33,Final Approval,l_skywalker,Senior Officer,Approved,Score 637 low but client has high deposits. Exception granted.
+LN-26116,56800,660,70085.94,01-01-2025 14:06,Fraud Check,System,System,Clear,No database hits.
+LN-75515,65600,751,87854.28,01-01-2025 15:49,Application Received,System,System,Initiated,Application received via portal.
+LN-26116,56800,660,70085.94,01-01-2025 17:06,Final Approval,m_scott,Regional Manager,Approved,High value approval granted.
+LN-12301,39000,717,38226.32,01-01-2025 17:34,Application Received,System,System,Initiated,Application received via portal.
+LN-99144,67600,685,85656.5,01-01-2025 18:21,Application Received,System,System,Initiated,Application received via portal.
+LN-75515,65600,751,87854.28,01-01-2025 18:49,KYC Verification,b_wayne,Junior Analyst,Pass,Docs verified.
+LN-99144,67600,685,85656.5,01-01-2025 19:21,KYC Verification,b_wayne,Junior Analyst,Pass,Docs verified.
+LN-28103,138000,786,144208.56,01-01-2025 20:57,Application Received,System,System,Initiated,Application received via portal.
+LN-12301,39000,717,38226.32,01-01-2025 21:34,KYC Verification,j_doe,Junior Analyst,Pass,Docs verified.
+LN-28103,138000,786,144208.56,01-01-2025 21:57,KYC Verification,a_smith,Junior Analyst,Pass,Docs verified.
+LN-85307,146200,686,126545.67,01-01-2025 22:32,Application Received,System,System,Initiated,Application received via portal.
+LN-51509,122200,677,129870.35,01-01-2025 23:10,Application Received,System,System,Initiated,Application received via portal.
+LN-85307,146200,686,126545.67,01-01-2025 23:32,KYC Verification,a_smith,Junior Analyst,Pass,Docs verified.
+LN-83923,141300,675,137467.38,02-01-2025 01:43,Application Received,System,System,Initiated,Application received via portal.
+LN-51509,122200,677,129870.35,02-01-2025 02:10,KYC Verification,j_doe,Junior Analyst,Pass,Docs verified.
+LN-83923,141300,675,137467.38,02-01-2025 02:43,KYC Verification,b_wayne,Junior Analyst,Pass,Docs verified.
+LN-28103,138000,786,144208.56,02-01-2025 03:57,Fraud Check,System,System,Clear,No database hits.
+LN-75515,65600,751,87854.28,02-01-2025 04:49,Fraud Check,System,System,Clear,No database hits.
+LN-32035,128300,749,132393.62,02-01-2025 05:25,Application Received,System,System,Initiated,Application received via portal.
+LN-83923,141300,675,137467.38,02-01-2025 05:43,Fraud Check,System,System,Clear,No database hits.
+LN-40232,93900,716,88959.25,02-01-2025 06:30,Application Received,System,System,Initiated,Application received via portal.
+LN-28103,138000,786,144208.56,02-01-2025 06:57,Final Approval,m_scott,Regional Manager,Approved,"Collateral slightly short, approved as unsecured portion."
+LN-17122,138500,671,197627.38,02-01-2025 07:37,Application Received,System,System,Initiated,Application received via portal.
+LN-90490,103900,720,107979.06,02-01-2025 07:43,Application Received,System,System,Initiated,Application received via portal.
+LN-75515,65600,751,87854.28,02-01-2025 07:49,Final Approval,m_scott,Regional Manager,Approved,High value approval granted.
+LN-32035,128300,749,132393.62,02-01-2025 08:25,KYC Verification,a_smith,Junior Analyst,Pass,Docs verified.
+LN-26896,9800,640,10373.78,02-01-2025 09:06,Application Received,System,System,Initiated,Application received via portal.
+LN-12301,39000,717,38226.32,02-01-2025 09:34,Fraud Check,System,System,Clear,No database hits.
+LN-17122,138500,671,197627.38,02-01-2025 09:37,KYC Verification,a_smith,Junior Analyst,Pass,Docs verified.
+LN-22066,21200,774,20473.04,02-01-2025 09:45,Application Received,System,System,Initiated,Application received via portal.
+LN-26896,9800,640,10373.78,02-01-2025 10:06,KYC Verification,b_wayne,Junior Analyst,Pass,Docs verified.
+LN-99144,67600,685,85656.5,02-01-2025 10:21,Fraud Check,System,System,Clear,No database hits.
+LN-40232,93900,716,88959.25,02-01-2025 10:30,KYC Verification,b_wayne,Junior Analyst,Pass,Docs verified.
+LN-83923,141300,675,137467.38,02-01-2025 10:43,Final Approval,m_scott,Regional Manager,Approved,High value approval granted.
+LN-90490,103900,720,107979.06,02-01-2025 10:43,KYC Verification,j_doe,Junior Analyst,Pass,Docs verified.
+LN-22066,21200,774,20473.04,02-01-2025 10:45,KYC Verification,b_wayne,Junior Analyst,Pass,Docs verified.
+LN-32035,128300,749,132393.62,02-01-2025 11:25,Fraud Check,System,System,Clear,No database hits.
+LN-12301,39000,717,38226.32,02-01-2025 11:34,Final Approval,s_connor,Senior Officer,Approved,Standard approval.
+LN-21332,49700,596,64748.31,02-01-2025 12:07,Application Received,System,System,Initiated,Application received via portal.
+LN-99144,67600,685,85656.5,02-01-2025 12:21,Final Approval,m_scott,Regional Manager,Approved,High value approval granted.
+LN-32035,128300,749,132393.62,02-01-2025 12:25,Final Approval,r_ripley,Senior Officer,Approved,"Manager out of office, approved per verbal instruction."
+LN-40232,93900,716,88959.25,02-01-2025 13:30,Fraud Check,System,System,Clear,No database hits.
+LN-12787,49400,621,56123.38,02-01-2025 13:44,Application Received,System,System,Initiated,Application received via portal.
+LN-51509,122200,677,129870.35,02-01-2025 15:10,Fraud Check,System,System,Clear,No database hits.
+LN-12787,49400,621,56123.38,02-01-2025 15:44,KYC Verification,b_wayne,Junior Analyst,Pass,Docs verified.
+LN-21332,49700,596,64748.31,02-01-2025 16:07,KYC Verification,j_doe,Junior Analyst,Pass,Docs verified.
+LN-40232,93900,716,88959.25,02-01-2025 17:30,Final Approval,m_scott,Regional Manager,Approved,High value approval granted.
+LN-85307,146200,686,126545.67,02-01-2025 17:32,Fraud Check,System,System,Clear,No database hits.
+LN-55666,35200,685,37704.73,02-01-2025 18:04,Application Received,System,System,Initiated,Application received via portal.
+LN-55666,35200,685,37704.73,02-01-2025 19:04,KYC Verification,b_wayne,Junior Analyst,Pass,Docs verified.
+LN-51509,122200,677,129870.35,02-01-2025 19:10,Final Approval,d_vader,Regional Manager,Approved,High value approval granted.
+LN-85307,146200,686,126545.67,02-01-2025 19:32,Final Approval,d_vader,Regional Manager,Approved,High value approval granted.
+LN-38592,23300,841,32185.2,02-01-2025 19:53,Application Received,System,System,Initiated,Application received via portal.
+LN-20897,88300,769,126046.77,02-01-2025 21:38,Application Received,System,System,Initiated,Application received via portal.
+LN-90490,103900,720,107979.06,02-01-2025 21:43,Fraud Check,System,System,Clear,No database hits.
+LN-38592,23300,841,32185.2,02-01-2025 21:53,KYC Verification,b_wayne,Junior Analyst,Pass,Docs verified.
+LN-90490,103900,720,107979.06,02-01-2025 22:43,Final Approval,m_scott,Regional Manager,Approved,High value approval granted.
+LN-69592,32300,577,29741.1,02-01-2025 22:43,Application Received,System,System,Initiated,Application received via portal.
+LN-22066,21200,774,20473.04,02-01-2025 22:45,Fraud Check,System,System,Clear,No database hits.
+LN-20897,88300,769,126046.77,03-01-2025 00:38,KYC Verification,j_doe,Junior Analyst,Pass,Docs verified.
+LN-69592,32300,577,29741.1,03-01-2025 01:43,KYC Verification,j_doe,Junior Analyst,Pass,Docs verified.
+LN-26896,9800,640,10373.78,03-01-2025 02:06,Fraud Check,s_connor,Senior Officer,Skipped,Expedited request from branch manager.
+LN-12787,49400,621,56123.38,03-01-2025 02:44,Fraud Check,System,System,Clear,No database hits.
+LN-25924,34300,651,50708.12,03-01-2025 02:59,Application Received,System,System,Initiated,Application received via portal.
+LN-22066,21200,774,20473.04,03-01-2025 03:45,Final Approval,r_ripley,Senior Officer,Approved,Standard approval.
+LN-26896,9800,640,10373.78,03-01-2025 04:06,Final Approval,r_ripley,Senior Officer,Approved,Standard approval.
+LN-21332,49700,596,64748.31,03-01-2025 04:07,Fraud Check,System,System,Clear,No database hits.
+LN-38592,23300,841,32185.2,03-01-2025 04:53,Fraud Check,System,System,Clear,No database hits.
+LN-83394,116600,698,134595.25,03-01-2025 05:32,Application Received,System,System,Initiated,Application received via portal.
+LN-64454,147500,721,219116.42,03-01-2025 05:33,Application Received,System,System,Initiated,Application received via portal.
+LN-21332,49700,596,64748.31,03-01-2025 06:07,Final Approval,a_smith,Junior Analyst,Approved,Approved based on previous relationship.
+LN-83394,116600,698,134595.25,03-01-2025 06:32,KYC Verification,j_doe,Junior Analyst,Pass,Docs verified.
+LN-57507,137300,715,160074.11,03-01-2025 06:50,Application Received,System,System,Initiated,Application received via portal.
+LN-38592,23300,841,32185.2,03-01-2025 06:53,Final Approval,s_connor,Senior Officer,Approved,Standard approval.
+LN-25924,34300,651,50708.12,03-01-2025 06:59,KYC Verification,j_doe,Junior Analyst,Pass,Docs verified.
+LN-17122,138500,671,197627.38,03-01-2025 07:37,Fraud Check,System,System,Clear,No database hits.
+LN-12787,49400,621,56123.38,03-01-2025 07:44,Final Approval,r_ripley,Senior Officer,Approved,Standard approval.
+LN-55666,35200,685,37704.73,03-01-2025 08:04,Fraud Check,System,System,Clear,No database hits.
+LN-96647,26700,628,23122.6,03-01-2025 08:44,Application Received,System,System,Initiated,Application received via portal.
+LN-64454,147500,721,219116.42,03-01-2025 09:33,KYC Verification,a_smith,Junior Analyst,Pass,Docs verified.
+LN-57507,137300,715,160074.11,03-01-2025 09:50,KYC Verification,a_smith,Junior Analyst,Pass,Docs verified.
+LN-55666,35200,685,37704.73,03-01-2025 10:04,Final Approval,r_ripley,Senior Officer,Approved,Standard approval.
+LN-86375,109800,668,137879.09,03-01-2025 10:16,Application Received,System,System,Initiated,Application received via portal.
+LN-45566,28700,767,37093.76,03-01-2025 10:25,Application Received,System,System,Initiated,Application received via portal.
+LN-42445,44800,727,62467.46,03-01-2025 10:27,Application Received,System,System,Initiated,Application received via portal.
+LN-17122,138500,671,197627.38,03-01-2025 12:37,Final Approval,s_connor,Senior Officer,Approved,"Manager out of office, approved per verbal instruction."
+LN-96647,26700,628,23122.6,03-01-2025 12:44,KYC Verification,a_smith,Junior Analyst,Pass,Docs verified.
+LN-45566,28700,767,37093.76,03-01-2025 13:25,KYC Verification,b_wayne,Junior Analyst,Pass,Docs verified.
+LN-42445,44800,727,62467.46,03-01-2025 13:27,KYC Verification,a_smith,Junior Analyst,Pass,Docs verified.
+LN-57507,137300,715,160074.11,03-01-2025 13:50,Fraud Check,System,System,Clear,No database hits.

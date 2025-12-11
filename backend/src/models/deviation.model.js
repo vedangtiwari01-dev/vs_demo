@@ -47,6 +47,16 @@ const Deviation = sequelize.define('Deviation', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
+  notes: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'User/analyst notes and comments about the deviation',
+  },
+  llm_reasoning: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Claude AI reasoning and explanation for this deviation',
+  },
   detected_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

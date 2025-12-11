@@ -96,3 +96,30 @@ class SyntheticLogRequest(BaseModel):
 class SyntheticLogResponse(BaseModel):
     logs: List[Dict[str, Any]]
     metadata: Optional[Dict[str, Any]] = None
+
+# Column Mapping Schemas
+class ColumnMappingRequest(BaseModel):
+    headers: List[str]
+    sample_rows: Optional[List[Dict[str, Any]]] = None
+
+class ColumnMappingResponse(BaseModel):
+    mappings: Dict[str, Any]
+    notes_column: Optional[str] = None
+    unmapped_columns: List[str]
+    warnings: List[str]
+
+# Pattern Analysis Schemas
+class PatternAnalysisRequest(BaseModel):
+    deviations: List[Dict[str, Any]]
+
+class PatternAnalysisResponse(BaseModel):
+    overall_summary: str
+    behavioral_patterns: List[Dict[str, Any]]
+    hidden_rules: List[Dict[str, Any]]
+    systemic_issues: List[Dict[str, Any]]
+    time_patterns: Optional[List[Dict[str, Any]]] = []
+    justification_analysis: Dict[str, Any]
+    risk_insights: List[str]
+    recommendations: List[str]
+    api_calls_made: int
+    deviations_analyzed: int

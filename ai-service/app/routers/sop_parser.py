@@ -18,11 +18,26 @@ async def parse_sop(request: SOPParseRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post('/extract-rules', response_model=RuleExtractionResponse)
-async def extract_rules(request: RuleExtractionRequest):
-    """Extract rules from SOP text"""
+async def extract_rules(request: RuleExtractionRequest, use_llm: bool = True):
+    """
+    Extract rules from SOP text.
+
+    Args:
+        use_llm: If True, uses Claude LLM for intelligent extraction (default).
+                 If False, uses regex-based parser.
+    """
     try:
-        parser = RuleParser()
-        rules = parser.extract_rules(request.text)
-        return RuleExtractionResponse(rules=rules)
+        from app.services.nlp.llm_rule_parser import LLMRuleParser
+
+        if use_llm:
+            # Use LLM-based parser (recommended)
+            parser = LLMRuleParser()
+            result = parser.extract_rules(request.text, use_llm=True, fallback_on_error=True)
+            return RuleExtractionResponse(rules=result['rules'])
+        else:
+            # Use regex-based parser
+            parser = RuleParser()
+            rules = parser.extract_rules(request.text)
+            return RuleExtractionResponse(rules=rules)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

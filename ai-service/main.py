@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import sop_parser, deviation_detector, behavioral_profiler, synthetic_generator
+from app.routers import sop_parser, deviation_detector, behavioral_profiler, synthetic_generator, column_mapping
 from app.config import settings
 
 app = FastAPI(
@@ -23,6 +23,7 @@ app.include_router(sop_parser.router)
 app.include_router(deviation_detector.router)
 app.include_router(behavioral_profiler.router)
 app.include_router(synthetic_generator.router)
+app.include_router(column_mapping.router)
 
 @app.get("/")
 async def root():
@@ -34,7 +35,8 @@ async def root():
             "sop_parsing": "/ai/sop",
             "deviation_detection": "/ai/deviation",
             "behavioral_profiling": "/ai/behavioral",
-            "synthetic_generation": "/ai/synthetic"
+            "synthetic_generation": "/ai/synthetic",
+            "column_mapping": "/ai/mapping"
         }
     }
 

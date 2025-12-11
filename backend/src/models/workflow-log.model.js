@@ -59,4 +59,35 @@ const WorkflowLog = sequelize.define('WorkflowLog', {
   ],
 });
 
+// Instance methods for notes handling
+WorkflowLog.prototype.getNotes = function() {
+  /**
+   * Extract notes from metadata JSON field
+   * @returns {string|null} Notes text or null if not present
+   */
+  if (this.metadata && this.metadata.notes) {
+    return this.metadata.notes;
+  }
+  return null;
+};
+
+WorkflowLog.prototype.setNotes = function(notes) {
+  /**
+   * Store notes in metadata JSON field
+   * @param {string} notes - Notes text to store
+   */
+  if (!this.metadata) {
+    this.metadata = {};
+  }
+  this.metadata.notes = notes;
+};
+
+WorkflowLog.prototype.hasNotes = function() {
+  /**
+   * Check if this log entry has notes
+   * @returns {boolean} True if notes exist
+   */
+  return !!(this.metadata && this.metadata.notes);
+};
+
 module.exports = WorkflowLog;

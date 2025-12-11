@@ -43,7 +43,7 @@ In real loan processing operations, officers and analysts often deviate from SOP
 ```
 ┌─────────────────────────────────────────────┐
 │         Frontend (React + Vite)             │
-│      http://localhost:5173                  │
+│      http://localhost:5174                  │
 └──────────────┬──────────────────────────────┘
                │ REST API
                │
@@ -137,7 +137,7 @@ cp .env.example .env
 npm run dev
 ```
 
-The frontend will run at `http://localhost:5173`
+The frontend will run at `http://localhost:5174`
 
 ## Usage Guide
 

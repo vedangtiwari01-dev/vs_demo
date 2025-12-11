@@ -25,15 +25,41 @@ class AIIntegrationService {
     }
   }
 
-  async extractRules(sopText) {
+  async extractRules(sopText, useLLM = true) {
     try {
       const response = await this.client.post('/ai/sop/extract-rules', {
         text: sopText,
+        use_llm: useLLM,
       });
       return response.data;
     } catch (error) {
       console.error('Error extracting rules:', error.message);
       throw new Error('Failed to extract rules from SOP');
+    }
+  }
+
+  async analyzeColumnMapping(headers, sampleRows = []) {
+    try {
+      const response = await this.client.post('/ai/mapping/analyze-headers', {
+        headers,
+        sample_rows: sampleRows,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error analyzing column mapping:', error.message);
+      throw new Error('Failed to analyze column headers');
+    }
+  }
+
+  async analyzeDeviationPatterns(deviationsWithNotes) {
+    try {
+      const response = await this.client.post('/ai/deviation/analyze-patterns', {
+        deviations: deviationsWithNotes,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error analyzing deviation patterns:', error.message);
+      throw new Error('Failed to analyze deviation patterns');
     }
   }
 
