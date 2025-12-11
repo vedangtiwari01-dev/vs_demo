@@ -1,0 +1,51 @@
+# Loan Processing Standard Operating Procedure (SOP)
+Version 2.0 | Effective Date: January 2025
+
+## Purpose
+This document outlines the standard procedure for processing loan applications to ensure compliance with regulatory requirements and maintain consistent service quality.
+
+## Scope
+This SOP applies to all loan officers and analysts involved in processing consumer loan applications.
+
+## Process Flow
+
+### Step 1: Application Received
+First, the loan application must be received and logged into the system. All applications must be stamped with the date and time of receipt. The receiving officer must verify that all required forms are included.
+
+### Step 2: Document Verification
+Then, the loan officer must verify all submitted documents for completeness and authenticity. This step must be completed within 24 hours of receiving the application. The officer must check:
+- Valid government-issued ID
+- Proof of address
+- Employment verification documents
+- Bank statements for the last 6 months
+
+### Step 3: Income Verification
+Next, the officer must verify the applicant's income against the submitted documentation. Income verification must be completed before proceeding to credit check. Contact the employer directly if any discrepancies are found.
+
+### Step 4: Credit Check
+After income verification, perform a comprehensive credit check using approved credit bureau services. Document the credit score and any negative items. Credit check must be completed before risk assessment.
+
+### Step 5: Risk Assessment
+The assigned analyst must conduct a thorough risk assessment based on credit history, income stability, debt-to-income ratio, and collateral value. Risk assessment must be documented with clear justification for the assigned risk rating.
+
+### Step 6: Manager Approval
+All loan applications must be approved by a manager before final approval. The manager must review the complete file including all verification steps and risk assessment. Manager approval requires a digital signature.
+
+### Step 7: Final Approval
+Finally, the senior loan officer or authorized approver must provide final approval. Final approval must be given within 7 days of application receipt unless additional documentation is required.
+
+## Timing Requirements
+- Document verification: within 24 hours
+- Complete process: within 7 days (for standard applications)
+- High-risk applications: within 10 days
+
+## Approval Requirements
+- Manager approval is required for all loans above $50,000
+- Senior officer approval is required for all loans above $100,000
+- Two approvals required for high-risk applications
+
+## Quality Control
+Random audits will be conducted monthly to ensure compliance with this SOP. Officers must maintain detailed notes for each step of the process.
+
+## Compliance
+Failure to follow this SOP may result in regulatory violations and disciplinary action. All deviations must be documented with justification and approved by management.
