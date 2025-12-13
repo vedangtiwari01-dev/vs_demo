@@ -226,7 +226,15 @@ const analyzeWorkflow = async (req, res, next) => {
     // Detect deviations using AI service
     const deviationResult = await aiService.detectDeviations(formattedLogs, formattedRules);
 
-    // Save deviations to database
+    // Extract notes for all cases with deviations
+    const caseIds = [...new Set(deviationResult.deviations.map(d => d.case_id))];
+    console.log('[analyzeWorkflow] Detected deviations for cases:', caseIds);
+
+    const notesByCase = await notesService.getNotesForAnalysis(caseIds);
+    console.log('[analyzeWorkflow] Notes retrieved for cases:', Object.keys(notesByCase));
+    console.log('[analyzeWorkflow] Sample notes:', Object.values(notesByCase)[0] || 'No notes found');
+
+    // Save deviations to database with notes attached
     const savedDeviations = [];
     for (const dev of deviationResult.deviations) {
       const deviation = await Deviation.create({
@@ -239,6 +247,7 @@ const analyzeWorkflow = async (req, res, next) => {
         expected_behavior: dev.expected_behavior,
         actual_behavior: dev.actual_behavior,
         context: dev.context || {},
+        notes: notesByCase[dev.case_id] || null,  // ✅ Attach notes from WorkflowLog
       });
       savedDeviations.push(deviation);
     }
@@ -346,6 +355,11 @@ const uploadWithMapping = async (req, res, next) => {
     // Detect notes column
     const notesColumn = columnMappingService.detectNotesColumn(columnMapping);
 
+    // Debug logging
+    console.log('[uploadWithMapping] Column mapping:', JSON.stringify(columnMapping, null, 2));
+    console.log('[uploadWithMapping] Detected notes column:', notesColumn);
+    console.log('[uploadWithMapping] CSV has', Object.keys(parsed.data[0] || {}).length, 'columns');
+
     // Create workflow logs
     const savedLogs = [];
     const officers = new Set();
@@ -387,11 +401,19 @@ const uploadWithMapping = async (req, res, next) => {
     // Extract and store notes if notes column exists
     let notesCount = 0;
     if (notesColumn) {
+      console.log('[uploadWithMapping] Extracting notes from column:', notesColumn);
+      console.log('[uploadWithMapping] Sample CSV row:', JSON.stringify(parsed.data[0], null, 2));
+      console.log('[uploadWithMapping] Number of logs to process:', savedLogs.length);
+
       notesCount = await notesService.extractAndStoreNotesFromCSV(
         savedLogs,
         parsed.data,
         notesColumn
       );
+
+      console.log('[uploadWithMapping] Notes extraction complete. Count:', notesCount);
+    } else {
+      console.log('[uploadWithMapping] No notes column detected in mapping');
     }
 
     // Create officer records

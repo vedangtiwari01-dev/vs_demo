@@ -109,9 +109,9 @@ const processSOP = async (req, res, next) => {
       rulesResult.rules.map(rule =>
         SOPRule.create({
           sop_id: sop.id,
-          rule_type: rule.type,
-          rule_description: rule.description,
-          step_number: rule.step_number,
+          rule_type: rule.rule_type,  // Changed from rule.type
+          rule_description: rule.rule_description,  // Changed from rule.description
+          step_number: rule.step_number ? Math.floor(rule.step_number) : null,  // Convert float to int
           severity: rule.severity || 'medium',
           condition_logic: rule.condition_logic,
         })

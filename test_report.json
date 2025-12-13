@@ -1,0 +1,199 @@
+{
+  "sop": {
+    "id": 1,
+    "title": "Test SOP",
+    "total_rules": 17
+  },
+  "workflow_analysis": {
+    "total_deviations": 185,
+    "summary": {
+      "critical": 40,
+      "high": 30,
+      "medium": 100,
+      "low": 15
+    }
+  },
+  "pattern_analysis": {
+    "overall_summary": "Aggregated analysis from 2 batches covering 185 deviations",
+    "behavioral_patterns": [
+      {
+        "pattern": "All 100 deviations attributed to 'System' officer ID with zero human officer accountability",
+        "frequency": "Universal (100% of cases)",
+        "risk_level": "critical",
+        "officers_involved": [
+          "System"
+        ],
+        "supporting_evidence": "Every deviation shows Officer ID: System, suggesting either automated processing failures or lack of proper officer attribution in the tracking system"
+      },
+      {
+        "pattern": "Manager approval systematically bypassed across all completed loan applications",
+        "frequency": "Universal in cases reaching final approval (55 cases, 100% rate)",
+        "risk_level": "critical",
+        "officers_involved": [
+          "System"
+        ],
+        "supporting_evidence": "All 55 cases with final approval show 'Missing manager approval' deviation. Notes reveal workarounds: 'Manager out of office, approved per verbal instruction' (LN-32035, LN-17122), suggesting informal verbal approval practice"
+      },
+      {
+        "pattern": "Income Verification step universally skipped across all 100 cases",
+        "frequency": "Universal (100% of cases)",
+        "risk_level": "critical",
+        "officers_involved": [
+          "System"
+        ],
+        "supporting_evidence": "Every case shows 'Missing required step: Income Verification' with high severity. This represents complete abandonment of a fundamental credit risk control"
+      },
+      {
+        "pattern": "Timing violations show consistent 27-31 day delays between process steps",
+        "frequency": "High (20 cases, 20% of total)",
+        "risk_level": "medium",
+        "officers_involved": [
+          "System"
+        ],
+        "supporting_evidence": "Delays range from 27.1 to 30.8 days, clustering tightly around 27-30 day mark, suggesting systematic batch processing or resource constraints rather than random delays"
+      },
+      {
+        "pattern": "All deviations attributed to 'System' officer ID - no individual officer accountability",
+        "frequency": "100% (85/85 deviations)",
+        "risk_level": "critical",
+        "officers_involved": [
+          "System"
+        ],
+        "supporting_evidence": "Every single deviation shows 'Officer ID: System', indicating automated detection without human officer tracking"
+      },
+      {
+        "pattern": "Income Verification step systematically skipped across all loan cases",
+        "frequency": "100% (17/17 cases)",
+        "risk_level": "critical",
+        "officers_involved": [
+          "System"
+        ],
+        "supporting_evidence": "All 17 cases show 'Missing required step: Income Verification' with high severity"
+      },
+      {
+        "pattern": "Standard workflow steps flagged as 'unexpected' violations",
+        "frequency": "100% of cases with these steps",
+        "risk_level": "high",
+        "officers_involved": [
+          "System"
+        ],
+        "supporting_evidence": "Application Received (17 cases), KYC Verification (17 cases), Fraud Check (13 cases), Final Approval (13 cases) all marked as unexpected"
+      }
+    ],
+    "hidden_rules": [
+      {
+        "rule": "Verbal manager approval substitutes for documented approval when manager unavailable",
+        "confidence": "high",
+        "evidence": "2 explicit cases mention 'Manager out of office, approved per verbal instruction' (LN-32035, LN-17122). Pattern suggests this is accepted practice rather than exception",
+        "compliance_impact": "Critical - eliminates audit trail and violates documented approval requirements. Creates accountability gap and fraud risk"
+      },
+      {
+        "rule": "Relationship-based exceptions bypass standard credit criteria",
+        "confidence": "high",
+        "evidence": "Multiple cases show relationship overrides: 'Approved based on previous relationship' (LN-21332), 'client has high deposits. Exception granted' despite score 637 (LN-18231), 'Expedited request from branch manager' (LN-26896)",
+        "compliance_impact": "Critical - undermines credit risk assessment and creates preferential treatment without documented exception process"
+      },
+      {
+        "rule": "High-value approvals proceed without manager sign-off if other steps completed",
+        "confidence": "high",
+        "evidence": "13 cases explicitly note 'High value approval granted' (LN-99144, LN-85307, LN-90490, LN-83923, LN-75515, LN-67978, LN-51509, LN-40232, LN-39, LN-31, LN-26116, LN-18, LN-10) yet all lack manager approval",
+        "compliance_impact": "Critical - high-value loans carry greater risk but receive less oversight than policy requires"
+      },
+      {
+        "rule": "Collateral shortfalls resolved by converting to unsecured loans without proper authorization",
+        "confidence": "medium",
+        "evidence": "Case LN-28103: 'Collateral slightly short, approved as unsecured portion' - suggests informal practice of restructuring loan terms to bypass collateral requirements",
+        "compliance_impact": "High - changes risk profile of loan without proper credit committee review or pricing adjustment"
+      },
+      {
+        "rule": "Standard workflow steps treated as 'unexpected' suggesting parallel undocumented process",
+        "confidence": "high",
+        "evidence": "50 deviations flag standard steps (Application Received, KYC Verification, Fraud Check, Final Approval) as 'unexpected', indicating the documented SOP doesn't match actual operational workflow",
+        "compliance_impact": "Critical - suggests entire loan processing operates outside documented procedures, making compliance monitoring impossible"
+      }
+    ],
+    "systemic_issues": [
+      {
+        "issue": "System configuration treats all standard workflow steps as 'unexpected', indicating fundamental SOP-system misalignment",
+        "frequency": "50 occurrences across 14 cases",
+        "impact": "Compliance monitoring system is measuring against wrong baseline, generating false positives while missing actual violations. Every case with 4 workflow steps generates 4 'unexpected step' deviations",
+        "recommended_fix": "Urgent reconciliation between documented SOP and system configuration. Either update SOP to reflect actual process or reconfigure system to recognize current workflow as standard"
+      },
+      {
+        "issue": "Income Verification step completely absent from operational workflow despite being mandatory",
+        "frequency": "100 occurrences (100% of cases)",
+        "impact": "Fundamental credit risk control missing. Loans approved without verification of repayment capacity. Suggests either system doesn't support this step or staff universally skip it",
+        "recommended_fix": "Implement hard stop in system preventing progression to approval without Income Verification completion. Investigate why step was abandoned - training gap, system usability, or resource constraints"
+      },
+      {
+        "issue": "Manager approval workflow non-functional or bypassed in 100% of cases requiring it",
+        "frequency": "55 occurrences (all cases reaching final approval)",
+        "impact": "Complete breakdown of dual-control mechanism. Creates fraud risk and eliminates management oversight of credit decisions",
+        "recommended_fix": "Implement system-enforced manager approval with no bypass capability. Investigate root cause: Is approval workflow broken, too slow, or are managers unavailable/unresponsive?"
+      },
+      {
+        "issue": "Officer attribution system failure - all deviations assigned to 'System' rather than responsible individuals",
+        "frequency": "100 occurrences (100% of cases)",
+        "impact": "Zero accountability for deviations. Cannot identify training needs, performance issues, or intentional violations. Prevents targeted remediation",
+        "recommended_fix": "Fix user tracking in loan processing system. Ensure each action logs actual officer ID. May require authentication/authorization system upgrade"
+      },
+      {
+        "issue": "Systematic 27-30 day processing delays between steps suggest resource bottleneck or batch processing",
+        "frequency": "20 occurrences (20% of cases)",
+        "impact": "Customer service degradation, potential regulatory timing violations, and increased operational risk from stale information",
+        "recommended_fix": "Analyze resource allocation at KYC and Fraud Check stages. Consider workflow automation, staff augmentation, or process redesign to eliminate bottleneck"
+      }
+    ],
+    "time_patterns": [
+      {
+        "pattern": "All deviations timestamped on single date (2025-12-13) within 6-minute window",
+        "reason": "Data represents batch analysis run rather than real-time detection. Cannot assess temporal patterns like month-end pressure or time-of-day variations",
+        "recommendation": "Implement real-time deviation detection to enable temporal pattern analysis. Current batch approach masks when violations actually occurred"
+      },
+      {
+        "pattern": "Processing delays cluster tightly around 27-30 day intervals",
+        "reason": "Suggests monthly batch processing cycle or resource allocation pattern (e.g., staff assigned to step completion once per month)",
+        "recommendation": "Investigate whether loan processing follows monthly cycles. If so, implement continuous processing model to reduce customer wait times and operational risk"
+      },
+      {
+        "pattern": "All deviations occurred within 30-second window (01:14:50.723Z to 01:14:51.051Z)",
+        "reason": "Batch processing or automated compliance scan of historical cases",
+        "recommendation": "Timestamps indicate this is a retrospective analysis, not real-time monitoring. Consider implementing real-time deviation alerts during loan processing"
+      },
+      {
+        "pattern": "No temporal distribution analysis possible",
+        "reason": "All timestamps are identical (same date/time), suggesting batch upload or system-generated test data",
+        "recommendation": "Capture actual transaction timestamps to enable time-based pattern analysis (month-end, quarter-end, day-of-week patterns)"
+      }
+    ],
+    "justification_analysis": {
+      "note": "Aggregated from multiple batches"
+    },
+    "risk_insights": [
+      "Complete absence of Income Verification creates unquantified credit risk exposure across entire loan portfolio - loans approved without confirming borrower repayment capacity",
+      "Universal manager approval bypass eliminates dual-control fraud prevention mechanism - single individual can approve loans without oversight",
+      "Informal relationship-based exception process creates fair lending risk and potential discrimination issues - no documented criteria for who receives preferential treatment",
+      "Verbal approval practice eliminates audit trail - impossible to verify approvals were actually obtained or to hold managers accountable for decisions",
+      "System attribution failure prevents identification of repeat offenders or problematic officers - violations cannot be traced to individuals for corrective action",
+      "High-value loans receiving less oversight than policy requires - inverse risk management where largest exposures get weakest controls",
+      "Collateral restructuring without authorization suggests credit risk mispricing - unsecured portions may not carry appropriate interest rates or loss reserves",
+      "Fundamental SOP-system misalignment means compliance monitoring is ineffective - measuring against wrong standards while actual violations go undetected",
+      "27-30 day processing delays mean credit decisions based on month-old information - income, employment, and credit status may have changed",
+      "Cases stopping after KYC (incomplete applications) still generate multiple critical deviations - suggests abandoned applications aren't properly closed in system"
+    ],
+    "recommendations": [
+      "[critical] Immediate loan portfolio review to assess credit risk exposure from loans approved without Income Verification",
+      "[critical] Emergency fix to manager approval workflow - implement hard system stop preventing final approval without documented manager sign-off",
+      "[critical] Fix officer attribution system to enable individual accountability tracking",
+      "[high] Reconcile documented SOP with actual operational workflow - either update procedures or reconfigure system",
+      "[high] Formalize exception handling process with documented criteria, approval requirements, and audit trail",
+      "[high] Implement real-time deviation detection and alerting rather than batch processing",
+      "[medium] Analyze and eliminate 27-30 day processing bottleneck through resource reallocation or process automation",
+      "[medium] Implement proper case closure workflow for abandoned applications",
+      "[medium] Conduct root cause analysis on why Income Verification was universally abandoned",
+      "[low] Enhance compliance reporting to separate system configuration issues from actual policy violations"
+    ],
+    "api_calls_made": 2,
+    "deviations_analyzed": 185
+  }
+}

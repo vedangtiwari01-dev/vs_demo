@@ -30,6 +30,8 @@ const extractAndStoreNotesFromCSV = async (logs, csvData, notesColumn) => {
       if (notes && notes.trim() !== '') {
         // Use the helper method to store notes
         log.setNotes(notes.trim());
+        // CRITICAL: Mark metadata as changed so Sequelize saves nested JSON changes
+        log.changed('metadata', true);
         await log.save();
         notesCount++;
       }
@@ -77,22 +79,37 @@ const getNotesForCase = async (caseId) => {
  */
 const getNotesForAnalysis = async (caseIds) => {
   try {
+    logger.info(`[getNotesForAnalysis] Fetching logs for ${caseIds.length} case IDs`);
+
     const logs = await WorkflowLog.findAll({
       where: { case_id: caseIds },
       order: [['case_id', 'ASC'], ['timestamp', 'ASC']]
     });
 
+    logger.info(`[getNotesForAnalysis] Found ${logs.length} workflow logs`);
+
+    // Debug: Check first few logs
+    if (logs.length > 0) {
+      const sampleLog = logs[0];
+      logger.info(`[getNotesForAnalysis] Sample log metadata: ${JSON.stringify(sampleLog.metadata)}`);
+      logger.info(`[getNotesForAnalysis] Sample log getNotes(): ${sampleLog.getNotes()}`);
+    }
+
     // Group notes by case_id
     const notesByCase = {};
+    let logsWithNotes = 0;
     logs.forEach(log => {
       const notes = log.getNotes();
       if (notes) {
+        logsWithNotes++;
         if (!notesByCase[log.case_id]) {
           notesByCase[log.case_id] = [];
         }
         notesByCase[log.case_id].push(`[${log.step_name}] ${notes}`);
       }
     });
+
+    logger.info(`[getNotesForAnalysis] Found ${logsWithNotes} logs with notes out of ${logs.length} total`);
 
     // Combine multiple notes for each case
     const combinedNotes = {};

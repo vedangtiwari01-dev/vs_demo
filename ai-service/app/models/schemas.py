@@ -15,11 +15,25 @@ class RuleExtractionRequest(BaseModel):
     text: str
 
 class Rule(BaseModel):
-    type: str
-    description: str
-    step_number: Optional[int] = None
+    rule_type: str  # Changed from 'type' to match LLM output
+    rule_description: str  # Changed from 'description' to match LLM output
+    step_number: Optional[float] = None  # Changed from int to float to accept 2.1, 2.2, etc.
     severity: str = 'medium'
     condition_logic: Optional[Dict[str, Any]] = None
+
+    # Aliases for backward compatibility
+    class Config:
+        populate_by_name = True
+
+    @property
+    def type(self):
+        """Alias for rule_type"""
+        return self.rule_type
+
+    @property
+    def description(self):
+        """Alias for rule_description"""
+        return self.rule_description
 
 class RuleExtractionResponse(BaseModel):
     rules: List[Rule]

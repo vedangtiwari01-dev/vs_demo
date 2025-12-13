@@ -73,6 +73,35 @@ async def analyze_patterns(request: PatternAnalysisRequest):
     try:
         from app.services.deviation.notes_analyzer import NotesAnalyzer
         from app.models.schemas import PatternAnalysisResponse
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"Pattern analysis requested for {len(request.deviations)} deviations")
+
+        # Check if we have any deviations at all
+        if len(request.deviations) == 0:
+            logger.warning("No deviations provided for analysis")
+            return PatternAnalysisResponse(
+                overall_summary="No deviations provided for pattern analysis",
+                behavioral_patterns=[],
+                hidden_rules=[],
+                systemic_issues=[],
+                time_patterns=[],
+                justification_analysis={
+                    "most_common_reasons": [],
+                    "justified_count": 0,
+                    "not_justified_count": 0,
+                    "unclear_count": 0
+                },
+                risk_insights=["No deviations to analyze"],
+                recommendations=["Deviations must be detected before pattern analysis"],
+                api_calls_made=0,
+                deviations_analyzed=0
+            )
+
+        # Count deviations with notes (for logging)
+        deviations_with_notes = [d for d in request.deviations if d.get('notes')]
+        logger.info(f"Found {len(deviations_with_notes)} deviations with notes, {len(request.deviations) - len(deviations_with_notes)} without notes")
 
         # Initialize notes analyzer
         analyzer = NotesAnalyzer()
@@ -83,6 +112,12 @@ async def analyze_patterns(request: PatternAnalysisRequest):
         return PatternAnalysisResponse(**pattern_result)
 
     except Exception as e:
+        import logging
+        import traceback
+        logger = logging.getLogger(__name__)
+        logger.error(f"Pattern analysis failed: {str(e)}")
+        logger.error(traceback.format_exc())
+
         raise HTTPException(
             status_code=500,
             detail=f"Failed to analyze patterns: {str(e)}"

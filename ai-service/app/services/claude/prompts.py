@@ -325,10 +325,24 @@ def format_notes_analysis_prompt(deviation: Dict[str, Any], notes: str) -> str:
 # Batch Pattern Analysis Prompt (analyze ALL deviations together for trends)
 BATCH_PATTERN_ANALYSIS_PROMPT = """You are an expert compliance analyst examining patterns, trends, and hidden rules in loan processing deviations.
 
-You have been given {deviation_count} deviations that were detected by rule-based logic. Each deviation has associated notes/comments explaining why it occurred.
+You have been given {deviation_count} deviations that were detected by rule-based logic. Some deviations have notes/comments, others don't.
 
 **Your Task:**
-Instead of analyzing each deviation individually, find PATTERNS, TRENDS, HABITS, and HIDDEN RULES that govern these deviations across the entire dataset.
+Find PATTERNS, TRENDS, HABITS, and HIDDEN RULES across the entire dataset by analyzing:
+1. **Structured Data Patterns** (ALWAYS analyze these):
+   - Officer IDs: Which officers have most deviations?
+   - Case IDs: Distribution across cases
+   - Deviation Types: Most common violations
+   - Severity: Distribution of critical vs. low severity
+   - Timestamps: Time-based patterns (if available)
+   - Descriptions: Common themes in violation descriptions
+
+2. **Contextual Patterns** (when notes are available):
+   - Notes/comments explaining WHY deviations occurred
+   - Justifications provided by officers
+   - Systemic issues mentioned
+
+**IMPORTANT:** You MUST find patterns even when notes are not available. Focus on the structured data (officer IDs, types, severity, descriptions).
 
 **Deviations with Notes:**
 {deviations_with_notes}
@@ -410,9 +424,12 @@ def format_batch_pattern_analysis_prompt(deviations_with_notes: List[Dict[str, A
     """Format the batch pattern analysis prompt."""
     deviation_count = len(deviations_with_notes)
 
-    # Format deviations with notes into readable text
+    # Format ALL deviations (with or without notes) into readable text
     deviations_text = []
     for i, dev in enumerate(deviations_with_notes, 1):
+        notes = dev.get('notes', None)
+        notes_text = notes if notes else 'No notes/comments available'
+
         dev_text = f"""
 Deviation {i}:
 - Case ID: {dev.get('case_id')}
@@ -422,7 +439,8 @@ Deviation {i}:
 - Description: {dev.get('description')}
 - Expected: {dev.get('expected_behavior', 'N/A')}
 - Actual: {dev.get('actual_behavior', 'N/A')}
-- Notes: {dev.get('notes', 'No notes')}
+- Timestamp: {dev.get('detected_at', dev.get('created_at', 'N/A'))}
+- Notes: {notes_text}
 """
         deviations_text.append(dev_text.strip())
 

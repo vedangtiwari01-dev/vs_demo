@@ -44,13 +44,14 @@ class NotesAnalyzer:
         max_batch_size: int = 100
     ) -> Dict[str, Any]:
         """
-        Analyze patterns across ALL deviations with notes in a single batch API call.
+        Analyze patterns across ALL deviations in a single batch API call.
+        Works with or without notes - analyzes structured data patterns.
 
         This is the main method - finds trends, habits, hidden rules across all deviations.
         Much more cost-effective than individual analysis.
 
         Args:
-            deviations_with_notes: List of deviations that have notes
+            deviations_with_notes: List of ALL deviations (parameter name kept for compatibility)
             max_batch_size: Max deviations per API call (split if larger)
 
         Returns:
@@ -70,11 +71,16 @@ class NotesAnalyzer:
             return self._empty_pattern_analysis()
 
         if not deviations_with_notes:
-            logger.info("No deviations with notes to analyze")
+            logger.info("No deviations to analyze")
             return self._empty_pattern_analysis()
 
-        total_deviations = len(deviations_with_notes)
-        logger.info(f"Analyzing patterns across {total_deviations} deviations with notes")
+        # Accept ALL deviations, not just ones with notes
+        all_deviations = deviations_with_notes  # Keep parameter name for compatibility
+        total_deviations = len(all_deviations)
+
+        # Count how many have notes
+        with_notes_count = sum(1 for d in all_deviations if d.get('notes'))
+        logger.info(f"Analyzing patterns across {total_deviations} deviations ({with_notes_count} with notes, {total_deviations - with_notes_count} without)")
 
         # If dataset is large, split into batches
         if total_deviations > max_batch_size:
@@ -96,6 +102,13 @@ class NotesAnalyzer:
             # Extract and parse JSON response (handles markdown code fences)
             json_text = extract_json_from_text(response['text'])
             pattern_analysis = json.loads(json_text)
+
+            # Fix recommendations if Claude returned objects instead of strings
+            if 'recommendations' in pattern_analysis and isinstance(pattern_analysis['recommendations'], list):
+                pattern_analysis['recommendations'] = [
+                    rec if isinstance(rec, str) else f"[{rec.get('priority', 'NORMAL')}] {rec.get('recommendation', str(rec))}"
+                    for rec in pattern_analysis['recommendations']
+                ]
 
             # Validate response
             if not self._validate_pattern_analysis(pattern_analysis):

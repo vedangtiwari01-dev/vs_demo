@@ -27,13 +27,17 @@ class AIIntegrationService {
 
   async extractRules(sopText, useLLM = true) {
     try {
-      const response = await this.client.post('/ai/sop/extract-rules', {
-        text: sopText,
-        use_llm: useLLM,
-      });
+      // use_llm should be a query parameter, not in the body
+      const response = await this.client.post(
+        `/ai/sop/extract-rules?use_llm=${useLLM}`,
+        {
+          text: sopText,
+        }
+      );
       return response.data;
     } catch (error) {
       console.error('Error extracting rules:', error.message);
+      console.error('Error details:', error.response?.data || error);
       throw new Error('Failed to extract rules from SOP');
     }
   }
