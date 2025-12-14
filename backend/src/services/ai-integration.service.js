@@ -57,11 +57,22 @@ class AIIntegrationService {
 
   async analyzeDeviationPatterns(deviationsWithNotes) {
     try {
-      const response = await this.client.post('/ai/deviation/analyze-patterns', {
-        deviations: deviationsWithNotes,
-      });
+      console.log(`[AI Service] Analyzing ${deviationsWithNotes.length} deviations for patterns...`);
+
+      // Use extended timeout for pattern analysis (10 minutes)
+      const response = await this.client.post(
+        '/ai/deviation/analyze-patterns',
+        { deviations: deviationsWithNotes },
+        { timeout: 600000 } // 10 minutes
+      );
+
+      console.log('[AI Service] Pattern analysis complete');
       return response.data;
     } catch (error) {
+      if (error.code === 'ECONNABORTED') {
+        console.error('Error analyzing deviation patterns: Request timed out after 10 minutes');
+        throw new Error('Pattern analysis timed out - try analyzing fewer deviations');
+      }
       console.error('Error analyzing deviation patterns:', error.message);
       throw new Error('Failed to analyze deviation patterns');
     }

@@ -10,15 +10,30 @@ logger = logging.getLogger(__name__)
 def extract_json_from_text(text: str) -> str:
     """Extract JSON from text that might contain markdown code fences or extra text."""
     text = text.strip()
-    # Try to find JSON in markdown code fence
+
+    # Try to find JSON in markdown code fence (non-greedy match)
     json_fence_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
     if json_fence_match:
-        return json_fence_match.group(1)
-    # Try to find JSON object directly
-    json_match = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
-    if json_match:
-        return json_match.group(1)
+        json_text = json_fence_match.group(1)
+        return clean_json_string(json_text)
+
+    # Try to find JSON object directly (greedy match for complete object)
+    # Match from first { to last }
+    first_brace = text.find('{')
+    last_brace = text.rfind('}')
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        json_text = text[first_brace:last_brace + 1]
+        return clean_json_string(json_text)
+
     return text
+
+def clean_json_string(json_str: str) -> str:
+    """Clean common JSON formatting issues."""
+    # Remove trailing commas before closing braces/brackets
+    json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
+    # Remove any text before first { or after last }
+    json_str = json_str.strip()
+    return json_str
 
 class ColumnMapper:
     """
@@ -76,7 +91,18 @@ class ColumnMapper:
 
             # Extract and parse JSON response (handles markdown code fences)
             json_text = extract_json_from_text(response['text'])
-            result = json.loads(json_text)
+
+            # Log the extracted JSON for debugging
+            logger.info(f"Extracted JSON (first 500 chars): {json_text[:500]}")
+
+            try:
+                result = json.loads(json_text)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse JSON: {str(e)}")
+                logger.error(f"JSON text around error (chars {max(0, e.pos-100)}:{e.pos+100}):")
+                logger.error(json_text[max(0, e.pos-100):e.pos+100])
+                logger.error(f"Full Claude response: {response['text'][:1000]}")
+                raise
 
             # Validate the response structure
             if not self._validate_mapping_result(result):
@@ -88,6 +114,7 @@ class ColumnMapper:
 
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse Claude response as JSON: {str(e)}")
+            logger.info("Using fallback mapping due to JSON parse error")
             return self._fallback_mapping(headers)
         except Exception as e:
             logger.error(f"Error analyzing headers with Claude: {str(e)}")
@@ -107,8 +134,14 @@ class ColumnMapper:
         if not all(key in result for key in required_keys):
             return False
 
+        # Check that mappings are simple strings, not nested objects
+        if not isinstance(result['mappings'], dict):
+            logger.error("Mappings must be a dictionary")
+            return False
+
         # Check that we have mappings for all required fields
-        mapped_fields = {m['system_field'] for m in result['mappings'].values()}
+        # Mappings should now be simple: {"CSV_Col": "system_field"}
+        mapped_fields = set(result['mappings'].values())
         missing_required = set(self.REQUIRED_FIELDS) - mapped_fields
 
         if missing_required:
@@ -154,11 +187,8 @@ class ColumnMapper:
 
             for system_field, patterns in mapping_rules.items():
                 if any(pattern.lower() == header_lower or pattern.lower() in header_lower for pattern in patterns):
-                    mappings[header] = {
-                        'system_field': system_field,
-                        'confidence': 0.8,  # Lower confidence for fallback
-                        'reasoning': f'Fallback rule matched "{header}" to "{system_field}"'
-                    }
+                    # Simple string mapping (no nested objects)
+                    mappings[header] = system_field
                     if system_field in ['notes', 'comments'] and not notes_column:
                         notes_column = header
                     mapped = True
@@ -168,7 +198,7 @@ class ColumnMapper:
                 unmapped.append(header)
 
         # Check for missing required fields
-        mapped_fields = {m['system_field'] for m in mappings.values()}
+        mapped_fields = set(mappings.values())
         missing_required = set(self.REQUIRED_FIELDS) - mapped_fields
 
         warnings = []
@@ -228,13 +258,9 @@ class ColumnMapper:
             "-" * 50
         ]
 
-        for csv_col, mapping in mapping_result['mappings'].items():
-            confidence = mapping['confidence']
-            confidence_icon = "✓" if confidence > 0.8 else "⚠" if confidence > 0.5 else "✗"
-            summary_lines.append(
-                f"{confidence_icon} {csv_col} → {mapping['system_field']} "
-                f"(confidence: {confidence:.2%})"
-            )
+        # Mappings are now simple strings: {"CSV_Col": "system_field"}
+        for csv_col, system_field in mapping_result['mappings'].items():
+            summary_lines.append(f"✓ {csv_col} → {system_field}")
 
         if mapping_result['notes_column']:
             summary_lines.append(f"\n📝 Notes column detected: {mapping_result['notes_column']}")

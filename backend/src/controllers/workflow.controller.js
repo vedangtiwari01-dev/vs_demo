@@ -297,21 +297,33 @@ const analyzeHeaders = async (req, res, next) => {
     const headers = Object.keys(parsed.data[0]);
     const sampleRows = parsed.data.slice(0, 3);
 
+    console.log('[analyzeHeaders] CSV headers:', headers);
+    console.log('[analyzeHeaders] Sample rows:', JSON.stringify(sampleRows).substring(0, 200));
+
     // Call AI service for intelligent mapping
     const mappingResult = await columnMappingService.analyzeHeaders(headers, sampleRows);
+
+    console.log('[analyzeHeaders] Mapping result:', JSON.stringify(mappingResult).substring(0, 500));
+
+    // Validate that we got mappings
+    if (!mappingResult || !mappingResult.mappings) {
+      console.error('[analyzeHeaders] AI service returned no mappings:', mappingResult);
+      return errorResponse(res, 'AI service failed to generate column mappings', 500);
+    }
 
     return successResponse(
       res,
       {
         headers,
         mapping_suggestions: mappingResult.mappings,
-        notes_column: mappingResult.notes_column,
-        unmapped_columns: mappingResult.unmapped_columns,
-        warnings: mappingResult.warnings
+        notes_column: mappingResult.notes_column || null,
+        unmapped_columns: mappingResult.unmapped_columns || [],
+        warnings: mappingResult.warnings || []
       },
       'CSV headers analyzed successfully'
     );
   } catch (error) {
+    console.error('[analyzeHeaders] Error:', error);
     next(error);
   }
 };
@@ -321,18 +333,38 @@ const uploadWithMapping = async (req, res, next) => {
     const file = req.file;
     const { mapping, sop_id } = req.body;
 
+    console.log('[uploadWithMapping] Received mapping field type:', typeof mapping);
+    console.log('[uploadWithMapping] Mapping value:', typeof mapping === 'string' ? mapping.substring(0, 200) : mapping);
+
     if (!file) {
       return errorResponse(res, 'No file uploaded', 400);
     }
 
-    if (!mapping) {
-      return errorResponse(res, 'Column mapping not provided', 400);
+    if (!mapping || mapping === 'undefined' || mapping === 'null') {
+      console.error('[uploadWithMapping] Invalid mapping received:', mapping);
+      return errorResponse(res, 'Column mapping not provided or invalid', 400);
     }
 
     // Parse mapping from JSON string if needed
-    const columnMapping = typeof mapping === 'string' ? JSON.parse(mapping) : mapping;
+    let columnMapping;
+    try {
+      columnMapping = typeof mapping === 'string' ? JSON.parse(mapping) : mapping;
+    } catch (parseError) {
+      console.error('[uploadWithMapping] JSON parse error:', parseError.message);
+      return errorResponse(res, 'Invalid JSON in column mapping', 400);
+    }
 
-    // Validate mapping
+    console.log('[uploadWithMapping] Parsed column mapping:', JSON.stringify(columnMapping).substring(0, 300));
+
+    // Validate mapping format (should be simple strings: { "CSV_Col": "system_field" })
+    for (const [csvColumn, mappingValue] of Object.entries(columnMapping)) {
+      if (typeof mappingValue !== 'string') {
+        console.error(`[uploadWithMapping] Invalid mapping format for ${csvColumn}:`, mappingValue);
+        return errorResponse(res, `Invalid mapping format: ${csvColumn} must map to a string value`, 400);
+      }
+    }
+
+    // Validate mapping has all required fields
     const validation = columnMappingService.validateMapping(columnMapping);
     if (!validation.isValid) {
       return errorResponse(res, validation.message, 400);
@@ -356,9 +388,10 @@ const uploadWithMapping = async (req, res, next) => {
     const notesColumn = columnMappingService.detectNotesColumn(columnMapping);
 
     // Debug logging
-    console.log('[uploadWithMapping] Column mapping:', JSON.stringify(columnMapping, null, 2));
+    console.log('[uploadWithMapping] Column mapping used:', JSON.stringify(columnMapping, null, 2));
     console.log('[uploadWithMapping] Detected notes column:', notesColumn);
     console.log('[uploadWithMapping] CSV has', Object.keys(parsed.data[0] || {}).length, 'columns');
+    console.log('[uploadWithMapping] Transformed', transformedData.length, 'rows');
 
     // Create workflow logs
     const savedLogs = [];
@@ -383,7 +416,9 @@ const uploadWithMapping = async (req, res, next) => {
           timestamp: new Date(row.timestamp),
           duration_seconds: row.duration_seconds ? parseInt(row.duration_seconds) : null,
           status: row.status || 'completed',
-          metadata: {},
+          metadata: {
+            original_filename: file.originalname
+          },
           is_synthetic: false,
         });
 
@@ -456,21 +491,19 @@ const uploadWithMapping = async (req, res, next) => {
 
 const analyzePatterns = async (req, res, next) => {
   try {
-    // Get all deviations with notes
+    // Get recent deviations (limit to 50 to avoid timeouts)
     const deviations = await Deviation.findAll({
-      where: {
-        notes: {
-          [require('sequelize').Op.ne]: null
-        }
-      },
       order: [['detected_at', 'DESC']],
+      limit: 50,
     });
 
     if (deviations.length === 0) {
       return successResponse(res, {
-        message: 'No deviations with notes found for pattern analysis'
+        message: 'No deviations found for pattern analysis'
       });
     }
+
+    console.log(`[analyzePatterns] Analyzing ${deviations.length} deviations`);
 
     // Format deviations for AI analysis
     const deviationsWithNotes = deviations.map(dev => ({
@@ -481,11 +514,13 @@ const analyzePatterns = async (req, res, next) => {
       description: dev.description,
       expected_behavior: dev.expected_behavior,
       actual_behavior: dev.actual_behavior,
-      notes: dev.notes
+      notes: dev.notes || null
     }));
 
-    // Call AI service for pattern analysis (1 API call for all deviations!)
+    // Call AI service for pattern analysis
+    console.log('[analyzePatterns] Sending to AI service...');
     const patternAnalysis = await aiService.analyzeDeviationPatterns(deviationsWithNotes);
+    console.log('[analyzePatterns] AI analysis complete');
 
     return successResponse(
       res,
@@ -501,6 +536,97 @@ const analyzePatterns = async (req, res, next) => {
   }
 };
 
+const listWorkflowFiles = async (req, res, next) => {
+  try {
+    const { sequelize } = require('../config/database');
+
+    // Group workflow logs by upload session (uploaded_at)
+    // Each upload session represents one file
+    const uploadSessions = await WorkflowLog.findAll({
+      attributes: [
+        [sequelize.fn('strftime', '%Y-%m-%d %H:%M:%S', sequelize.col('uploaded_at')), 'upload_timestamp'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'total_logs'],
+        [sequelize.fn('COUNT', sequelize.fn('DISTINCT', sequelize.col('case_id'))), 'unique_cases'],
+        [sequelize.fn('MAX', sequelize.col('is_synthetic')), 'is_generated'],
+        [sequelize.fn('MAX', sequelize.col('uploaded_at')), 'uploaded_at'],
+        [sequelize.fn('MAX', sequelize.col('metadata')), 'metadata'],
+      ],
+      group: [sequelize.fn('strftime', '%Y-%m-%d %H:%M:%S', sequelize.col('uploaded_at'))],
+      order: [[sequelize.fn('MAX', sequelize.col('uploaded_at')), 'DESC']],
+      raw: true,
+    });
+
+    // Transform to frontend-expected format
+    const files = uploadSessions.map((session, index) => {
+      const uploadDate = new Date(session.uploaded_at);
+      const dateStr = uploadDate.toISOString().replace(/[-:]/g, '').replace('T', '_').substring(0, 15);
+
+      // Try to get original filename from metadata
+      let filename;
+      if (session.metadata) {
+        try {
+          const metadata = typeof session.metadata === 'string'
+            ? JSON.parse(session.metadata)
+            : session.metadata;
+
+          // Use original filename if available
+          if (metadata.original_filename) {
+            filename = metadata.original_filename;
+          } else if (session.is_generated && metadata.scenario_type) {
+            filename = `synthetic_${metadata.scenario_type}_${dateStr}.csv`;
+          }
+        } catch (e) {
+          // If parsing fails, use default
+        }
+      }
+
+      // Fallback to generated name if no filename found
+      if (!filename) {
+        filename = session.is_generated
+          ? `synthetic_${dateStr}.csv`
+          : `workflow_${dateStr}.csv`;
+      }
+
+      return {
+        id: session.upload_timestamp, // Use timestamp as unique ID
+        filename: filename,
+        uploaded_at: session.uploaded_at,
+        total_logs: parseInt(session.total_logs),
+        unique_cases: parseInt(session.unique_cases),
+        is_generated: Boolean(session.is_generated),
+      };
+    });
+
+    return successResponse(res, { files }, 'Workflow files retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteWorkflowFile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { sequelize } = require('../config/database');
+
+    // The ID is the upload_timestamp in format 'YYYY-MM-DD HH:MM:SS'
+    // Delete all logs with this upload timestamp
+    const deleted = await WorkflowLog.destroy({
+      where: sequelize.where(
+        sequelize.fn('strftime', '%Y-%m-%d %H:%M:%S', sequelize.col('uploaded_at')),
+        id
+      ),
+    });
+
+    if (deleted === 0) {
+      return errorResponse(res, 'Workflow file not found', 404);
+    }
+
+    return successResponse(res, { deleted_count: deleted }, 'Workflow file deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   uploadWorkflowLogs,
   listWorkflowLogs,
@@ -509,4 +635,6 @@ module.exports = {
   analyzeHeaders,
   uploadWithMapping,
   analyzePatterns,
+  listWorkflowFiles,
+  deleteWorkflowFile,
 };

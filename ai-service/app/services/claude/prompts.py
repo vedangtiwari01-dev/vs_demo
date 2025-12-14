@@ -71,11 +71,9 @@ Sample data from first 3 rows:
 - comments: Additional comments
 
 **Your Task:**
-1. Map each CSV column to the most appropriate system field
-2. Assign a confidence score (0.0 to 1.0) for each mapping
-3. Provide reasoning for each mapping decision
-4. Identify which column (if any) contains notes/comments
-5. Flag any columns that don't map to system fields
+1. Map each CSV column to the most appropriate system field (use simple string values ONLY)
+2. Identify which column (if any) contains notes/comments
+3. Flag any columns that don't map to system fields
 
 **Important:**
 - Use semantic meaning, not just exact name matches
@@ -85,19 +83,33 @@ Sample data from first 3 rows:
 - "Decision" could map to either "action" or "status"
 - Notes columns might be named: "Notes", "Comments", "Remarks", "Explanation", "Justification"
 
-Return your analysis as JSON:
+**CRITICAL - Return Format:**
+Return ONLY this exact JSON structure (simple string mappings, NO nested objects, NO confidence scores, NO reasoning):
 {{
   "mappings": {{
-    "CSV_Column_Name": {{
-      "system_field": "case_id|officer_id|step_name|action|timestamp|duration_seconds|status|notes|comments",
-      "confidence": 0.95,
-      "reasoning": "Explanation of why this mapping makes sense"
-    }}
+    "CSV_Column_Name": "system_field_name"
   }},
   "notes_column": "Name of column containing notes/comments, or null",
   "unmapped_columns": ["columns", "that", "dont", "map"],
   "warnings": ["Any concerns or ambiguities to flag for the user"]
-}}"""
+}}
+
+Example of correct format:
+{{
+  "mappings": {{
+    "Loan_ID": "case_id",
+    "User": "officer_id",
+    "Activity": "step_name",
+    "Decision": "action",
+    "Timestamp": "timestamp",
+    "Notes": "notes"
+  }},
+  "notes_column": "Notes",
+  "unmapped_columns": ["Loan_Amount", "Credit_Score"],
+  "warnings": []
+}}
+
+DO NOT include nested objects. Each mapping value MUST be a simple string."""
 
 # Deviation Analysis Prompt
 DEVIATION_ANALYSIS_PROMPT = """You are an expert compliance analyst for loan processing workflows. Your job is to analyze workflow logs against SOP rules and identify deviations.

@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 import { Upload } from 'lucide-react';
 
-const FileUpload = ({ onFileSelect, accept, maxSize = 50 }) => {
+const FileUpload = ({ onFileSelect, accept, maxSize = 50, disabled = false }) => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const inputId = useId();
 
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (disabled) return;
+
     if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
     } else if (e.type === 'dragleave') {
@@ -20,6 +23,8 @@ const FileUpload = ({ onFileSelect, accept, maxSize = 50 }) => {
     e.stopPropagation();
     setDragActive(false);
 
+    if (disabled) return;
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
@@ -27,6 +32,8 @@ const FileUpload = ({ onFileSelect, accept, maxSize = 50 }) => {
 
   const handleChange = (e) => {
     e.preventDefault();
+    if (disabled) return;
+
     if (e.target.files && e.target.files[0]) {
       handleFile(e.target.files[0]);
     }
@@ -45,7 +52,11 @@ const FileUpload = ({ onFileSelect, accept, maxSize = 50 }) => {
   return (
     <div
       className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-        dragActive ? 'border-primary-500 bg-primary-50' : 'border-gray-300'
+        disabled
+          ? 'border-secondary-600 bg-secondary-800/30 opacity-50 cursor-not-allowed'
+          : dragActive
+            ? 'border-primary-400 bg-primary-900/20'
+            : 'border-secondary-600 hover:border-primary-500/50 bg-secondary-800/20'
       }`}
       onDragEnter={handleDrag}
       onDragLeave={handleDrag}
@@ -54,23 +65,26 @@ const FileUpload = ({ onFileSelect, accept, maxSize = 50 }) => {
     >
       <input
         type="file"
-        id="file-upload"
+        id={inputId}
         className="hidden"
         accept={accept}
         onChange={handleChange}
+        disabled={disabled}
       />
-      <label htmlFor="file-upload" className="cursor-pointer">
-        <Upload className="mx-auto h-12 w-12 text-gray-400" />
-        <p className="mt-2 text-sm text-gray-600">
-          <span className="font-semibold text-primary-600">Click to upload</span> or drag and drop
+      <label htmlFor={inputId} className={disabled ? 'cursor-not-allowed' : 'cursor-pointer'}>
+        <Upload className={`mx-auto h-12 w-12 ${disabled ? 'text-secondary-500' : 'text-primary-400'}`} />
+        <p className="mt-2 text-sm text-primary-200">
+          <span className={`font-semibold ${disabled ? 'text-secondary-400' : 'text-primary-300'}`}>
+            Click to upload
+          </span> or drag and drop
         </p>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-primary-400 mt-1">
           {accept} (max {maxSize}MB)
         </p>
       </label>
       {selectedFile && (
-        <div className="mt-4 text-sm text-gray-700">
-          Selected: <span className="font-medium">{selectedFile.name}</span>
+        <div className="mt-4 text-sm text-cyan-200">
+          Selected: <span className="font-medium text-cyan-100">{selectedFile.name}</span>
         </div>
       )}
     </div>

@@ -25,4 +25,9 @@ export const workflowAPI = {
     const response = await apiClient.post('/workflows/analyze');
     return response.data;
   },
+
+  analyzePatterns: async () => {
+    const response = await apiClient.post('/workflows/analyze-patterns');
+    return response.data;
+  },
 };

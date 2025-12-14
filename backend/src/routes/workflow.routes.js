@@ -10,9 +10,15 @@ router.post('/upload-with-mapping', upload.single('logs'), workflowController.up
 // Original upload (kept for backward compatibility)
 router.post('/upload', upload.single('logs'), workflowController.uploadWorkflowLogs);
 
+// File management endpoints
+router.get('/list-files', workflowController.listWorkflowFiles);
+
 // Query endpoints
 router.get('/', workflowController.listWorkflowLogs);
 router.get('/:caseId', workflowController.getWorkflowByCase);
+
+// Delete endpoint (must be before /:caseId to avoid conflict)
+router.delete('/:id', workflowController.deleteWorkflowFile);
 
 // Analysis endpoints
 router.post('/analyze', workflowController.analyzeWorkflow);
