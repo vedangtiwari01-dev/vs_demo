@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import SOPUploadWidget from '../components/analysis/SOPUploadWidget';
 import WorkflowUploadWidget from '../components/analysis/WorkflowUploadWidget';
 import AnalyzeButton from '../components/analysis/AnalyzeButton';
@@ -9,6 +9,14 @@ const AnalysisHub = () => {
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const analyzeButtonRef = useRef(null);
+
+  const handleReanalyze = () => {
+    // Trigger analysis by calling the AnalyzeButton's method
+    if (analyzeButtonRef.current) {
+      analyzeButtonRef.current.triggerAnalysis();
+    }
+  };
 
   return (
     <div className="flex w-full h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-blue-50 relative overflow-hidden">
@@ -46,6 +54,7 @@ const AnalysisHub = () => {
           />
 
           <AnalyzeButton
+            ref={analyzeButtonRef}
             selectedSop={selectedSop}
             selectedWorkflow={selectedWorkflow}
             onAnalyze={setAnalysisResult}
@@ -60,6 +69,7 @@ const AnalysisHub = () => {
         <ResultsViewer
           analysisResult={analysisResult}
           isAnalyzing={isAnalyzing}
+          onReanalyze={handleReanalyze}
         />
       </main>
     </div>

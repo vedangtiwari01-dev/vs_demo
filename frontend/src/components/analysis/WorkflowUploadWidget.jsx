@@ -70,7 +70,23 @@ const WorkflowUploadWidget = ({ selectedWorkflow, onSelectWorkflow }) => {
 
       console.log('Upload response:', uploadResponse.data);
 
-      toast.success(`✓ ${file.name} uploaded and processed successfully!`);
+      // Extract upload response data
+      const uploadData = uploadResponse.data.data || uploadResponse.data;
+      const { total_logs, rows_skipped, errors, total_rows_processed } = uploadData;
+
+      // Show appropriate toast based on results
+      if (rows_skipped > 0) {
+        toast.success(
+          `✓ Upload complete: ${total_logs}/${total_rows_processed} rows imported\n⚠️ ${rows_skipped} rows skipped (check console for details)`,
+          { duration: 5000 }
+        );
+        if (errors && errors.length > 0) {
+          console.warn(`[Upload Errors] ${rows_skipped} rows were skipped:`, errors);
+        }
+      } else {
+        toast.success(`✓ ${file.name} uploaded successfully! ${total_logs} logs imported.`);
+      }
+
       setIsCollapsed(true); // Auto-collapse after success
       setUploadProgress('');
 
@@ -119,7 +135,7 @@ const WorkflowUploadWidget = ({ selectedWorkflow, onSelectWorkflow }) => {
             <span className="font-semibold text-cyan-300">Workflow Logs</span>
             <ChevronDown className="w-5 h-5 text-cyan-400" />
           </div>
-          <div className="mt-2 text-sm text-primary-200">
+          <div className="mt-2 text-sm text-primary-200 truncate" title={selectedWorkflow.filename}>
             ✓ {selectedWorkflow.filename}
           </div>
         </div>
@@ -174,19 +190,19 @@ const WorkflowUploadWidget = ({ selectedWorkflow, onSelectWorkflow }) => {
                   onClick={() => handleSelectWorkflow(workflow)}
                 >
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
                         <input
                           type="radio"
                           checked={selectedWorkflow?.id === workflow.id}
                           onChange={() => handleSelectWorkflow(workflow)}
-                          className="mt-0.5 accent-primary-500"
+                          className="mt-0.5 accent-primary-500 flex-shrink-0"
                         />
-                        <span className="text-sm font-medium text-cyan-100">
+                        <span className="text-sm font-medium text-cyan-100 truncate" title={workflow.filename}>
                           {workflow.filename}
                         </span>
                         {workflow.is_generated && (
-                          <span className="px-2 py-0.5 text-xs bg-purple-500/30 text-purple-200 rounded border border-purple-400/30">
+                          <span className="px-2 py-0.5 text-xs bg-purple-500/30 text-purple-200 rounded border border-purple-400/30 flex-shrink-0">
                             Generated
                           </span>
                         )}

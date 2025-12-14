@@ -1,12 +1,13 @@
+import { forwardRef, useImperativeHandle } from 'react';
 import { Loader, Play } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { workflowAPI } from '../../api/workflow.api';
 
-const AnalyzeButton = ({ selectedSop, selectedWorkflow, onAnalyze, isAnalyzing, setIsAnalyzing }) => {
+const AnalyzeButton = forwardRef(({ selectedSop, selectedWorkflow, onAnalyze, isAnalyzing, setIsAnalyzing }, ref) => {
   const isEnabled = selectedSop && selectedWorkflow && !isAnalyzing;
 
   const handleAnalyze = async () => {
-    if (!isEnabled) return;
+    if (!selectedSop || !selectedWorkflow || isAnalyzing) return;
 
     setIsAnalyzing(true);
     try {
@@ -14,19 +15,30 @@ const AnalyzeButton = ({ selectedSop, selectedWorkflow, onAnalyze, isAnalyzing, 
       toast.loading('Detecting deviations...', { id: 'analysis' });
       const deviationResponse = await workflowAPI.analyze();
 
+      console.log('Deviation response:', deviationResponse);
+
       // Step 2: Run pattern analysis
       toast.loading('Analyzing patterns with AI...', { id: 'analysis' });
       const patternResponse = await workflowAPI.analyzePatterns();
 
+      console.log('Pattern response:', patternResponse);
+
+      // Extract data from nested response structure
+      // Backend wraps response in { success, message, data: {...} }
+      const deviationData = deviationResponse.data.data || deviationResponse.data;
+      const patternData = patternResponse.data.data || patternResponse.data;
+
       // Combine results
       const analysisResult = {
-        deviations: deviationResponse.data.deviations || [],
-        summary: deviationResponse.data.summary || {},
-        patterns: patternResponse.data || {},
+        deviations: deviationData.deviations || [],
+        summary: deviationData.summary || {},
+        patterns: patternData.patterns || patternData,
         sop: selectedSop,
         workflow: selectedWorkflow,
         timestamp: new Date().toISOString()
       };
+
+      console.log('Combined analysis result:', analysisResult);
 
       onAnalyze(analysisResult);
       toast.success('✓ Analysis complete!', { id: 'analysis' });
@@ -37,6 +49,11 @@ const AnalyzeButton = ({ selectedSop, selectedWorkflow, onAnalyze, isAnalyzing, 
       setIsAnalyzing(false);
     }
   };
+
+  // Expose triggerAnalysis method to parent via ref
+  useImperativeHandle(ref, () => ({
+    triggerAnalysis: handleAnalyze
+  }));
 
   if (!selectedSop || !selectedWorkflow) {
     return (
@@ -131,6 +148,8 @@ const AnalyzeButton = ({ selectedSop, selectedWorkflow, onAnalyze, isAnalyzing, 
       </div>
     </div>
   );
-};
+});
+
+AnalyzeButton.displayName = 'AnalyzeButton';
 
 export default AnalyzeButton;

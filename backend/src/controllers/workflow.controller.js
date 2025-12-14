@@ -190,9 +190,8 @@ const getWorkflowByCase = async (req, res, next) => {
 
 const analyzeWorkflow = async (req, res, next) => {
   try {
-    // Get all logs
+    // Get all logs (including synthetic logs for stress testing)
     const logs = await WorkflowLog.findAll({
-      where: { is_synthetic: false },
       order: [['case_id', 'ASC'], ['timestamp', 'ASC']],
     });
 
@@ -252,12 +251,20 @@ const analyzeWorkflow = async (req, res, next) => {
       savedDeviations.push(deviation);
     }
 
+    // Calculate overview metrics
+    const uniqueCases = new Set(logs.map(l => l.case_id));
+    const uniqueOfficers = new Set(logs.map(l => l.officer_id));
+
     return successResponse(
       res,
       {
         total_deviations: savedDeviations.length,
         deviations: savedDeviations,
         summary: {
+          total_cases: uniqueCases.size,
+          total_logs: logs.length,
+          total_officers: uniqueOfficers.size,
+          total_deviations: savedDeviations.length,
           critical: savedDeviations.filter(d => d.severity === 'critical').length,
           high: savedDeviations.filter(d => d.severity === 'high').length,
           medium: savedDeviations.filter(d => d.severity === 'medium').length,
@@ -468,18 +475,32 @@ const uploadWithMapping = async (req, res, next) => {
       await columnMappingService.saveMapping(sop_id, columnMapping, Object.keys(parsed.data[0]));
     }
 
-    const message = errors.length > 0
-      ? `Workflow logs uploaded with ${errors.length} error(s)`
-      : 'Workflow logs uploaded successfully';
+    // Prepare detailed message about upload results
+    const totalRows = transformedData.length;
+    const skippedRows = errors.length;
+    const successRows = savedLogs.length;
+
+    let message = `Workflow logs uploaded: ${successRows} of ${totalRows} rows successful`;
+    if (skippedRows > 0) {
+      message += ` (${skippedRows} rows skipped due to validation errors)`;
+    }
+
+    console.log(`[uploadWithMapping] Upload complete: ${successRows}/${totalRows} rows saved, ${skippedRows} errors`);
+    if (errors.length > 0) {
+      console.log('[uploadWithMapping] First 5 errors:', errors.slice(0, 5));
+    }
 
     return successResponse(
       res,
       {
+        total_rows_processed: totalRows,
         total_logs: savedLogs.length,
+        rows_skipped: skippedRows,
         unique_cases: new Set(savedLogs.map(l => l.case_id)).size,
         unique_officers: officers.size,
         notes_imported: notesCount,
-        errors: errors.length > 0 ? errors : undefined,
+        errors: errors.length > 0 ? errors.slice(0, 10) : [],  // Show first 10 errors
+        has_more_errors: errors.length > 10,
       },
       message,
       201

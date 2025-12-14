@@ -1,398 +1,395 @@
-# Loan Processing SOP Compliance & Deviation Detection System
-
-An AI-powered full-stack web application that extracts rules from Standard Operating Procedures (SOPs), analyzes workflow logs, detects compliance deviations, profiles officer behavior, and simulates stress-test scenarios.
+# ZenWolf - SOP Compliance Analysis System
 
 ## Overview
 
-In real loan processing operations, officers and analysts often deviate from SOPs due to time pressure, informal practices, system issues, or workload. These deviations create regulatory and financial risks. This system helps identify, analyze, and understand these deviations to improve compliance and operational efficiency.
+ZenWolf is an AI-powered compliance monitoring system that analyzes loan processing workflows against Standard Operating Procedures (SOPs) to detect deviations, identify patterns, and provide actionable insights.
 
-## Key Features
+## ⚠️ Key Concepts & Definitions
 
-### Core Compliance Features
-- **SOP Document Upload & Parsing**: Upload SOP documents (PDF/DOCX) and automatically extract compliance rules using NLP
-- **Workflow Log Analysis**: Upload workflow logs (CSV/JSON) and analyze actual processing steps
-- **Deviation Detection**: Automatically detect:
-  - Missing steps
-  - Wrong sequence
-  - Improper approvals
-  - Timing violations
-  - Control breaches
-- **Graphical Visualization**: Visual representation of process flows, deviations, and compliance metrics
+### Core Terms
 
-### Advanced Features
-- **Behavioral Pattern Profiling**: Detect individual and team-level behavioral patterns
-  - "Officer X repeatedly skips income verification when workload > 20 cases/day"
-  - "Analyst Y overrides collateral valuation when senior authority is unavailable"
-  - "Team A has 70% higher deviation rate than Team B"
-- **Stress Testing**: Generate synthetic workflow logs under extreme scenarios:
-  - Officer shortage (reduced staff, increased workload)
-  - Peak load (compressed timelines, high volume)
-  - System downtime (gaps in processing, batched operations)
-  - Regulatory changes (new required steps, adaptation period)
+| Term | Definition | Example |
+|------|------------|---------|
+| **Workflow Log** | A single step/action in the loan processing workflow | "Credit Check completed by Officer A on 2025-01-01" |
+| **Case** | A unique loan application being processed | Case ID: LN-18231 |
+| **Total Logs** | Number of workflow log entries (individual steps recorded) | 76 logs = 76 recorded actions |
+| **Unique Cases** | Number of distinct loan applications | 27 cases = 27 different loan applications |
+| **Deviation** | A violation of an SOP rule | Missing required step, wrong sequence, timing violation |
+| **Total Deviations** | Number of rule violations found | **Can be > Total Logs** (explained below) |
 
-## Tech Stack
+### ⚡ Why Can Deviations Exceed Total Logs?
 
-- **Backend**: Node.js + Express (RESTful API, file handling, business logic)
-- **Frontend**: React + Vite + Tailwind CSS (modern, responsive UI)
-- **AI Service**: Python + FastAPI (NLP, deviation detection, behavioral profiling)
-- **Database**: SQLite (zero-config, file-based)
-- **ML/NLP**: Rule-based logic with pattern matching (easily extensible to ML models)
+**CRITICAL UNDERSTANDING**: One workflow log can violate multiple rules simultaneously!
 
-## Architecture
+#### Example Scenario:
 
+**SOP Rules:**
+1. Rule 1: "Credit check MUST happen before loan approval" (Sequence rule)
+2. Rule 2: "Manager approval REQUIRED for loans > $50,000" (Approval rule)
+3. Rule 3: "Credit check must complete within 24 hours" (Timing rule)
+4. Rule 4: "Credit score verification is MANDATORY" (Validation rule)
+
+**Workflow Log:**
 ```
-┌─────────────────────────────────────────────┐
-│         Frontend (React + Vite)             │
-│      http://localhost:5174                  │
-└──────────────┬──────────────────────────────┘
-               │ REST API
-               │
-┌──────────────┴──────────────────────────────┐
-│       Backend (Node.js + Express)           │
-│         http://localhost:3000               │
-│    ├── File Upload & Management             │
-│    ├── Business Logic                       │
-│    └── SQLite Database                      │
-└──────────────┬──────────────────────────────┘
-               │ HTTP/JSON
-               │
-┌──────────────┴──────────────────────────────┐
-│      AI Service (Python + FastAPI)          │
-│         http://localhost:8000               │
-│    ├── NLP (SOP Parsing)                    │
-│    ├── Deviation Detection                  │
-│    ├── Behavioral Profiling                 │
-│    └── Synthetic Log Generation             │
-└─────────────────────────────────────────────┘
+Case: LN-18231
+Officer: j_doe
+Step: Loan Approval
+Action: Approved
+Timestamp: 2025-01-01 10:00
+Amount: $75,000
 ```
 
-## Prerequisites
+**Deviations Detected from this SINGLE log:**
+1. ❌ **Sequence Deviation**: Approval happened before credit check (violates Rule 1)
+2. ❌ **Approval Deviation**: No manager approval for $75K loan (violates Rule 2)
+3. ❌ **Missing Step Deviation**: Credit check step is missing entirely (violates Rule 4)
 
-- **Node.js**: 18.x or higher
-- **Python**: 3.9 or higher
-- **npm** or **yarn**
-- **pip** (Python package manager)
+**Result**: 1 workflow log → 3 deviations!
 
-## Installation & Setup
+### Real Data Example
 
-### 1. Clone the Repository
-
-```bash
-git clone <repository-url>
-cd vs_demo
+```
+Total Logs: 76 (76 individual workflow steps)
+Unique Cases: 27 (27 different loan applications)
+Total Deviations: 149 (149 rule violations)
+Average Deviations per Log: 149/76 = 1.96
 ```
 
-### 2. Backend Setup
+This means on average, each workflow step violates ~2 rules. This is **normal** in compliance analysis!
 
+## 📊 How Deviation Detection Works
+
+### Step-by-Step Process
+
+#### 1. SOP Rule Extraction
+
+The system extracts rules from your SOP document:
+
+```
+SOP Text:
+"Credit verification must be completed before proceeding to income assessment.
+The credit check must be performed within 24 hours of application receipt.
+All loans above $50,000 require manager approval."
+
+Rules Extracted:
+- Rule 1: type=sequence, description="Credit check before income assessment"
+- Rule 2: type=timing, description="Credit check within 24 hours", constraint="24 hours"
+- Rule 3: type=approval, description="Manager approval for loans >$50K"
+```
+
+#### 2. Workflow Log Analysis
+
+The system analyzes each case's workflow chronologically:
+
+**Example Case: LN-18231**
+
+```csv
+Loan_ID,Activity,User,Timestamp,Decision,Notes
+LN-18231,Application Received,System,01-01-2025 08:00,Initiated,Customer applied online
+LN-18231,Income Assessment,j_doe,01-01-2025 09:00,Completed,Income verified
+LN-18231,Credit Check,j_doe,01-02-2025 10:00,Completed,Score: 720
+LN-18231,Approval,j_doe,01-02-2025 11:00,Approved,Loan approved
+```
+
+#### 3. Rule-Based Deviation Detection
+
+**Check Rule 1: Sequence** (Credit check before income assessment)
+```python
+# Get all steps for case LN-18231, ordered by timestamp
+steps = ["Application Received", "Income Assessment", "Credit Check", "Approval"]
+
+# Check: Did "Credit Check" happen before "Income Assessment"?
+credit_check_index = 2
+income_assessment_index = 1
+
+if credit_check_index > income_assessment_index:
+    # DEVIATION DETECTED!
+    deviation = {
+        "case_id": "LN-18231",
+        "officer_id": "j_doe",
+        "deviation_type": "wrong_sequence",
+        "severity": "high",
+        "description": "Credit check performed AFTER income assessment",
+        "expected_behavior": "Credit check must happen before income assessment",
+        "actual_behavior": "Income assessment at 09:00, Credit check at 10:00 (next day)"
+    }
+```
+
+**Check Rule 2: Timing** (Credit check within 24 hours)
+```python
+application_time = datetime("01-01-2025 08:00")
+credit_check_time = datetime("01-02-2025 10:00")
+time_diff = credit_check_time - application_time  # 26 hours
+
+if time_diff > timedelta(hours=24):
+    # DEVIATION DETECTED!
+    deviation = {
+        "case_id": "LN-18231",
+        "deviation_type": "timing_violation",
+        "severity": "medium",
+        "description": "Credit check completed 26 hours after application",
+        "expected_behavior": "Credit check within 24 hours",
+        "actual_behavior": "Took 26 hours (2 hours late)"
+    }
+```
+
+**Check Rule 3: Approval** (Manager approval for >$50K)
+```python
+# Check if loan amount > $50,000 and if manager approved
+if loan_amount > 50000:
+    approval_logs = get_logs_for_case("LN-18231").filter(step="Approval")
+
+    # Check if any approval was by a manager
+    has_manager_approval = any(log.role == "Manager" for log in approval_logs)
+
+    if not has_manager_approval:
+        # DEVIATION DETECTED!
+        deviation = {
+            "case_id": "LN-18231",
+            "deviation_type": "unauthorized_approval",
+            "severity": "critical",
+            "description": "Loan >$50K approved without manager authorization",
+            "expected_behavior": "Manager approval required for loans >$50K",
+            "actual_behavior": "Approved by j_doe (Loan Officer, not Manager)"
+        }
+```
+
+**Result for Case LN-18231**: 3 deviations detected from 3 workflow logs!
+
+#### 4. Comprehensive Example with Multiple Cases
+
+**Your Data:**
+- 27 cases (loan applications)
+- 76 workflow logs (76 individual steps/actions across all 27 cases)
+- 18 SOP rules to check
+
+**Breakdown:**
+
+```
+Case LN-18231 (3 logs):
+  Log 1: Application Received ✓ (0 deviations)
+  Log 2: Income Assessment ✗ (2 deviations: wrong sequence, missing credit check)
+  Log 3: Credit Check ✗ (1 deviation: timing violation)
+  Total: 3 deviations from 3 logs
+
+Case LN-18232 (2 logs):
+  Log 1: Application Received ✓ (0 deviations)
+  Log 2: Approval ✗ (4 deviations: missing steps, unauthorized approval, wrong sequence, no validation)
+  Total: 4 deviations from 2 logs
+
+Case LN-18233 (4 logs):
+  All steps correct ✓ (0 deviations)
+  Total: 0 deviations from 4 logs
+
+... (24 more cases)
+
+GRAND TOTAL: 149 deviations from 76 logs across 27 cases
+```
+
+### Types of Deviations
+
+| Type | Description | Example |
+|------|-------------|---------|
+| **missing_step** | Required step was skipped | Credit check never performed |
+| **wrong_sequence** | Steps done in incorrect order | Approval before credit check |
+| **unauthorized_approval** | Wrong authority level | Officer approved $100K loan (needs manager) |
+| **timing_violation** | Time constraint not met | Credit check took 48 hours (limit: 24) |
+| **validation_failure** | Required validation not performed | Missing income verification |
+
+## 🏗️ System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         FRONTEND (React)                         │
+│  - Analysis Hub (upload SOP + workflow logs)                    │
+│  - Results Viewer (deviations, patterns, metrics)               │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    BACKEND (Node.js/Express)                     │
+│  - Workflow Controller: Analyze, detect deviations              │
+│  - SOP Controller: Upload, parse, extract rules                 │
+│  - Database: Store workflows, SOPs, deviations                  │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                AI SERVICE (Python/FastAPI + Claude)              │
+│  - SOP Parsing: Extract text from DOCX/PDF                      │
+│  - Rule Extraction: Use Claude to identify compliance rules     │
+│  - Column Mapping: AI-powered CSV header mapping                │
+│  - Pattern Analysis: Discover behavioral patterns               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## 🚀 Installation & Setup
+
+### Prerequisites
+- Node.js 18+
+- Python 3.9+
+- SQLite (included with Node.js)
+- Claude API Key (for AI features)
+
+### Backend Setup
 ```bash
 cd backend
-
-# Install dependencies
 npm install
-
-# Create .env file
 cp .env.example .env
-
-# Start the backend server
-npm run dev
+# Add your Claude API key to .env
+npm start
 ```
 
-The backend will run at `http://localhost:3000`
-
-### 3. AI Service Setup
-
+### AI Service Setup
 ```bash
 cd ai-service
-
-# Create virtual environment
 python -m venv venv
-
-# Activate virtual environment
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-
-# Install dependencies
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # Mac/Linux
 pip install -r requirements.txt
-
-# Start the AI service
+cp .env.example .env
+# Add your Claude API key to .env
 python main.py
 ```
 
-The AI service will run at `http://localhost:8000`
-
-### 4. Frontend Setup
-
+### Frontend Setup
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Create .env file
-cp .env.example .env
-
-# Start the development server
 npm run dev
 ```
 
-The frontend will run at `http://localhost:5174`
+## 📝 Usage Workflow
 
-## Usage Guide
+### 1. Upload SOP Document
+1. Go to Analysis Hub
+2. Click "SOP Documents" widget
+3. Upload .docx, .pdf, or .txt file
+4. System automatically:
+   - Parses the document
+   - Extracts compliance rules using AI
+   - Stores rules in database
 
-### Quick Start with Sample Data
+### 2. Upload Workflow Logs
+1. Click "Workflow Logs" widget
+2. Upload CSV file with loan processing logs
+3. System automatically:
+   - Analyzes CSV headers with AI
+   - Maps columns to system fields
+   - Imports workflow data
+   - Extracts notes/comments
 
-1. **Start all three services** (Backend, AI Service, Frontend)
+### 3. Run Analysis
+1. Select one SOP and one workflow log
+2. Click "Analyze Compliance"
+3. System performs:
+   - **Step 1**: Deviation detection (rule-based, ~5 sec)
+   - **Step 2**: Pattern analysis (AI-powered, ~30-60 sec)
 
-2. **Upload Sample SOP**:
-   - Navigate to **SOP Management** page
-   - Click "Upload SOP"
-   - Upload the sample SOP from `backend/sample-data/sample-sop-text.txt` (or convert to PDF)
-   - Click "Process" to extract rules
+### 4. Review Results
+- **Overview Metrics**: Total cases, logs, deviations, compliance rate
+- **Deviations by Type**: Breakdown by severity (critical, high, medium, low)
+- **Behavioral Patterns**: AI-discovered officer habits and shortcuts
+- **Hidden Rules**: Informal practices not in the SOP
+- **Systemic Issues**: Recurring problems needing process fixes
+- **Recommendations**: Actionable steps to improve compliance
 
-3. **Upload Sample Workflow Logs**:
-   - Navigate to **Workflow Analysis** page
-   - Upload `backend/sample-data/sample-workflow-logs.csv`
-   - Click "Analyze Workflow" to detect deviations
+## 📊 Metrics Explained
 
-4. **View Results**:
-   - **Dashboard**: Overview of compliance metrics
-   - **Deviations**: Detailed list of detected violations
-   - **Behavioral Profiling**: Officer risk matrix and behavioral patterns
+### Overview Metrics
 
-5. **Run Stress Test**:
-   - Navigate to **Stress Testing** page
-   - Select a scenario type (e.g., "Officer Shortage")
-   - Configure parameters
-   - Click "Generate Synthetic Logs"
-   - Analyze the generated logs to see deviation patterns under stress
+| Metric | Formula | Example | Explanation |
+|--------|---------|---------|-------------|
+| **Total Cases** | Count of unique loan applications | 27 distinct cases | Number of different loans being processed |
+| **Total Logs** | Count of workflow step records | 76 individual steps | Total number of actions recorded in the workflow |
+| **Total Officers** | Count of unique staff members | 5 different officers | Number of people involved in processing |
+| **Total Deviations** | Count of rule violations | 149 violations detected | **Can exceed Total Logs** - one log can have multiple violations |
+| **Compliance Rate** | `(1 - deviations/logs) × 100%` | `(1 - 149/76) × 100% = 0%`* | Percentage of compliant workflow steps |
 
-## API Documentation
+*Note: Compliance rate can be negative or 0% when deviations exceed logs, indicating severe non-compliance where multiple rules are violated per step.
 
-### Backend API Endpoints
+### Severity Breakdown
 
-**Base URL**: `http://localhost:3000/api`
+| Severity | Criteria | Impact | Action Required |
+|----------|----------|--------|-----------------|
+| **Critical** | Regulatory violation, major risk | Legal/financial exposure | Immediate action required |
+| **High** | SOP violation, significant risk | Operational risk | Priority remediation |
+| **Medium** | Process quality issue | Minor risk | Should be addressed |
+| **Low** | Best practice not followed | Minimal risk | Monitor and improve |
 
-#### SOP Management
-- `POST /sops/upload` - Upload SOP document
-- `GET /sops` - List all SOPs
-- `GET /sops/:id` - Get SOP details
-- `POST /sops/:id/process` - Process SOP and extract rules
-- `GET /sops/:id/rules` - Get extracted rules
-- `DELETE /sops/:id` - Delete SOP
-
-#### Workflow Logs
-- `POST /workflows/upload` - Upload workflow logs
-- `GET /workflows` - List workflow logs
-- `GET /workflows/:caseId` - Get logs for specific case
-- `POST /workflows/analyze` - Analyze logs and detect deviations
-
-#### Deviations
-- `GET /deviations` - List deviations (supports filters)
-- `GET /deviations/:id` - Get deviation details
-- `GET /deviations/summary` - Get deviation summary statistics
-- `GET /deviations/by-officer` - Group deviations by officer
-- `GET /deviations/by-type` - Group deviations by type
-
-#### Behavioral Profiling
-- `GET /behavioral/officers` - List officers with profiles
-- `GET /behavioral/officers/:id` - Get officer profile details
-- `POST /behavioral/officers/profile` - Build officer profile
-- `GET /behavioral/patterns` - Get detected behavioral patterns
-- `POST /behavioral/patterns/analyze` - Analyze patterns for officer
-- `GET /behavioral/risk-matrix` - Get team risk matrix
-
-#### Stress Testing
-- `POST /stress-test/scenarios` - Create stress test scenario
-- `GET /stress-test/scenarios` - List scenarios
-- `POST /stress-test/generate` - Generate synthetic logs
-
-#### Analytics
-- `GET /analytics/dashboard` - Get dashboard summary
-- `GET /analytics/compliance-rate` - Calculate compliance rate
-- `GET /analytics/trends` - Get deviation trends over time
-- `GET /analytics/process-flow` - Get process flow visualization data
-
-### AI Service Endpoints
-
-**Base URL**: `http://localhost:8000`
-
-- `POST /ai/sop/parse` - Parse SOP document
-- `POST /ai/sop/extract-rules` - Extract rules from text
-- `POST /ai/deviation/detect` - Detect all deviations
-- `POST /ai/behavioral/profile` - Build behavioral profile
-- `POST /ai/behavioral/patterns` - Detect behavioral patterns
-- `POST /ai/synthetic/generate` - Generate synthetic logs
-
-## Database Schema
-
-The system uses SQLite with the following core tables:
-
-- **sops**: Uploaded SOP documents
-- **sop_rules**: Extracted rules from SOPs
-- **workflow_logs**: All workflow event logs
-- **officers**: Officer information
-- **deviations**: Detected compliance violations
-- **behavioral_profiles**: Officer behavior metrics
-- **behavioral_patterns**: Specific behavior patterns
-- **stress_test_scenarios**: Stress test configurations
-
-## Project Structure
+## 📁 Project Structure
 
 ```
-loan-sop-compliance-system/
-├── backend/                 # Node.js Express Backend
+vs_demo/
+├── backend/              # Node.js/Express API
 │   ├── src/
-│   │   ├── config/         # Database and AI service config
-│   │   ├── models/         # Sequelize models (8 tables)
-│   │   ├── routes/         # API routes
-│   │   ├── controllers/    # Business logic
-│   │   ├── services/       # AI integration, file upload
-│   │   ├── middleware/     # Error handling, validation
-│   │   └── utils/          # Helper functions
-│   ├── uploads/            # Uploaded files
-│   ├── sample-data/        # Sample SOP and logs
-│   ├── package.json
-│   └── server.js
-│
-├── frontend/                # React + Vite Frontend
-│   ├── src/
-│   │   ├── api/            # API client and endpoints
-│   │   ├── components/     # Reusable components
-│   │   │   ├── common/     # Button, Card, FileUpload, Loading
-│   │   │   └── layout/     # Navbar, Layout
-│   │   ├── pages/          # Main application pages
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── SOPManagement.jsx
-│   │   │   ├── WorkflowAnalysis.jsx
-│   │   │   ├── DeviationDetection.jsx
-│   │   │   ├── BehavioralProfiling.jsx
-│   │   │   └── StressTesting.jsx
-│   │   ├── utils/          # Constants, helpers
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── package.json
-│   └── index.html
-│
-└── ai-service/              # Python FastAPI AI Microservice
-    ├── app/
-    │   ├── models/         # Pydantic schemas
-    │   ├── routers/        # API endpoints
-    │   ├── services/       # Core AI logic
-    │   │   ├── nlp/        # SOP parsing, rule extraction
-    │   │   ├── deviation/  # Deviation detection logic
-    │   │   ├── behavioral/ # Behavioral profiling
-    │   │   └── synthetic/  # Synthetic log generation
-    │   └── utils/
-    ├── requirements.txt
-    └── main.py
+│   │   ├── controllers/  # Request handlers
+│   │   ├── models/       # Sequelize database models
+│   │   ├── routes/       # API endpoints
+│   │   └── services/     # Business logic
+│   └── database.sqlite   # SQLite database
+├── ai-service/           # Python/FastAPI AI service
+│   ├── app/
+│   │   ├── routers/      # API endpoints
+│   │   ├── services/     # Claude integration
+│   │   └── models/       # Pydantic schemas
+│   └── main.py          # FastAPI entry point
+├── frontend/             # React application
+│   └── src/
+│       ├── components/   # React components
+│       ├── pages/        # Page components
+│       └── api/          # API client functions
+└── README.md            # This file
 ```
 
-## Development
+## 🔧 Troubleshooting
 
-### Adding New Rules
-
-Edit `ai-service/app/services/nlp/rule_parser.py` to add new pattern matching rules for SOP parsing.
-
-### Extending ML Capabilities
-
-The current implementation uses rule-based logic. To add machine learning:
-
-1. Install additional dependencies (scikit-learn, spaCy models)
-2. Train models on historical data
-3. Replace rule-based logic in deviation detection services
-4. Update Pydantic schemas for ML model outputs
-
-### Database Migrations
-
-SQLite schema is auto-synced via Sequelize. For PostgreSQL in production:
-
+### AI Service Won't Stop
 ```bash
-# Update connection string in backend/src/config/database.js
-# Run migrations
-npm run migrate
+# Use the kill script
+kill_ai_service.bat
+
+# Or manually
+netstat -ano | findstr :8000
+taskkill /F /PID <PID>
 ```
 
-## Troubleshooting
+### Analysis Times Out
+- Reduce deviation limit in `backend/src/controllers/workflow.controller.js` line 495
+- Change `limit: 50` to `limit: 20`
 
-### Backend won't start
-- Check if port 3000 is available
-- Ensure all npm dependencies are installed
-- Verify .env file exists
+### Wrong Metrics in UI
+1. Run `python test_complete_analysis.py`
+2. Check response structure matches frontend expectations
+3. Compare with `ResultsViewer.jsx` requirements
 
-### AI Service won't start
-- Check if port 8000 is available
-- Ensure Python virtual environment is activated
-- Verify all pip packages are installed
-- Check Python version (3.9+)
+## 🌐 API Endpoints
 
-### Frontend won't connect to backend
-- Verify backend is running on port 3000
-- Check VITE_API_URL in frontend/.env
-- Clear browser cache and restart dev server
+### Backend (Port 3000)
 
-### File upload fails
-- Check backend/uploads directory exists and has write permissions
-- Verify file size is under 50MB
-- Check file type matches allowed extensions
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/sops` | GET | List all SOPs |
+| `/api/sops` | POST | Upload SOP document |
+| `/api/sops/:id/process` | POST | Extract rules from SOP |
+| `/api/workflows/upload-with-mapping` | POST | Upload workflow CSV |
+| `/api/workflows/analyze` | POST | Detect deviations |
+| `/api/workflows/analyze-patterns` | POST | AI pattern analysis |
+| `/api/workflows/list-files` | GET | List uploaded workflows |
 
-## Production Deployment
+### AI Service (Port 8000)
 
-### Using Docker Compose
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/ai/sop/parse` | POST | Parse SOP document |
+| `/ai/sop/extract-rules` | POST | Extract compliance rules |
+| `/ai/mapping/analyze-headers` | POST | Map CSV columns |
+| `/ai/deviation/analyze-patterns` | POST | Analyze deviation patterns |
 
-```bash
-# Build and start all services
-docker-compose up -d
+## 📄 License
 
-# Stop services
-docker-compose down
-```
+Proprietary - All Rights Reserved
 
-### Manual Deployment
+## 💬 Support
 
-1. **Backend**: Use PM2 for process management
-2. **Frontend**: Build with `npm run build` and serve with nginx
-3. **AI Service**: Use uvicorn with --workers flag
-4. **Database**: Migrate to PostgreSQL for production
-
-## Performance Considerations
-
-- **Database**: SQLite is suitable for < 100K records. Use PostgreSQL for larger datasets
-- **File Storage**: Consider moving to S3/cloud storage for production
-- **Caching**: Implement Redis for frequently accessed data
-- **Scaling**: Backend and AI service can be horizontally scaled
-
-## Security Notes
-
-- No authentication implemented (add JWT or OAuth for production)
-- File uploads should be scanned for malware
-- Implement rate limiting for API endpoints
-- Use HTTPS in production
-- Sanitize all user inputs
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## License
-
-MIT License
-
-## Support
-
-For issues and questions:
-- GitHub Issues: [repository-url]/issues
-- Documentation: This README
-
-## Acknowledgments
-
-Built as a demonstration of AI-powered compliance monitoring for loan processing operations.
-
----
-
-**Version**: 1.0.0
-**Last Updated**: December 2025
+For issues or questions, please contact the development team.

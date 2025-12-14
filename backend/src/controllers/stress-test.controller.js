@@ -1,4 +1,4 @@
-const { StressTestScenario, WorkflowLog, Deviation, SOPRule } = require('../models');
+const { StressTestScenario, WorkflowLog, Deviation, SOPRule, Officer } = require('../models');
 const aiService = require('../services/ai-integration.service');
 const { successResponse, errorResponse } = require('../utils/response');
 
@@ -75,22 +75,33 @@ const generateSyntheticLogs = async (req, res, next) => {
     // Generate synthetic logs using AI service
     const result = await aiService.generateSyntheticLogs(scenarioType, scenarioParams);
 
-    // Save synthetic logs to database
-    const savedLogs = [];
-    for (const log of result.logs) {
-      const workflowLog = await WorkflowLog.create({
-        case_id: log.case_id,
-        officer_id: log.officer_id,
-        step_name: log.step_name,
-        action: log.action,
-        timestamp: new Date(log.timestamp),
-        duration_seconds: log.duration_seconds,
-        status: log.status || 'completed',
-        is_synthetic: true,
-        metadata: { scenario_type: scenarioType, scenario_id },
-      });
-      savedLogs.push(workflowLog);
-    }
+    // Use a single batch timestamp for all logs in this generation
+    // This ensures they're grouped together as one "file"
+    const batchTimestamp = new Date();
+
+    // Prepare all logs for bulk insert (much faster and guarantees same timestamp)
+    const logsToInsert = result.logs.map(log => ({
+      case_id: log.case_id,
+      officer_id: log.officer_id,
+      step_name: log.step_name,
+      action: log.action,
+      timestamp: new Date(log.timestamp),
+      duration_seconds: log.duration_seconds,
+      status: log.status || 'completed',
+      is_synthetic: true,
+      uploaded_at: batchTimestamp,  // ✅ Same timestamp for all logs
+      metadata: { scenario_type: scenarioType, scenario_id },
+      created_at: batchTimestamp,   // ✅ Explicitly set to avoid auto-generation
+      updated_at: batchTimestamp,
+    }));
+
+    // Use bulkCreate for atomic insertion with same timestamp
+    const savedLogs = await WorkflowLog.bulkCreate(logsToInsert, {
+      validate: true,
+      individualHooks: false,  // Disable hooks that might override timestamp
+    });
+
+    console.log(`[generateSyntheticLogs] Bulk created ${savedLogs.length} logs with batch timestamp: ${batchTimestamp.toISOString()}`);
 
     // Analyze synthetic logs for deviations
     const rules = await SOPRule.findAll();
@@ -114,6 +125,20 @@ const generateSyntheticLogs = async (req, res, next) => {
 
       const deviationResult = await aiService.detectDeviations(formattedLogs, formattedRules);
 
+      // Create officer records before saving deviations (to satisfy foreign key constraint)
+      const uniqueOfficers = new Set(savedLogs.map(l => l.officer_id));
+      for (const officerId of uniqueOfficers) {
+        await Officer.findOrCreate({
+          where: { id: officerId },
+          defaults: {
+            id: officerId,
+            name: `Officer ${officerId}`,
+            role: 'Loan Officer',
+          },
+        });
+      }
+      console.log(`[generateSyntheticLogs] Created ${uniqueOfficers.size} officer records`);
+
       // Save detected deviations
       for (const dev of deviationResult.deviations) {
         await Deviation.create({
@@ -128,6 +153,7 @@ const generateSyntheticLogs = async (req, res, next) => {
           context: { ...dev.context, is_synthetic: true },
         });
       }
+      console.log(`[generateSyntheticLogs] Created ${deviationResult.deviations.length} deviation records`);
     }
 
     return successResponse(

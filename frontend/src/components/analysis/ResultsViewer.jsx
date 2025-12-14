@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Loader, Download, Mail, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader, Download, RefreshCw } from 'lucide-react';
 
-const ResultsViewer = ({ analysisResult, isAnalyzing }) => {
+const ResultsViewer = ({ analysisResult, isAnalyzing, onReanalyze }) => {
   const [expandedSections, setExpandedSections] = useState({
     overview: true,
     deviationsByType: true,
+    deviationsTable: false,
     behavioral: false,
     hiddenRules: false,
     systemic: false,
@@ -14,6 +15,19 @@ const ResultsViewer = ({ analysisResult, isAnalyzing }) => {
   });
 
   const [expandedOfficers, setExpandedOfficers] = useState({});
+
+  const handleDownload = () => {
+    const dataStr = JSON.stringify(analysisResult, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `compliance-analysis-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -98,17 +112,20 @@ const ResultsViewer = ({ analysisResult, isAnalyzing }) => {
               Analysis Report
             </h1>
             <div className="flex space-x-2">
-              <button className="px-4 py-2 text-sm bg-white border border-primary-300 rounded-lg hover:bg-primary-50 hover:border-primary-400 transition-all flex items-center space-x-2 shadow-sm">
+              <button
+                onClick={handleDownload}
+                className="px-4 py-2 text-sm bg-white border border-primary-300 rounded-lg hover:bg-primary-50 hover:border-primary-400 transition-all flex items-center space-x-2 shadow-sm"
+              >
                 <Download className="w-4 h-4 text-primary-600" />
                 <span className="text-secondary-700 font-medium">Download</span>
               </button>
-              <button className="px-4 py-2 text-sm bg-white border border-primary-300 rounded-lg hover:bg-primary-50 hover:border-primary-400 transition-all flex items-center space-x-2 shadow-sm">
-                <Mail className="w-4 h-4 text-primary-600" />
-                <span className="text-secondary-700 font-medium">Email</span>
-              </button>
-              <button className="px-4 py-2 text-sm bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-lg hover:from-primary-500 hover:to-secondary-500 transition-all flex items-center space-x-2 shadow-lg">
-                <RefreshCw className="w-4 h-4" />
-                <span className="font-medium">Re-analyze</span>
+              <button
+                onClick={onReanalyze}
+                disabled={isAnalyzing}
+                className="px-4 py-2 text-sm bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-lg hover:from-primary-500 hover:to-secondary-500 transition-all flex items-center space-x-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                <span className="font-medium">{isAnalyzing ? 'Analyzing...' : 'Re-analyze'}</span>
               </button>
             </div>
           </div>
@@ -194,15 +211,66 @@ const ResultsViewer = ({ analysisResult, isAnalyzing }) => {
               <span className="text-sm font-medium text-gray-700 capitalize">{type.replace(/_/g, ' ')}</span>
               <div className="flex items-center space-x-3">
                 <span className="text-sm font-bold text-gray-800">{count} ({Math.round(count / deviations.length * 100)}%)</span>
-                <button className="text-xs text-blue-600 hover:underline">View Details</button>
               </div>
             </div>
           ))}
         </div>
-        <button className="mt-4 w-full py-2 border border-gray-300 rounded hover:bg-gray-50 text-sm font-medium text-gray-700">
-          🔽 Show All Deviations Table
+        <button
+          onClick={() => toggleSection('deviationsTable')}
+          className="mt-4 w-full py-2 border border-gray-300 rounded hover:bg-gray-50 text-sm font-medium text-gray-700 transition-colors"
+        >
+          {expandedSections.deviationsTable ? '🔼 Hide' : '🔽 Show'} All Deviations Table
         </button>
       </Section>
+
+      {/* All Deviations Table */}
+      {expandedSections.deviationsTable && (
+        <Section
+          title="📋 ALL DEVIATIONS TABLE"
+          isExpanded={true}
+          onToggle={() => toggleSection('deviationsTable')}
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-100 border-b-2 border-gray-300">
+                <tr>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">Case ID</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">Officer</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">Type</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">Severity</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">Description</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {deviations.map((dev, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    <td className="px-3 py-2 font-mono text-xs text-gray-600">{dev.case_id}</td>
+                    <td className="px-3 py-2 text-gray-700">{dev.officer_id}</td>
+                    <td className="px-3 py-2">
+                      <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
+                        {dev.deviation_type.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-1 text-xs rounded font-medium ${
+                        dev.severity === 'critical' ? 'bg-red-100 text-red-700' :
+                        dev.severity === 'high' ? 'bg-orange-100 text-orange-700' :
+                        dev.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-green-100 text-green-700'
+                      }`}>
+                        {dev.severity.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-gray-600 max-w-md truncate" title={dev.description}>
+                      {dev.description}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      )}
 
       {/* Behavioral Patterns */}
       {patterns?.behavioral_patterns && patterns.behavioral_patterns.length > 0 && (
