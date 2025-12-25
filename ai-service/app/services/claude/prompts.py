@@ -4,29 +4,58 @@ Centralized prompt templates for Claude API interactions.
 from typing import Dict, Any, List
 
 # SOP Rule Extraction Prompt
-SOP_RULE_EXTRACTION_PROMPT = """You are an expert at analyzing Standard Operating Procedures (SOPs) for loan processing and extracting compliance rules.
+SOP_RULE_EXTRACTION_PROMPT = """You are an expert at analyzing Standard Operating Procedures (SOPs) for banking and loan processing to extract ALL compliance rules.
 
-Analyze the following SOP document text and extract ALL compliance rules. For each rule, identify:
+Analyze the following SOP document text and extract EVERY compliance rule, policy, and requirement from the document.
 
-1. **Rule Type**: One of:
-   - "sequence": Steps that must happen in a specific order
-   - "approval": Requirements for manager/authority approval
-   - "timing": Time constraints (e.g., "within 3 days", "immediately")
-   - "validation": Data verification and checking requirements
+**Rule Categories (not exhaustive - extract ANY rule you find):**
 
-2. **Rule Description**: Clear, concise description of the rule
+Common rule types include:
+- **Process rules**: sequence, approval, timing, validation, exception_handling
+- **Risk/Compliance**: kyc_cdd, aml_screening, sanctions_screening, fraud_prevention, credit_risk_assessment, identity_verification, politically_exposed_person, enhanced_due_diligence
+- **Authorization**: segregation_of_duties, dual_control, checker_maker, override_approval, threshold_based_approval, escalation
+- **Documentation**: documentation_retention, documentation_completeness, signature_verification, document_authenticity, record_retention
+- **Financial**: interest_calculation, fee_charging, limit_management, exposure_aggregation, high_value_transaction
+- **Regulatory**: regulatory_limit, capital_adequacy, liquidity_limit, concentration_limit, reporting_regulatory, tax_compliance
+- **Operations**: cutoff_time, turnaround_time, service_level_agreement, queue_prioritization, holiday_handling, grace_period
+- **Security/Collateral**: collateral_verification, collateral_perfection, collateral_revaluation, security_creation
+- **Customer**: customer_consent, eligibility, customer_communication, disclosure, privacy_confidentiality, data_protection
+- **Monitoring**: monitoring_review, periodic_review, audit_trail, logging, early_warning_trigger
+- **Product/Business**: product_eligibility, customer_segment_rule, geo_restriction, branch_level_limit, channel_restriction
+- **Risk Management**: covenant_monitoring, repayment_schedule, pre_disbursement_condition, post_disbursement_monitoring, collection_escalation
+- **Special Cases**: waiver_rule, restructure_rule, writeoff_rule, chargeback_rule, dispute_resolution, complaint_handling, moratorium_handling
+- **System/Process**: system_fallback_manual, system_reconciliation, retry_logic, duplication_check, field_mandatory, field_format, range_check
+- **Alerts/Case Management**: watchlist_hit_handling, alert_triage, case_assignment, case_closure, notification_escalation
+- **Quality/Model**: quality_assurance_sample, quality_review_full, model_usage, model_override, model_input_validation
+- **Staff/Internal**: staff_account_handling, insider_trading_control, conflict_of_interest, training_certification, attestation
+- **Approval Variants**: backdating_control, post_facto_approval, partial_approval, conditional_approval, emergency_override
+- **Limits/Thresholds**: limit_renewal, limit_reduction, temporary_enhancement, overlimit_transaction, threshold_alerting
+- **Multi-currency/International**: multi_currency_handling, fx_rate_application, cross_sell_restriction, upsell_offer_rule
+- **Compliance/Governance**: blacklist_whitelist, moderate_risk_override, access_control, business_continuity, incident_reporting
+- **Environment/Social**: environment_social_risk, csr_compliance
+- **And ANY other banking/compliance rule type you identify**
 
+**CRITICAL INSTRUCTIONS:**
+1. Extract ALL rules found, not just the common types listed above
+2. Be creative with rule_type names - use the most specific, descriptive name that fits the rule
+3. If a rule doesn't fit any standard category, create a new descriptive rule_type name
+4. Examples of custom names: "politically_exposed_person_screening", "covenant_monitoring", "fee_waiver_approval"
+
+For each rule, extract:
+
+1. **Rule Type**: Use the most specific rule type name from above OR create a new descriptive name
+2. **Rule Description**: Clear, concise description of what must/must not be done
 3. **Step Number**: The step number in the process (if mentioned)
-
 4. **Severity**: Based on the language used:
    - "critical": Uses "must", "shall", "required", regulatory/legal requirements
    - "high": Uses "should", affects compliance or risk
    - "medium": Uses "recommended", "advised", affects process quality
    - "low": Uses "may", "optional", best practices
-
 5. **Required Fields**: Any specific data fields that must be present (e.g., income_verification, credit_score)
-
-6. **Timing Constraint**: If it's a timing rule, extract the specific time requirement (e.g., "3 days", "immediately")
+6. **Timing Constraint**: If it's a timing rule, extract the specific time requirement (e.g., "3 days", "within 48 hours", "immediately")
+7. **Conditional Logic**: Any conditions when the rule applies (e.g., "for loans > $50K", "for high-risk customers")
+8. **Threshold Value**: For numeric thresholds (e.g., amount > $50,000, score < 650)
+9. **Approval Authority**: For approval rules, who must approve (e.g., "manager", "senior officer", "credit committee")
 
 SOP Document Text:
 {sop_text}
@@ -35,21 +64,26 @@ Return your analysis as a JSON array with this structure:
 {{
   "rules": [
     {{
-      "rule_type": "sequence|approval|timing|validation",
+      "rule_type": "specific_category_name",
       "rule_description": "Clear description of the rule",
       "step_number": 1,
       "severity": "critical|high|medium|low",
       "required_fields": ["field1", "field2"],
-      "timing_constraint": "X days" or null,
-      "conditional_logic": "any special conditions"
+      "timing_constraint": "X days/hours" or null,
+      "conditional_logic": "any special conditions" or null,
+      "threshold_value": null,
+      "approval_authority": null
     }}
   ]
 }}
 
-Be thorough - extract every rule you can find, even if they seem minor."""
+**Important Notes:**
+- Extract EVERY rule, even if it seems minor or doesn't fit the categories above
+- Use descriptive, specific rule_type names (e.g., "covenant_monitoring" not "generic_check")
+- Be thorough - missing rules can lead to undetected compliance violations"""
 
-# Column Mapping Prompt
-COLUMN_MAPPING_PROMPT = """You are an expert at analyzing CSV column headers and mapping them to standardized system fields for loan processing workflow data.
+# Column Mapping Prompt - Expanded to Support 175+ Fields
+COLUMN_MAPPING_PROMPT = """You are an expert at analyzing CSV column headers and mapping them to standardized system fields for comprehensive loan processing workflow data.
 
 I have a CSV file with the following columns:
 {headers}
@@ -57,59 +91,257 @@ I have a CSV file with the following columns:
 Sample data from first 3 rows:
 {sample_rows}
 
-**Required System Fields:**
-- case_id: Unique identifier for the loan/case
-- officer_id: ID of the officer/user handling the case
-- step_name: Name of the workflow step/activity
-- action: Action taken (e.g., approved, rejected, completed)
-- timestamp: Date/time when the step occurred
+**COMPREHENSIVE SYSTEM FIELDS (175+ fields organized by category):**
 
-**Optional System Fields:**
-- duration_seconds: How long the step took
-- status: Status of the step
-- notes: Comments, notes, or explanations
-- comments: Additional comments
+**[CRITICAL - Core Identifiers]**
+- case_id: Unique case/loan identifier
+- application_id: Application identifier
+- customer_id: Customer identifier
+- customer_name: Customer full name
+
+**[Customer Information]**
+- customer_segment: Customer segment (retail, corporate, SME)
+- customer_risk_rating: Customer risk rating/score
+- group_id: Group/conglomerate identifier
+- related_party_flag: Related party transaction flag
+- pep_flag: Politically Exposed Person flag
+- aml_risk_rating: AML risk rating
+- kyc_status: KYC completion status
+- kyc_refresh_due_date: KYC refresh due date
+
+**[Organizational Structure]**
+- branch_code: Branch code
+- branch_name: Branch name
+- region: Geographic region
+- officer_id: Processing officer ID
+- officer_name: Officer name
+- officer_role: Officer role/designation
+
+**[Product Details]**
+- product_type: Product type (home loan, personal loan, etc.)
+- sub_product_type: Sub-product category
+- scheme_code: Scheme/program code
+- loan_type: Loan type (secured, unsecured)
+- loan_purpose: Purpose of loan
+- channel: Application channel (branch, online, mobile)
+- application_source: Source of application
+
+**[Workflow & Process]**
+- step_id: Step identifier
+- step_name: Step/activity name
+- step_category: Step category
+- stage_name: Workflow stage name
+- workflow_stage: Current workflow stage
+- workflow_version: Workflow version
+- action: Action taken
+- action_detail: Detailed action description
+- previous_action: Previous action in sequence
+- next_action: Next expected action
+- status: Current status
+- sub_status: Detailed sub-status
+- decision: Decision made (approved, rejected, etc.)
+- decision_reason: Reason for decision
+- decision_code: Decision code
+
+**[Exceptions & Overrides]**
+- exception_flag: Exception raised flag
+- exception_code: Exception code
+- exception_reason: Exception reason
+- override_flag: Override applied flag
+- override_reason: Override reason
+
+**[Approval Hierarchy]**
+- approval_level: Approval level (L1, L2, manager, etc.)
+- approver_id: Approver identifier
+- approver_name: Approver name
+- approval_hierarchy: Approval hierarchy/path
+
+**[Queue & SLA Management]**
+- queue_name: Queue name
+- queue_priority: Queue priority
+- sla_target_timestamp: SLA target time
+- sla_breach_flag: SLA breach flag
+- sla_breach_reason: SLA breach reason
+
+**[Timestamps & Durations]**
+- timestamp: Primary timestamp
+- timestamp_start: Start timestamp
+- timestamp_end: End timestamp
+- application_date: Application date
+- decision_date: Decision date
+- disbursement_date: Disbursement date
+- closure_date: Case closure date
+- duration_seconds: Duration in seconds
+- duration_minutes: Duration in minutes
+- business_date: Business date
+- business_day_of_week: Day of week
+- business_hour: Hour of day
+
+**[Financial Amounts]**
+- loan_amount: Loan amount
+- requested_amount: Requested amount
+- approved_amount: Approved amount
+- disbursed_amount: Disbursed amount
+- outstanding_amount: Outstanding balance
+- overdue_amount: Overdue amount
+- emi_amount: EMI/installment amount
+
+**[Loan Terms & Conditions]**
+- interest_rate: Interest rate
+- interest_type: Interest type (fixed, floating)
+- tenor_months: Tenor in months
+- tenor_days: Tenor in days
+- repayment_frequency: Repayment frequency
+- installment_number: Installment number
+
+**[Collateral & Security]**
+- collateral_type: Type of collateral
+- collateral_description: Collateral description
+- collateral_value: Collateral value
+- collateral_value_date: Collateral valuation date
+- ltv_ratio: Loan-to-value ratio
+- security_coverage_ratio: Security coverage ratio
+- guarantor_flag: Guarantor present flag
+- guarantor_id: Guarantor identifier
+
+**[Credit & Risk Scoring]**
+- credit_score_bureau: Bureau credit score
+- credit_score_internal: Internal credit score
+- scorecard_version: Scorecard version used
+- score_band: Score band/category
+- probability_of_default: PD estimate
+- loss_given_default: LGD estimate
+- exposure_at_default: EAD estimate
+- total_exposure_group: Total group exposure
+- total_exposure_customer: Total customer exposure
+
+**[Document Management]**
+- document_type: Document type
+- document_id: Document identifier
+- document_name: Document name
+- document_version: Document version
+- document_expiry_date: Document expiry date
+- document_collection_date: Document collection date
+- document_verification_status: Verification status
+- document_verifier_id: Verifier identifier
+- document_exception_flag: Document exception flag
+
+**[Remediation & Follow-up]**
+- remediation_due_date: Remediation due date
+- remediation_status: Remediation status
+- reminder_count: Number of reminders sent
+- contact_attempts: Contact attempts count
+- contact_outcome: Contact outcome
+- customer_response: Customer response
+
+**[Communication]**
+- communication_channel: Communication channel used
+- notification_sent_flag: Notification sent flag
+- notification_type: Type of notification
+
+**[Notes & Comments]**
+- notes: General notes
+- comments: Comments
+- internal_remarks: Internal remarks only
+
+**[Audit & Tracking]**
+- audit_trail_id: Audit trail identifier
+- created_by: Created by user
+- created_at: Created timestamp
+- updated_by: Last updated by
+- updated_at: Last updated timestamp
+- source_system: Source system
+- source_file_name: Source file name
+- source_file_row_number: Row number in source
+- import_batch_id: Import batch identifier
+
+**[Error Handling]**
+- error_flag: Error flag
+- error_code: Error code
+- error_message: Error message
+- retry_count: Retry count
+- duplicate_flag: Duplicate record flag
+
+**[Case Relationships]**
+- reference_case_id: Reference case ID
+- parent_case_id: Parent case ID
+- related_case_id: Related case ID
+
+**[Rules & Deviations]**
+- rule_version: Rule version applied
+- deviation_flag: Deviation detected flag
+- deviation_type: Type of deviation
+- deviation_severity: Deviation severity
+- deviation_detected_at: Deviation detection time
+- deviation_resolved_at: Deviation resolution time
+- deviation_resolution: Resolution details
+
+**[Pattern & Anomaly Detection]**
+- pattern_cluster_id: Pattern cluster identifier
+- pattern_cluster_score: Cluster score
+- anomaly_score: Anomaly score
+- anomaly_reason: Anomaly reason
+
+**[Custom/Flexible Fields]**
+- custom_field_1: Custom field 1
+- custom_field_2: Custom field 2
+- custom_field_3: Custom field 3
+- custom_field_4: Custom field 4
+- custom_field_5: Custom field 5
 
 **Your Task:**
-1. Map each CSV column to the most appropriate system field (use simple string values ONLY)
-2. Identify which column (if any) contains notes/comments
-3. Flag any columns that don't map to system fields
+1. Map EACH CSV column to the MOST APPROPRIATE system field from above
+2. Use semantic meaning, not just exact name matches
+3. Identify notes/comments columns
+4. Flag any columns that truly don't fit any of the 175+ fields above
 
-**Important:**
-- Use semantic meaning, not just exact name matches
-- "Loan_ID" could map to "case_id"
-- "User" or "Employee" could map to "officer_id"
-- "Activity" or "Task" could map to "step_name"
-- "Decision" could map to either "action" or "status"
-- Notes columns might be named: "Notes", "Comments", "Remarks", "Explanation", "Justification"
+**Mapping Guidelines:**
+- "Loan_ID" / "Application_No" → case_id
+- "Customer_Name" / "Borrower" → customer_name
+- "User" / "Employee" / "Staff_ID" → officer_id
+- "Activity" / "Task" / "Process_Step" → step_name
+- "Decision" / "Outcome" → decision or action
+- "Date" / "Time" / "DateTime" → timestamp
+- "Amount" / "Value" / "Principal" → loan_amount or requested_amount
+- "Rate" / "Interest" / "ROI" → interest_rate
+- "Remarks" / "Notes" / "Comments" / "Explanation" → notes
+- Use the BEST FIT field from the 175+ options above
 
 **CRITICAL - Return Format:**
-Return ONLY this exact JSON structure (simple string mappings, NO nested objects, NO confidence scores, NO reasoning):
+Return ONLY this exact JSON structure (simple string mappings):
 {{
   "mappings": {{
     "CSV_Column_Name": "system_field_name"
   }},
   "notes_column": "Name of column containing notes/comments, or null",
-  "unmapped_columns": ["columns", "that", "dont", "map"],
-  "warnings": ["Any concerns or ambiguities to flag for the user"]
+  "unmapped_columns": ["columns", "that", "truly", "dont", "fit"],
+  "warnings": ["Any concerns or ambiguities"]
 }}
 
-Example of correct format:
+**Important:**
+- DO NOT include nested objects
+- Each mapping value MUST be a simple string (one of the 175+ field names above)
+- If unsure between 2 fields, pick the MORE SPECIFIC one
+- Unmapped should be RARE (most things should map to the 175+ fields)
+- Missing columns in upload = NULL values (perfectly fine, won't break analysis)
+
+Example:
 {{
   "mappings": {{
     "Loan_ID": "case_id",
+    "Cust_Name": "customer_name",
     "User": "officer_id",
     "Activity": "step_name",
-    "Decision": "action",
-    "Timestamp": "timestamp",
-    "Notes": "notes"
+    "Decision": "decision",
+    "Date": "timestamp",
+    "Amount": "loan_amount",
+    "Interest": "interest_rate",
+    "Remarks": "notes"
   }},
-  "notes_column": "Notes",
-  "unmapped_columns": ["Loan_Amount", "Credit_Score"],
+  "notes_column": "Remarks",
+  "unmapped_columns": [],
   "warnings": []
-}}
-
-DO NOT include nested objects. Each mapping value MUST be a simple string."""
+}}"""
 
 # Deviation Analysis Prompt
 DEVIATION_ANALYSIS_PROMPT = """You are an expert compliance analyst for loan processing workflows. Your job is to analyze workflow logs against SOP rules and identify deviations.

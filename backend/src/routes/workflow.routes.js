@@ -23,5 +23,6 @@ router.delete('/:id', workflowController.deleteWorkflowFile);
 // Analysis endpoints
 router.post('/analyze', workflowController.analyzeWorkflow);
 router.post('/analyze-patterns', workflowController.analyzePatterns);
+router.post('/analyze-comprehensive', workflowController.analyzeComprehensive);
 
 module.exports = router;

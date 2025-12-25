@@ -158,6 +158,51 @@ class AIIntegrationService {
     }
   }
 
+  async validateApproval(logs, rules) {
+    try {
+      const response = await this.client.post('/ai/deviation/validate-approval', {
+        logs,
+        rules,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error validating approval:', error.message);
+      throw new Error('Failed to validate approval requirements');
+    }
+  }
+
+  async intelligentSampling(deviations, statisticalInsights, targetSampleSize = 75) {
+    try {
+      console.log(`[AI Service] Intelligent sampling: ${deviations.length} deviations → ~${targetSampleSize} representatives`);
+
+      // Extended timeout for ML processing (5 minutes)
+      const response = await this.client.post(
+        '/ml/sample',
+        {
+          deviations,
+          statistical_insights: statisticalInsights,
+          target_sample_size: targetSampleSize,
+        },
+        { timeout: 300000 } // 5 minutes
+      );
+
+      console.log(
+        `[AI Service] Intelligent sampling complete: ${response.data.sampling_metadata.representatives_selected} representatives ` +
+        `(${response.data.sampling_metadata.compression_ratio} compression)`
+      );
+
+      return response.data;
+    } catch (error) {
+      if (error.code === 'ECONNABORTED') {
+        console.error('Error in intelligent sampling: Request timed out after 5 minutes');
+        throw new Error('Intelligent sampling timed out - dataset too large');
+      }
+      console.error('Error in intelligent sampling:', error.message);
+      console.error('Error details:', error.response?.data || error);
+      throw new Error('Failed to perform intelligent sampling');
+    }
+  }
+
   async healthCheck() {
     try {
       const response = await this.client.get('/ai/health');

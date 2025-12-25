@@ -41,7 +41,8 @@ class NotesAnalyzer:
     def analyze_pattern_batch(
         self,
         deviations_with_notes: List[Dict[str, Any]],
-        max_batch_size: int = 100
+        max_batch_size: int = 100,
+        cluster_statistics: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Analyze patterns across ALL deviations in a single batch API call.
@@ -53,6 +54,7 @@ class NotesAnalyzer:
         Args:
             deviations_with_notes: List of ALL deviations (parameter name kept for compatibility)
             max_batch_size: Max deviations per API call (split if larger)
+            cluster_statistics: Optional ML cluster statistics from Layer 4 for enhanced context
 
         Returns:
             Dict containing:
@@ -89,6 +91,16 @@ class NotesAnalyzer:
         try:
             # Format prompt for batch analysis
             prompt = format_batch_pattern_analysis_prompt(deviations_with_notes)
+
+            # Enhance prompt with ML cluster context if available
+            if cluster_statistics:
+                cluster_context = self._format_cluster_context(cluster_statistics)
+                # Inject cluster context into prompt before the task section
+                prompt = prompt.replace(
+                    "**Your Task:**",
+                    f"**ML Clustering Context:**\n{cluster_context}\n\n**Your Task:**"
+                )
+                logger.info("Enhanced prompt with ML cluster context")
 
             # Single API call for all deviations!
             logger.info(f"Making 1 API call to analyze {total_deviations} deviations")
@@ -224,6 +236,48 @@ class NotesAnalyzer:
             'recommendations'
         ]
         return all(field in analysis for field in required_fields)
+
+    def _format_cluster_context(self, cluster_stats: Dict[str, Any]) -> str:
+        """
+        Format cluster statistics from ML Layer 4 for LLM context.
+
+        Args:
+            cluster_stats: Cluster statistics from intelligent sampler
+
+        Returns:
+            Formatted cluster context string
+        """
+        context = "The deviations were clustered using ML (DBSCAN/K-means + Isolation Forest):\n\n"
+
+        for cluster_id, stats in cluster_stats.items():
+            if stats.get('is_noise', False) or cluster_id == '-1':
+                context += f"**Cluster NOISE** ({stats['size']} deviations):\n"
+                context += "  - Outliers and anomalies detected by Isolation Forest\n"
+                context += "  - These are unusual, one-off deviations that don't fit patterns\n"
+            else:
+                context += f"**Cluster {cluster_id}** ({stats['size']} deviations):\n"
+
+                # Severity distribution
+                sev_dist = stats.get('severity_distribution', {})
+                if sev_dist:
+                    sev_str = ', '.join([f"{k}: {v}" for k, v in sev_dist.items() if v > 0])
+                    context += f"  - Severity: {sev_str}\n"
+
+                # Type distribution (top 3)
+                type_dist = stats.get('type_distribution', {})
+                if type_dist:
+                    top_types = sorted(type_dist.items(), key=lambda x: x[1], reverse=True)[:3]
+                    type_str = ', '.join([f"{k} ({v})" for k, v in top_types])
+                    context += f"  - Top Types: {type_str}\n"
+
+            context += "\n"
+
+        context += "Use this clustering information to identify:\n"
+        context += "- Why certain deviations cluster together (common root causes)\n"
+        context += "- Whether anomalies represent serious risks or data issues\n"
+        context += "- Patterns that span multiple clusters vs cluster-specific patterns\n"
+
+        return context
 
     def _empty_pattern_analysis(self) -> Dict[str, Any]:
         """Return empty pattern analysis when LLM is unavailable."""

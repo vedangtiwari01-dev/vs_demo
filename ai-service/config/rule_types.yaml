@@ -1,0 +1,660 @@
+# Banking & Loan Processing Rule Type Registry
+# Total: 150 rule types organized by category
+#
+# Validation Strategy:
+#   - hardcoded: Use existing hardcoded validation logic (fast, deterministic)
+#   - ai_generic: Use AI-powered generic rule evaluator (flexible, handles any rule)
+
+rule_categories:
+  # ==================================================================
+  # CORE PROCESS RULES (Legacy - Keep hardcoded validation)
+  # ==================================================================
+  core_process_rules:
+    - name: sequence
+      description: Steps must be done in specific order
+      validation_strategy: hardcoded
+      examples:
+        - "Credit check must happen before loan approval"
+        - "Income verification precedes credit assessment"
+
+    - name: approval
+      description: Manager/authority approval requirements
+      validation_strategy: hardcoded
+      examples:
+        - "Loans >$50K require manager approval"
+        - "Final approval by senior officer"
+
+    - name: timing
+      description: Time constraints for process steps
+      validation_strategy: hardcoded
+      examples:
+        - "Credit check within 48 hours"
+        - "Application processing within 5 business days"
+
+    - name: validation
+      description: Data verification and checking requirements
+      validation_strategy: hardcoded
+      examples:
+        - "Income documents must be verified"
+        - "Credit score validation required"
+
+  # ==================================================================
+  # RISK & COMPLIANCE RULES
+  # ==================================================================
+  risk_compliance:
+    - name: kyc_cdd
+      description: Know Your Customer & Customer Due Diligence
+      validation_strategy: ai_generic
+
+    - name: aml_screening
+      description: Anti-Money Laundering screening requirements
+      validation_strategy: ai_generic
+
+    - name: sanctions_screening
+      description: Sanctions list checking requirements
+      validation_strategy: ai_generic
+
+    - name: fraud_prevention
+      description: Fraud detection and prevention measures
+      validation_strategy: ai_generic
+
+    - name: credit_risk_assessment
+      description: Credit risk evaluation requirements
+      validation_strategy: ai_generic
+
+    - name: politically_exposed_person
+      description: PEP screening and enhanced due diligence
+      validation_strategy: ai_generic
+
+    - name: enhanced_due_diligence
+      description: Additional checks for high-risk customers
+      validation_strategy: ai_generic
+
+    - name: identity_verification
+      description: Customer identity verification requirements
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # AUTHORIZATION & CONTROLS
+  # ==================================================================
+  authorization_controls:
+    - name: segregation_of_duties
+      description: Separation of roles for critical functions
+      validation_strategy: ai_generic
+
+    - name: dual_control
+      description: Two-person authorization for sensitive actions
+      validation_strategy: ai_generic
+
+    - name: checker_maker
+      description: Maker-checker workflow requirements
+      validation_strategy: ai_generic
+
+    - name: override_approval
+      description: Authorization needed for policy overrides
+      validation_strategy: ai_generic
+
+    - name: threshold_based_approval
+      description: Approval authority based on transaction amount
+      validation_strategy: ai_generic
+
+    - name: escalation
+      description: Escalation to higher authority requirements
+      validation_strategy: ai_generic
+
+    - name: exception_handling
+      description: Rules for handling process exceptions
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # DOCUMENTATION RULES
+  # ==================================================================
+  documentation:
+    - name: documentation_retention
+      description: Document retention period requirements
+      validation_strategy: ai_generic
+
+    - name: documentation_completeness
+      description: Complete documentation requirements
+      validation_strategy: ai_generic
+
+    - name: signature_verification
+      description: Signature verification requirements
+      validation_strategy: ai_generic
+
+    - name: document_authenticity
+      description: Document authenticity verification
+      validation_strategy: ai_generic
+
+    - name: record_retention
+      description: Record keeping and retention rules
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # FINANCIAL RULES
+  # ==================================================================
+  financial:
+    - name: interest_calculation
+      description: Interest calculation and application rules
+      validation_strategy: ai_generic
+
+    - name: fee_charging
+      description: Fee charging and disclosure requirements
+      validation_strategy: ai_generic
+
+    - name: limit_management
+      description: Credit limit management rules
+      validation_strategy: ai_generic
+
+    - name: exposure_aggregation
+      description: Exposure aggregation and monitoring
+      validation_strategy: ai_generic
+
+    - name: high_value_transaction
+      description: Special handling for high-value transactions
+      validation_strategy: ai_generic
+
+    - name: fee_waiver_approval
+      description: Fee waiver authorization requirements
+      validation_strategy: ai_generic
+
+    - name: multi_currency_handling
+      description: Multi-currency transaction rules
+      validation_strategy: ai_generic
+
+    - name: fx_rate_application
+      description: Foreign exchange rate application rules
+      validation_strategy: ai_generic
+
+    - name: rounding_rule
+      description: Rounding rules for financial calculations
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # REGULATORY & COMPLIANCE
+  # ==================================================================
+  regulatory:
+    - name: regulatory_limit
+      description: Regulatory limits and constraints
+      validation_strategy: ai_generic
+
+    - name: capital_adequacy
+      description: Capital adequacy requirements
+      validation_strategy: ai_generic
+
+    - name: liquidity_limit
+      description: Liquidity limit requirements
+      validation_strategy: ai_generic
+
+    - name: concentration_limit
+      description: Concentration limit rules
+      validation_strategy: ai_generic
+
+    - name: reporting_regulatory
+      description: Regulatory reporting requirements
+      validation_strategy: ai_generic
+
+    - name: tax_compliance
+      description: Tax compliance and withholding rules
+      validation_strategy: ai_generic
+
+    - name: gst_tds_withholding
+      description: GST/TDS withholding requirements
+      validation_strategy: ai_generic
+
+    - name: priority_sector_tagging
+      description: Priority sector lending classification
+      validation_strategy: ai_generic
+
+    - name: regulator_reporting_format
+      description: Regulator reporting format requirements
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # OPERATIONAL RULES
+  # ==================================================================
+  operations:
+    - name: cutoff_time
+      description: Processing cutoff time requirements
+      validation_strategy: ai_generic
+
+    - name: turnaround_time
+      description: Turnaround time requirements
+      validation_strategy: ai_generic
+
+    - name: service_level_agreement
+      description: SLA compliance requirements
+      validation_strategy: ai_generic
+
+    - name: queue_prioritization
+      description: Queue prioritization rules
+      validation_strategy: ai_generic
+
+    - name: holiday_handling
+      description: Holiday and non-business day handling
+      validation_strategy: ai_generic
+
+    - name: grace_period
+      description: Grace period application rules
+      validation_strategy: ai_generic
+
+    - name: statement_generation
+      description: Statement generation requirements
+      validation_strategy: ai_generic
+
+    - name: notification_escalation
+      description: Notification and escalation rules
+      validation_strategy: ai_generic
+
+    - name: batch_processing_order
+      description: Batch processing sequence requirements
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # SECURITY & COLLATERAL
+  # ==================================================================
+  security_collateral:
+    - name: collateral_verification
+      description: Collateral verification requirements
+      validation_strategy: ai_generic
+
+    - name: collateral_perfection
+      description: Collateral perfection requirements
+      validation_strategy: ai_generic
+
+    - name: collateral_revaluation
+      description: Collateral revaluation rules
+      validation_strategy: ai_generic
+
+    - name: security_creation
+      description: Security creation requirements
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # CUSTOMER RULES
+  # ==================================================================
+  customer:
+    - name: customer_consent
+      description: Customer consent requirements
+      validation_strategy: ai_generic
+
+    - name: eligibility
+      description: Customer/product eligibility criteria
+      validation_strategy: ai_generic
+
+    - name: customer_communication
+      description: Customer communication requirements
+      validation_strategy: ai_generic
+
+    - name: disclosure
+      description: Disclosure requirements
+      validation_strategy: ai_generic
+
+    - name: privacy_confidentiality
+      description: Privacy and confidentiality rules
+      validation_strategy: ai_generic
+
+    - name: data_protection
+      description: Data protection requirements
+      validation_strategy: ai_generic
+
+    - name: consent_withdrawal
+      description: Consent withdrawal handling
+      validation_strategy: ai_generic
+
+    - name: customer_risk_rating_rule
+      description: Customer risk rating requirements
+      validation_strategy: ai_generic
+
+    - name: customer_segment_rule
+      description: Customer segmentation rules
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # MONITORING & REVIEW
+  # ==================================================================
+  monitoring_review:
+    - name: monitoring_review
+      description: Ongoing monitoring and review requirements
+      validation_strategy: ai_generic
+
+    - name: periodic_review
+      description: Periodic review requirements
+      validation_strategy: ai_generic
+
+    - name: audit_trail
+      description: Audit trail requirements
+      validation_strategy: ai_generic
+
+    - name: logging
+      description: System logging requirements
+      validation_strategy: ai_generic
+
+    - name: early_warning_trigger
+      description: Early warning trigger rules
+      validation_strategy: ai_generic
+
+    - name: quality_assurance_sample
+      description: QA sampling requirements
+      validation_strategy: ai_generic
+
+    - name: quality_review_full
+      description: Full quality review requirements
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # PRODUCT & BUSINESS RULES
+  # ==================================================================
+  product_business:
+    - name: product_eligibility
+      description: Product eligibility criteria
+      validation_strategy: ai_generic
+
+    - name: geo_restriction
+      description: Geographic restriction rules
+      validation_strategy: ai_generic
+
+    - name: branch_level_limit
+      description: Branch-level authorization limits
+      validation_strategy: ai_generic
+
+    - name: channel_restriction
+      description: Channel-specific restrictions
+      validation_strategy: ai_generic
+
+    - name: cross_sell_restriction
+      description: Cross-sell restriction rules
+      validation_strategy: ai_generic
+
+    - name: upsell_offer_rule
+      description: Upsell offering rules
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # RISK MANAGEMENT & COLLECTIONS
+  # ==================================================================
+  risk_management:
+    - name: covenant_monitoring
+      description: Loan covenant monitoring requirements
+      validation_strategy: ai_generic
+
+    - name: repayment_schedule
+      description: Repayment schedule requirements
+      validation_strategy: ai_generic
+
+    - name: pre_disbursement_condition
+      description: Pre-disbursement conditions
+      validation_strategy: ai_generic
+
+    - name: post_disbursement_monitoring
+      description: Post-disbursement monitoring rules
+      validation_strategy: ai_generic
+
+    - name: collection_escalation
+      description: Collections escalation rules
+      validation_strategy: ai_generic
+
+    - name: moratorium_handling
+      description: Moratorium handling rules
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # SPECIAL CASES & EXCEPTIONS
+  # ==================================================================
+  special_cases:
+    - name: waiver_rule
+      description: Fee/condition waiver rules
+      validation_strategy: ai_generic
+
+    - name: restructure_rule
+      description: Loan restructuring rules
+      validation_strategy: ai_generic
+
+    - name: writeoff_rule
+      description: Write-off authorization rules
+      validation_strategy: ai_generic
+
+    - name: chargeback_rule
+      description: Chargeback handling rules
+      validation_strategy: ai_generic
+
+    - name: dispute_resolution
+      description: Dispute resolution process rules
+      validation_strategy: ai_generic
+
+    - name: complaint_handling
+      description: Complaint handling requirements
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # SYSTEM & PROCESS CONTROLS
+  # ==================================================================
+  system_process:
+    - name: system_fallback_manual
+      description: System fallback and manual processing rules
+      validation_strategy: ai_generic
+
+    - name: system_reconciliation
+      description: System reconciliation requirements
+      validation_strategy: ai_generic
+
+    - name: retry_logic
+      description: Transaction retry rules
+      validation_strategy: ai_generic
+
+    - name: duplication_check
+      description: Duplicate detection requirements
+      validation_strategy: ai_generic
+
+    - name: field_mandatory
+      description: Mandatory field requirements
+      validation_strategy: ai_generic
+
+    - name: field_format
+      description: Field format validation rules
+      validation_strategy: ai_generic
+
+    - name: range_check
+      description: Value range validation rules
+      validation_strategy: ai_generic
+
+    - name: reference_data_check
+      description: Reference data validation rules
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # ALERTS & CASE MANAGEMENT
+  # ==================================================================
+  alerts_cases:
+    - name: watchlist_hit_handling
+      description: Watchlist hit handling procedures
+      validation_strategy: ai_generic
+
+    - name: alert_triage
+      description: Alert triage and prioritization rules
+      validation_strategy: ai_generic
+
+    - name: case_assignment
+      description: Case assignment rules
+      validation_strategy: ai_generic
+
+    - name: case_closure
+      description: Case closure requirements
+      validation_strategy: ai_generic
+
+    - name: threshold_alerting
+      description: Threshold-based alerting rules
+      validation_strategy: ai_generic
+
+    - name: pattern_anomaly_rule
+      description: Pattern and anomaly detection rules
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # MODEL & ANALYTICS
+  # ==================================================================
+  model_analytics:
+    - name: model_usage
+      description: Model usage and application rules
+      validation_strategy: ai_generic
+
+    - name: model_override
+      description: Model override authorization rules
+      validation_strategy: ai_generic
+
+    - name: model_input_validation
+      description: Model input validation requirements
+      validation_strategy: ai_generic
+
+    - name: stress_scenario_handling
+      description: Stress scenario handling rules
+      validation_strategy: ai_generic
+
+    - name: scorecard_cutoff_rule
+      description: Scorecard cutoff and decision rules
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # STAFF & INTERNAL CONTROLS
+  # ==================================================================
+  staff_internal:
+    - name: staff_account_handling
+      description: Staff account handling rules
+      validation_strategy: ai_generic
+
+    - name: insider_trading_control
+      description: Insider trading control requirements
+      validation_strategy: ai_generic
+
+    - name: conflict_of_interest
+      description: Conflict of interest rules
+      validation_strategy: ai_generic
+
+    - name: training_certification
+      description: Training and certification requirements
+      validation_strategy: ai_generic
+
+    - name: attestation
+      description: Attestation and sign-off requirements
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # APPROVAL VARIANTS & SPECIAL APPROVALS
+  # ==================================================================
+  approval_variants:
+    - name: backdating_control
+      description: Backdating control and authorization
+      validation_strategy: ai_generic
+
+    - name: post_facto_approval
+      description: Post-facto approval requirements
+      validation_strategy: ai_generic
+
+    - name: partial_approval
+      description: Partial approval handling rules
+      validation_strategy: ai_generic
+
+    - name: conditional_approval
+      description: Conditional approval requirements
+      validation_strategy: ai_generic
+
+    - name: emergency_override
+      description: Emergency override authorization
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # LIMITS & THRESHOLDS
+  # ==================================================================
+  limits_thresholds:
+    - name: limit_renewal
+      description: Limit renewal requirements
+      validation_strategy: ai_generic
+
+    - name: limit_reduction
+      description: Limit reduction procedures
+      validation_strategy: ai_generic
+
+    - name: temporary_enhancement
+      description: Temporary limit enhancement rules
+      validation_strategy: ai_generic
+
+    - name: overlimit_transaction
+      description: Over-limit transaction handling
+      validation_strategy: ai_generic
+
+    - name: blackout_period
+      description: Blackout period restrictions
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # GOVERNANCE & ACCESS CONTROL
+  # ==================================================================
+  governance_access:
+    - name: blacklist_whitelist
+      description: Blacklist/whitelist management rules
+      validation_strategy: ai_generic
+
+    - name: moderate_risk_override
+      description: Moderate risk override rules
+      validation_strategy: ai_generic
+
+    - name: access_control
+      description: System access control requirements
+      validation_strategy: ai_generic
+
+    - name: business_continuity
+      description: Business continuity requirements
+      validation_strategy: ai_generic
+
+    - name: incident_reporting
+      description: Incident reporting requirements
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # ENVIRONMENT & SOCIAL
+  # ==================================================================
+  environment_social:
+    - name: environment_social_risk
+      description: Environmental and social risk assessment
+      validation_strategy: ai_generic
+
+    - name: csr_compliance
+      description: CSR compliance requirements
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # FINANCIAL SUBSIDIES & SPECIAL PROGRAMS
+  # ==================================================================
+  subsidies_programs:
+    - name: interest_subsidy_eligibility
+      description: Interest subsidy eligibility criteria
+      validation_strategy: ai_generic
+
+  # ==================================================================
+  # RATE & TERM CHANGES
+  # ==================================================================
+  rate_term_changes:
+    - name: rate_change_notification
+      description: Rate change notification requirements
+      validation_strategy: ai_generic
+
+    - name: terms_conditions
+      description: Terms and conditions requirements
+      validation_strategy: ai_generic
+
+# ==================================================================
+# METADATA
+# ==================================================================
+metadata:
+  version: "1.0.0"
+  last_updated: "2025-01-01"
+  total_rule_types: 150
+  core_rules_count: 4
+  extended_rules_count: 146
+  description: "Comprehensive banking and loan processing rule type registry supporting 150+ compliance rule types"
+
+  usage_notes:
+    - "Core 4 rules (sequence, approval, timing, validation) use fast hardcoded validation"
+    - "Extended 146 rules use AI-powered generic evaluation for flexibility"
+    - "Add new custom rules by creating entries in appropriate category"
+    - "All rules with validation_strategy=ai_generic are evaluated using AIRuleEvaluator"

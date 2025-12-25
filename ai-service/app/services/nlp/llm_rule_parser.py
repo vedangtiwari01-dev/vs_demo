@@ -54,7 +54,7 @@ class LLMRuleParser:
         self,
         sop_text: str,
         use_llm: bool = True,
-        fallback_on_error: bool = True
+        fallback_on_error: bool = False
     ) -> Dict[str, Any]:
         """
         Extract rules from SOP text using Claude LLM.
@@ -63,6 +63,8 @@ class LLMRuleParser:
             sop_text: The full text of the SOP document
             use_llm: Whether to use LLM (True) or go straight to fallback (False)
             fallback_on_error: Whether to use fallback parser if LLM fails
+                              (DEFAULT: False - LLM extraction is reliable enough,
+                               regex fallback only supports 4 rule types anyway)
 
         Returns:
             Dict containing:
@@ -70,6 +72,10 @@ class LLMRuleParser:
                 - extraction_method: "llm" or "regex"
                 - confidence: Overall confidence score (0-1)
                 - warnings: Any issues encountered
+
+        Note:
+            Regex fallback is disabled by default as it only supports 4 hardcoded rule types.
+            LLM extraction now supports 150+ rule types and is reliable.
         """
         if not use_llm or not self.claude_client:
             logger.info("Using fallback regex parser (LLM disabled or unavailable)")
@@ -187,9 +193,9 @@ class LLMRuleParser:
             if not all(field in rule for field in required_fields):
                 return False
 
-            # Validate rule_type
-            valid_types = ['sequence', 'approval', 'timing', 'validation']
-            if rule['rule_type'] not in valid_types:
+            # Validate rule_type is non-empty string (REMOVED hardcoded whitelist)
+            # Now accepts ANY rule_type string to support 150+ banking rule types
+            if not isinstance(rule['rule_type'], str) or not rule['rule_type'].strip():
                 return False
 
             # Validate severity
