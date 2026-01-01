@@ -20,7 +20,7 @@ const Deviation = sequelize.define('Deviation', {
   deviation_type: {
     type: DataTypes.STRING(100),
     allowNull: false,
-    comment: 'missing_step, wrong_sequence, unauthorized_approval, timing_violation',
+    comment: 'missing_step, wrong_sequence, unexpected_step, duplicate_step, skipped_mandatory_subprocess, missing_approval, insufficient_approval_hierarchy, unauthorized_approver, self_approval_violation, escalation_missing, timing_violation, tat_breach, cutoff_breach, post_disbursement_qc_delay, ineligible_age, ineligible_tenor, emi_to_income_breach, low_score_approved_without_exception, kyc_incomplete_progression, sanctions_hit_not_rejected, pep_no_edd_or_extra_approval, missing_mandatory_document, expired_document_used, legal_clearance_missing, collateral_docs_incomplete, ltv_breach, valuation_missing_or_stale, security_not_created, pre_disbursement_condition_unmet, mandate_not_set_before_disbursement, incorrect_disbursement_amount, post_disbursement_qc_missing, collection_escalation_delay, unauthorized_restructure, unauthorized_writeoff, classification_mismatch, provisioning_shortfall, regulatory_report_missing_or_late, missing_core_field, invalid_format, inconsistent_value_across_steps, duplicate_active_case, audit_trail_missing',
   },
   rule_id: {
     type: DataTypes.INTEGER,

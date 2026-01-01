@@ -187,9 +187,15 @@ class LLMRuleParser:
             if not all(field in rule for field in required_fields):
                 return False
 
-            # Validate rule_type
-            valid_types = ['sequence', 'approval', 'timing', 'validation']
+            # Validate rule_type (16 types supported)
+            valid_types = [
+                'sequence', 'approval', 'timing', 'eligibility', 'credit_risk',
+                'kyc', 'aml', 'documentation', 'collateral', 'disbursement',
+                'post_disbursement_qc', 'collection', 'restructuring',
+                'regulatory', 'data_quality', 'operational'
+            ]
             if rule['rule_type'] not in valid_types:
+                logger.warning(f"Invalid rule_type '{rule['rule_type']}'. Valid types: {valid_types}")
                 return False
 
             # Validate severity

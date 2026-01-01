@@ -19,7 +19,7 @@ const SOPRule = sequelize.define('SOPRule', {
   rule_type: {
     type: DataTypes.STRING(100),
     allowNull: false,
-    comment: 'sequence, approval, validation, timing',
+    comment: 'sequence, approval, timing, eligibility, credit_risk, kyc, aml, documentation, collateral, disbursement, post_disbursement_qc, collection, restructuring, regulatory, data_quality, operational',
   },
   rule_description: {
     type: DataTypes.TEXT,

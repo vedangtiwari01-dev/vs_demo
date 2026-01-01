@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
@@ -15,25 +15,23 @@ class RuleExtractionRequest(BaseModel):
     text: str
 
 class Rule(BaseModel):
-    rule_type: str  # Changed from 'type' to match LLM output
-    rule_description: str  # Changed from 'description' to match LLM output
-    step_number: Optional[float] = None  # Changed from int to float to accept 2.1, 2.2, etc.
+    # Field names with aliases for flexibility
+    # We ask Claude for 'rule_type' and 'rule_description' in the prompt,
+    # but accept 'type' and 'description' as aliases if Claude doesn't follow exactly
+    rule_type: str = Field(alias='type')
+    rule_description: str = Field(alias='description')
+    step_number: Optional[float] = None
     severity: str = 'medium'
     condition_logic: Optional[Dict[str, Any]] = None
+    required_fields: Optional[List[str]] = None
+    timing_constraint: Optional[str] = None
 
-    # Aliases for backward compatibility
-    class Config:
-        populate_by_name = True
-
-    @property
-    def type(self):
-        """Alias for rule_type"""
-        return self.rule_type
-
-    @property
-    def description(self):
-        """Alias for rule_description"""
-        return self.rule_description
+    model_config = {
+        # Allow both field names and aliases during validation (input)
+        'populate_by_name': True,
+        # Accept extra fields from Claude
+        'extra': 'allow',
+    }
 
 class RuleExtractionResponse(BaseModel):
     rules: List[Rule]
@@ -49,10 +47,15 @@ class WorkflowLog(BaseModel):
 
 class SOPRule(BaseModel):
     id: int
-    type: str
-    description: str
+    rule_type: str = Field(alias='type')
+    rule_description: str = Field(alias='description')
     step_number: Optional[int] = None
     severity: str
+
+    model_config = {
+        'populate_by_name': True,
+        'extra': 'allow',
+    }
 
 class DeviationDetectionRequest(BaseModel):
     logs: List[WorkflowLog]

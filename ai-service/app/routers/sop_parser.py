@@ -17,10 +17,14 @@ async def parse_sop(request: SOPParseRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.post('/extract-rules', response_model=RuleExtractionResponse)
+@router.post('/extract-rules', response_model=RuleExtractionResponse, response_model_by_alias=False)
 async def extract_rules(request: RuleExtractionRequest, use_llm: bool = True):
     """
     Extract rules from SOP text.
+
+    IMPORTANT: response_model_by_alias=False ensures the response is serialized
+    using field names (rule_type, rule_description) NOT aliases (type, description),
+    so the backend receives the correct field names.
 
     Args:
         use_llm: If True, uses Claude LLM for intelligent extraction (default).

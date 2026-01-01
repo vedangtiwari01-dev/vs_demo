@@ -14,7 +14,7 @@ router = APIRouter(prefix='/ai/behavioral', tags=['Behavioral Analysis'])
 async def build_profile(request: BehavioralProfileRequest):
     """Build behavioral profile for an officer"""
     try:
-        logs_dict = [log.dict() for log in request.logs]
+        logs_dict = [log.model_dump() for log in request.logs]
         profile = ProfileBuilder.build_profile(
             request.officer_id,
             logs_dict,
@@ -28,7 +28,7 @@ async def build_profile(request: BehavioralProfileRequest):
 async def detect_patterns(request: PatternDetectionRequest):
     """Detect behavioral patterns"""
     try:
-        logs_dict = [log.dict() for log in request.logs]
+        logs_dict = [log.model_dump() for log in request.logs]
         patterns = PatternAnalyzer.detect_patterns(
             request.officer_id,
             logs_dict,
@@ -42,7 +42,7 @@ async def detect_patterns(request: PatternDetectionRequest):
 async def calculate_risk_score(request: BehavioralProfileRequest):
     """Calculate risk score for an officer"""
     try:
-        logs_dict = [log.dict() for log in request.logs]
+        logs_dict = [log.model_dump() for log in request.logs]
         profile = ProfileBuilder.build_profile(
             request.officer_id,
             logs_dict,

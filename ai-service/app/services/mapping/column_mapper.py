@@ -43,7 +43,52 @@ class ColumnMapper:
 
     # System fields that workflow logs must have
     REQUIRED_FIELDS = ['case_id', 'officer_id', 'step_name', 'action', 'timestamp']
-    OPTIONAL_FIELDS = ['duration_seconds', 'status', 'notes', 'comments']
+
+    # Extended optional fields - improve analysis quality when present
+    OPTIONAL_FIELDS = [
+        # Core workflow
+        'duration_seconds', 'status', 'notes', 'comments', 'step_id', 'stage_name', 'workflow_version', 'action_type', 'sub_status',
+        # Entity identifiers
+        'application_id', 'loan_id', 'customer_id', 'customer_name', 'customer_segment', 'customer_type', 'customer_risk_rating',
+        'group_id', 'related_party_flag', 'staff_flag', 'portfolio_id',
+        # Product & channel
+        'product_type', 'sub_product_type', 'scheme_code', 'secured_unsecured_flag',
+        'channel', 'branch_code', 'branch_name', 'region', 'geo_code',
+        # Amounts & terms
+        'loan_amount_requested', 'loan_amount_sanctioned', 'loan_amount_disbursed',
+        'interest_rate', 'interest_type', 'processing_fee', 'other_charges',
+        'tenor_months', 'tenor_days', 'repayment_frequency', 'emi_amount',
+        'ltv_ratio', 'margin_pct', 'total_group_exposure', 'customer_total_exposure',
+        # Risk & credit
+        'credit_score_bureau', 'credit_score_internal', 'scorecard_version', 'score_band',
+        'emi_to_income_ratio', 'dti_ratio', 'risk_grade', 'risk_category',
+        # Collateral & security
+        'collateral_type', 'collateral_description', 'collateral_value', 'collateral_value_date',
+        'valuation_status', 'valuation_firm_id', 'security_created_flag', 'security_perfected_flag',
+        # KYC / AML
+        'kyc_status', 'kyc_completed_flag', 'kyc_date', 'kyc_mode',
+        'sanctions_hit_flag', 'watchlist_hit_flag', 'pep_flag', 'aml_risk_rating',
+        # Workflow detail
+        'officer_name', 'officer_role', 'approval_role', 'approval_level',
+        'timestamp_start', 'timestamp_end', 'step_time', 'business_date',
+        'queue_name', 'queue_priority', 'sla_target_timestamp', 'sla_breach_flag',
+        # Approvals & exceptions
+        'approver_id', 'approver_role', 'approval_decision', 'approval_timestamp',
+        'exception_flag', 'exception_reason', 'exception_approver_id',
+        'override_flag', 'override_reason', 'override_approver_id',
+        # Disbursement
+        'disbursement_date', 'disbursement_amount', 'disbursement_mode',
+        'mandate_status', 'first_emi_date', 'statement_generated_flag',
+        'post_disbursement_qc_flag', 'post_disbursement_qc_date', 'qc_findings',
+        # Collections & restructuring
+        'overdue_days', 'bucket', 'collection_status', 'collection_agent_id',
+        'restructure_flag', 'restructure_date', 'restructure_type',
+        'writeoff_flag', 'writeoff_amount', 'writeoff_date',
+        # Audit & data quality
+        'created_by', 'created_at', 'updated_by', 'updated_at',
+        'source_system', 'source_file_name', 'import_batch_id',
+        'audit_trail_id', 'log_level', 'error_code', 'error_message'
+    ]
 
     def __init__(self):
         """Initialize column mapper with Claude client."""
@@ -169,16 +214,59 @@ class ColumnMapper:
         unmapped = []
         notes_column = None
 
-        # Hardcoded mapping rules (case-insensitive)
+        # Comprehensive hardcoded mapping rules (case-insensitive)
         mapping_rules = {
-            'case_id': ['case_id', 'caseid', 'case id', 'loan_id', 'loanid', 'loan id', 'case', 'loan'],
-            'officer_id': ['officer_id', 'officerid', 'officer id', 'user', 'user_id', 'userid', 'employee', 'employee_id'],
-            'step_name': ['step_name', 'stepname', 'step name', 'step', 'activity', 'action', 'task', 'stage'],
-            'action': ['action', 'decision', 'result', 'outcome'],
-            'timestamp': ['timestamp', 'date', 'time', 'datetime', 'created_at', 'date_time'],
-            'duration_seconds': ['duration', 'duration_seconds', 'time_taken', 'elapsed'],
-            'status': ['status', 'state', 'decision', 'result'],
-            'notes': ['notes', 'comments', 'comment', 'remarks', 'note', 'explanation', 'reason', 'justification']
+            # Required fields
+            'case_id': ['case_id', 'caseid', 'case id', 'loan_id', 'loanid', 'loan id', 'application_id', 'case', 'loan', 'application'],
+            'officer_id': ['officer_id', 'officerid', 'officer id', 'user', 'user_id', 'userid', 'employee', 'employee_id', 'staff_id'],
+            'step_name': ['step_name', 'stepname', 'step name', 'step', 'activity', 'task', 'stage', 'stage_name'],
+            'action': ['action', 'decision', 'outcome', 'action_type'],
+            'timestamp': ['timestamp', 'date', 'time', 'datetime', 'created_at', 'date_time', 'transaction_time'],
+
+            # Core workflow optional
+            'duration_seconds': ['duration', 'duration_seconds', 'time_taken', 'elapsed', 'processing_time'],
+            'status': ['status', 'state', 'sub_status'],
+            'notes': ['notes', 'comments', 'comment', 'remarks', 'note', 'explanation', 'reason', 'justification'],
+
+            # Entity identifiers
+            'customer_id': ['customer_id', 'customerid', 'client_id', 'cust_id', 'borrower_id'],
+            'customer_name': ['customer_name', 'customername', 'client_name', 'borrower_name', 'applicant_name'],
+            'loan_amount_requested': ['loan_amount', 'amount_requested', 'requested_amount', 'loan_amt', 'principal'],
+            'loan_amount_sanctioned': ['amount_sanctioned', 'sanctioned_amount', 'approved_amount', 'sanction_amt'],
+            'loan_amount_disbursed': ['amount_disbursed', 'disbursed_amount', 'disbursal_amount', 'disbursement_amt'],
+
+            # Product & channel
+            'product_type': ['product_type', 'product', 'loan_type', 'product_name', 'scheme'],
+            'branch_code': ['branch_code', 'branch', 'branch_id', 'location_code'],
+            'channel': ['channel', 'source_channel', 'origination_channel'],
+
+            # Risk & credit
+            'credit_score_bureau': ['credit_score', 'bureau_score', 'cibil_score', 'score'],
+            'emi_to_income_ratio': ['emi_ratio', 'emi_to_income', 'debt_to_income', 'dti', 'emi_income_ratio'],
+            'ltv_ratio': ['ltv', 'ltv_ratio', 'loan_to_value'],
+            'risk_grade': ['risk_grade', 'risk_rating', 'risk_category', 'rating'],
+
+            # KYC / AML
+            'kyc_status': ['kyc_status', 'kyc', 'kyc_verified', 'kyc_complete'],
+            'sanctions_hit_flag': ['sanctions_hit', 'sanctions', 'watchlist_hit', 'screening_result'],
+            'pep_flag': ['pep', 'pep_flag', 'politically_exposed'],
+
+            # Collateral
+            'collateral_type': ['collateral_type', 'collateral', 'security_type', 'asset_type'],
+            'collateral_value': ['collateral_value', 'security_value', 'asset_value', 'property_value'],
+
+            # Approvals
+            'approver_id': ['approver_id', 'approver', 'approved_by', 'sanctioned_by'],
+            'approval_decision': ['approval_decision', 'approval', 'decision'],
+            'exception_flag': ['exception', 'exception_flag', 'deviation', 'override'],
+
+            # Disbursement
+            'disbursement_date': ['disbursement_date', 'disbursal_date', 'payout_date', 'release_date'],
+            'disbursement_amount': ['disbursement_amount', 'disbursal_amt', 'payout_amount'],
+
+            # Collections
+            'overdue_days': ['overdue_days', 'dpd', 'days_past_due', 'delinquent_days'],
+            'bucket': ['bucket', 'dpd_bucket', 'collection_bucket', 'aging_bucket']
         }
 
         for header in headers:

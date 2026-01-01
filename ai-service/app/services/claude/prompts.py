@@ -10,9 +10,21 @@ Analyze the following SOP document text and extract ALL compliance rules. For ea
 
 1. **Rule Type**: One of:
    - "sequence": Steps that must happen in a specific order
-   - "approval": Requirements for manager/authority approval
-   - "timing": Time constraints (e.g., "within 3 days", "immediately")
-   - "validation": Data verification and checking requirements
+   - "approval": Requirements for manager/authority approval and escalation
+   - "timing": Time constraints, SLAs, TATs, cut-off times
+   - "eligibility": Age, tenure, income, employment, geography, product qualifications
+   - "credit_risk": Bureau score, delinquency, EMI/DTI ratios, LTV, exposure limits
+   - "kyc": KYC verification, documentation, refresh cycles
+   - "aml": Sanctions/watchlist screening, PEP handling, enhanced due diligence
+   - "documentation": Required document packs, authenticity, expiry, retention
+   - "collateral": Valuation, security creation/perfection, margin, LTV caps (for secured loans)
+   - "disbursement": Pre-disbursement conditions, disbursement modes, stage releases
+   - "post_disbursement_qc": Post-disbursement quality checks and audit requirements
+   - "collection": DPD-based escalation, repossession triggers
+   - "restructuring": Restructuring and write-off approval requirements
+   - "regulatory": NPA classification, provisioning, regulatory reporting requirements
+   - "data_quality": Logging, audit trails, data completeness, consistency, reconciliation
+   - "operational": Manual override rules, error handling, segregation of duties
 
 2. **Rule Description**: Clear, concise description of the rule
 
@@ -31,20 +43,26 @@ Analyze the following SOP document text and extract ALL compliance rules. For ea
 SOP Document Text:
 {sop_text}
 
-Return your analysis as a JSON array with this structure:
+Return your analysis as a JSON array with this EXACT structure. CRITICAL: You MUST use the exact field names shown below:
+
 {{
   "rules": [
     {{
-      "rule_type": "sequence|approval|timing|validation",
+      "rule_type": "sequence|approval|timing|eligibility|credit_risk|kyc|aml|documentation|collateral|disbursement|post_disbursement_qc|collection|restructuring|regulatory|data_quality|operational",
       "rule_description": "Clear description of the rule",
       "step_number": 1,
       "severity": "critical|high|medium|low",
       "required_fields": ["field1", "field2"],
       "timing_constraint": "X days" or null,
-      "conditional_logic": "any special conditions"
+      "condition_logic": "any special conditions"
     }}
   ]
 }}
+
+IMPORTANT:
+- Use "rule_type" NOT "type"
+- Use "rule_description" NOT "description"
+- Use "condition_logic" NOT "conditional_logic"
 
 Be thorough - extract every rule you can find, even if they seem minor."""
 
@@ -57,18 +75,26 @@ I have a CSV file with the following columns:
 Sample data from first 3 rows:
 {sample_rows}
 
-**Required System Fields:**
-- case_id: Unique identifier for the loan/case
+**Required System Fields (MUST be present):**
+- case_id: Unique identifier for the loan/case (aliases: application_id, loan_id)
 - officer_id: ID of the officer/user handling the case
 - step_name: Name of the workflow step/activity
 - action: Action taken (e.g., approved, rejected, completed)
 - timestamp: Date/time when the step occurred
 
-**Optional System Fields:**
-- duration_seconds: How long the step took
-- status: Status of the step
-- notes: Comments, notes, or explanations
-- comments: Additional comments
+**Optional System Fields (improve analysis when present):**
+Core Workflow: duration_seconds, status, notes, comments, step_id, stage_name, workflow_version, action_type, sub_status
+Entity IDs: application_id, loan_id, customer_id, customer_name, customer_segment, customer_type, customer_risk_rating, group_id, related_party_flag, staff_flag, portfolio_id
+Product & Channel: product_type, sub_product_type, scheme_code, secured_unsecured_flag, channel, branch_code, branch_name, region, geo_code
+Amounts & Terms: loan_amount_requested, loan_amount_sanctioned, loan_amount_disbursed, interest_rate, interest_type, processing_fee, other_charges, tenor_months, tenor_days, repayment_frequency, emi_amount, ltv_ratio, margin_pct, total_group_exposure, customer_total_exposure
+Risk & Credit: credit_score_bureau, credit_score_internal, scorecard_version, score_band, emi_to_income_ratio, dti_ratio, risk_grade, risk_category
+Collateral: collateral_type, collateral_description, collateral_value, collateral_value_date, valuation_status, valuation_firm_id, security_created_flag, security_perfected_flag
+KYC/AML: kyc_status, kyc_completed_flag, kyc_date, kyc_mode, sanctions_hit_flag, watchlist_hit_flag, pep_flag, aml_risk_rating
+Workflow Detail: officer_name, officer_role, approval_role, approval_level, timestamp_start, timestamp_end, step_time, business_date, queue_name, queue_priority, sla_target_timestamp, sla_breach_flag
+Approvals & Exceptions: approver_id, approver_role, approval_decision, approval_timestamp, exception_flag, exception_reason, exception_approver_id, override_flag, override_reason, override_approver_id
+Disbursement: disbursement_date, disbursement_amount, disbursement_mode, mandate_status, first_emi_date, statement_generated_flag, post_disbursement_qc_flag, post_disbursement_qc_date, qc_findings
+Collections & Restructuring: overdue_days, bucket, collection_status, collection_agent_id, restructure_flag, restructure_date, restructure_type, writeoff_flag, writeoff_amount, writeoff_date
+Audit & Data Quality: created_by, created_at, updated_by, updated_at, source_system, source_file_name, import_batch_id, audit_trail_id, log_level, error_code, error_message
 
 **Your Task:**
 1. Map each CSV column to the most appropriate system field (use simple string values ONLY)
@@ -126,12 +152,72 @@ DEVIATION_ANALYSIS_PROMPT = """You are an expert compliance analyst for loan pro
 **Your Task:**
 Analyze each case's workflow and identify ALL deviations from the SOP rules. For each deviation:
 
-1. **Deviation Type**: One of:
+1. **Deviation Type**: Choose the most specific type:
+
+   **Process & Sequence:**
    - "missing_step": Required step was skipped
    - "wrong_sequence": Steps done in wrong order
-   - "unauthorized_approval": Approval by wrong authority
-   - "timing_violation": Time constraint not met
-   - "validation_failure": Required validation not performed
+   - "unexpected_step": Step not allowed for product/segment
+   - "duplicate_step": Repeated steps where only one allowed
+   - "skipped_mandatory_subprocess": No pre-sanction visit/legal opinion when required
+
+   **Approval & Authority:**
+   - "missing_approval": No approval at required role/level
+   - "insufficient_approval_hierarchy": Amount/risk requires more approvers
+   - "unauthorized_approver": Approver role/limit insufficient
+   - "self_approval_violation": Same officer originates and approves
+   - "escalation_missing": Mandatory escalation not done for high-risk cases
+
+   **Timing & SLA:**
+   - "timing_violation": Time constraint not met (too fast/slow between steps)
+   - "tat_breach": SLA/TAT from application to decision exceeded
+   - "cutoff_breach": Step processed after cut-off or on holiday
+   - "post_disbursement_qc_delay": QC done outside allowed window
+
+   **Eligibility & Credit Policy:**
+   - "ineligible_age": Age outside product limits
+   - "ineligible_tenor": Tenure not allowed for product
+   - "emi_to_income_breach": EMI or DTI above threshold
+   - "low_score_approved_without_exception": Approved despite low score, no exception
+
+   **KYC / AML / Sanctions:**
+   - "kyc_incomplete_progression": Advanced beyond allowed stage with incomplete KYC
+   - "sanctions_hit_not_rejected": Sanctions/watchlist hit but not declined
+   - "pep_no_edd_or_extra_approval": PEP case missing enhanced due diligence
+
+   **Documentation & Legal:**
+   - "missing_mandatory_document": Required documents absent at gate
+   - "expired_document_used": Document expiry before decision/disbursement
+   - "legal_clearance_missing": No legal opinion where required
+   - "collateral_docs_incomplete": Security docs incomplete before disbursement
+
+   **Collateral & Security:**
+   - "ltv_breach": LTV above policy limit
+   - "valuation_missing_or_stale": No valuation or valuation too old
+   - "security_not_created": Disbursed without recording security
+
+   **Disbursement & Post-Disbursement:**
+   - "pre_disbursement_condition_unmet": Disbursed without satisfying conditions
+   - "mandate_not_set_before_disbursement": No repayment mandate at disbursement
+   - "incorrect_disbursement_amount": Disbursed not equal to sanctioned
+   - "post_disbursement_qc_missing": QC not done for required cases
+
+   **Collections & Restructuring:**
+   - "collection_escalation_delay": DPD bucket escalated late
+   - "unauthorized_restructure": Restructure with missing/inadequate approval
+   - "unauthorized_writeoff": Write-off beyond delegated authority
+
+   **Regulatory & Reporting:**
+   - "classification_mismatch": Internal vs regulatory classification inconsistent
+   - "provisioning_shortfall": Provision less than required for bucket
+   - "regulatory_report_missing_or_late": Mandatory report not filed in time
+
+   **Data Quality & Logging:**
+   - "missing_core_field": Missing case_id/officer_id/step_name/action/timestamp
+   - "invalid_format": Wrong data type or invalid pattern
+   - "inconsistent_value_across_steps": Loan amount/branch/product changes without amendment
+   - "duplicate_active_case": More than one active case per customer/product
+   - "audit_trail_missing": Required log record not present
 
 2. **Severity**: Based on impact and SOP rule severity:
    - "critical": Major compliance breach, regulatory risk
@@ -164,7 +250,7 @@ Return your analysis as JSON:
     {{
       "case_id": "12345",
       "officer_id": "OFF001",
-      "deviation_type": "missing_step|wrong_sequence|unauthorized_approval|timing_violation|validation_failure",
+      "deviation_type": "Use one of the comprehensive deviation types listed above",
       "severity": "critical|high|medium|low",
       "rule_id": 123,
       "description": "Clear description of deviation",

@@ -3,7 +3,32 @@ from datetime import datetime
 from collections import defaultdict
 
 class SequenceChecker:
-    """Checks workflow sequences against expected order"""
+    """
+    Checks workflow sequences against expected order and detects process deviations.
+
+    SEQUENCE DEVIATION TYPES DETECTED:
+    - missing_step: Required step was skipped
+    - wrong_sequence: Steps done in wrong order
+    - unexpected_step: Step not allowed for product/segment
+    - duplicate_step: Repeated steps where only one allowed (detected by AI)
+    - skipped_mandatory_subprocess: No pre-sanction visit/legal opinion (detected by AI)
+
+    This class performs rule-based sequence validation. Additional process-related
+    deviations are detected by Claude AI through comprehensive prompt analysis.
+
+    EXTENDED WORKFLOW FIELDS SUPPORTED (80+ fields):
+    Core: case_id, officer_id, step_name, action, timestamp, duration_seconds, status, notes
+    Entity IDs: application_id, loan_id, customer_id, customer_name, customer_segment, portfolio_id
+    Product & Channel: product_type, branch_code, channel
+    Amounts & Terms: loan_amount_requested, loan_amount_sanctioned, emi_amount, ltv_ratio
+    Risk & Credit: credit_score_bureau, emi_to_income_ratio, risk_grade
+    Collateral: collateral_type, collateral_value, security_created_flag
+    KYC/AML: kyc_status, sanctions_hit_flag, pep_flag
+    Approvals: approver_id, approval_decision, exception_flag
+    Disbursement: disbursement_date, disbursement_amount, post_disbursement_qc_flag
+    Collections: overdue_days, bucket, restructure_flag
+    Audit: created_by, source_system, audit_trail_id
+    """
 
     @staticmethod
     def check_sequence(logs: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -11,7 +36,7 @@ class SequenceChecker:
         deviations = []
 
         # Extract sequence rules
-        sequence_rules = [r for r in rules if r.get('type') == 'sequence']
+        sequence_rules = [r for r in rules if r.get('rule_type') == 'sequence']
         if not sequence_rules:
             return deviations
 
@@ -50,8 +75,8 @@ class SequenceChecker:
         # Extract step names from rule descriptions
         expected_steps = []
 
-        for rule in sorted(sequence_rules, key=lambda x: x.get('step_number', 999)):
-            desc = rule['description']
+        for rule in sorted(sequence_rules, key=lambda x: x.get('step_number') if x.get('step_number') is not None else 999):
+            desc = rule['rule_description']
             # Extract step name (simple heuristic)
             if 'income verification' in desc.lower():
                 expected_steps.append('Income Verification')
