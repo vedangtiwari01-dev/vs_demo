@@ -41,10 +41,11 @@ class NotesAnalyzer:
     def analyze_pattern_batch(
         self,
         deviations_with_notes: List[Dict[str, Any]],
-        max_batch_size: int = 100
+        max_batch_size: int = 100,
+        statistical_context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        Analyze patterns across ALL deviations in a single batch API call.
+        Analyze patterns across ALL deviations in a single batch API call with statistical context.
         Works with or without notes - analyzes structured data patterns.
 
         This is the main method - finds trends, habits, hidden rules across all deviations.
@@ -53,6 +54,7 @@ class NotesAnalyzer:
         Args:
             deviations_with_notes: List of ALL deviations (parameter name kept for compatibility)
             max_batch_size: Max deviations per API call (split if larger)
+            statistical_context: Optional statistical analysis results to provide context
 
         Returns:
             Dict containing:
@@ -82,19 +84,26 @@ class NotesAnalyzer:
         with_notes_count = sum(1 for d in all_deviations if d.get('notes'))
         logger.info(f"Analyzing patterns across {total_deviations} deviations ({with_notes_count} with notes, {total_deviations - with_notes_count} without)")
 
+        if statistical_context:
+            logger.info("Statistical context provided - enabling enhanced analysis")
+
         # If dataset is large, split into batches
         if total_deviations > max_batch_size:
-            return self._analyze_large_batch(deviations_with_notes, max_batch_size)
+            return self._analyze_large_batch(deviations_with_notes, max_batch_size, statistical_context)
 
         try:
-            # Format prompt for batch analysis
-            prompt = format_batch_pattern_analysis_prompt(deviations_with_notes)
+            # Format prompt for batch analysis with optional statistical context
+            prompt = format_batch_pattern_analysis_prompt(
+                deviations_with_notes,
+                statistical_context=statistical_context
+            )
 
             # Single API call for all deviations!
-            logger.info(f"Making 1 API call to analyze {total_deviations} deviations")
+            logger.info(f"Making 1 API call to analyze {total_deviations} deviations with statistical context")
             response = self.claude_client.generate(
                 prompt=prompt,
-                system="You are an expert at finding patterns and trends in compliance data.",
+                system="You are an expert at finding patterns and trends in compliance data. "
+                       "You have been provided with comprehensive statistical analysis to guide your insights.",
                 json_mode=True,
                 max_tokens=4096  # Larger response for comprehensive analysis
             )
@@ -135,7 +144,8 @@ class NotesAnalyzer:
     def _analyze_large_batch(
         self,
         deviations_with_notes: List[Dict[str, Any]],
-        batch_size: int
+        batch_size: int,
+        statistical_context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Handle large datasets by splitting into multiple batches and aggregating results.
@@ -143,6 +153,7 @@ class NotesAnalyzer:
         Args:
             deviations_with_notes: All deviations with notes
             batch_size: Max deviations per API call
+            statistical_context: Optional statistical analysis results
 
         Returns:
             Aggregated pattern analysis
@@ -157,7 +168,11 @@ class NotesAnalyzer:
             batch = deviations_with_notes[i:i + batch_size]
             logger.info(f"Analyzing batch {len(batch_results) + 1}/{num_batches}")
 
-            result = self.analyze_pattern_batch(batch, max_batch_size=batch_size * 2)
+            result = self.analyze_pattern_batch(
+                batch,
+                max_batch_size=batch_size * 2,
+                statistical_context=statistical_context
+            )
             batch_results.append(result)
 
         # Aggregate results from all batches

@@ -1,0 +1,165 @@
+{
+  "overall_summary": "Analysis of 9 deviations across 5 cases reveals a systemic pattern where Income Verification is universally skipped (100% of cases) while officers introduce alternative assessment steps (APPROVAL, CREDIT_ASSESSMENT, RISK_REVIEW) not defined in the standard SOP. This suggests a fundamental disconnect between the documented SOP and actual operational practices. All deviations occurred during evening hours (7 PM), indicating either batch processing or end-of-day reconciliation activities. The pattern shows officers are following an undocumented workflow that prioritizes speed and relationship-based decisions over standardized verification procedures.",
+  "behavioral_patterns": [
+    {
+      "pattern": "100% of officers skip Income Verification step regardless of customer type, loan amount, or risk profile",
+      "frequency": "Critical (9/9 cases, 100%)",
+      "risk_level": "critical",
+      "officers_involved": [
+        "EMP-019",
+        "EMP-018",
+        "EMP-017",
+        "EMP-DIGI",
+        "EMP-016"
+      ],
+      "supporting_evidence": "All 5 officers across all 5 cases skipped Income Verification. Notes show credit decisions made without formal income verification: 'Low ticket,stable profile', 'High ticket salaried', 'Medium ticket salaried' - suggesting informal income assessment without documented verification"
+    },
+    {
+      "pattern": "Officers substitute standard SOP steps with custom approval workflows based on customer relationship status",
+      "frequency": "High (5/5 cases, 100%)",
+      "risk_level": "high",
+      "officers_involved": [
+        "EMP-019",
+        "EMP-018",
+        "EMP-017",
+        "EMP-DIGI",
+        "EMP-016"
+      ],
+      "supporting_evidence": "Every case shows unexpected steps: APPROVAL (3 cases), CREDIT_ASSESSMENT (2 cases), RISK_REVIEW (1 case). Notes reveal relationship-based processing: 'Approved on existing relationship', 'Existing customer', 'Top-up request'"
+    },
+    {
+      "pattern": "Digital channel officer (EMP-DIGI) follows different workflow with additional risk controls",
+      "frequency": "Medium (1/5 cases)",
+      "risk_level": "medium",
+      "officers_involved": [
+        "EMP-DIGI"
+      ],
+      "supporting_evidence": "Only case with RISK_REVIEW step. Notes show: 'Online application', 'Video KYC', 'Approved at regional credit' - indicating digital applications route through enhanced scrutiny despite skipping Income Verification"
+    },
+    {
+      "pattern": "Branch officers fast-track existing customers by skipping verification steps",
+      "frequency": "High (3/5 cases, 60%)",
+      "risk_level": "high",
+      "officers_involved": [
+        "EMP-018",
+        "EMP-017",
+        "EMP-016"
+      ],
+      "supporting_evidence": "Cases APP-1005, APP-1004, APP-1002 show: 'Top-up request', 'Existing customer', 'Approved on existing relationship', 'Approved at branch' - indicating relationship banking shortcut"
+    }
+  ],
+  "hidden_rules": [
+    {
+      "rule": "Income Verification is systematically bypassed in favor of informal credit assessment based on ticket size and employment status",
+      "confidence": "very_high",
+      "evidence": "100% skip rate with notes showing: 'Low ticket,stable profile', 'High ticket salaried', 'Medium ticket salaried case'. Officers appear to use ticket size + employment type as proxy for income verification",
+      "compliance_impact": "Critical - Eliminates fundamental credit risk control. Creates exposure to income fraud and overstated repayment capacity. Violates lending regulations requiring documented income verification"
+    },
+    {
+      "rule": "Existing customer relationships allow approval without standard verification steps",
+      "confidence": "high",
+      "evidence": "3 cases (60%) mention existing relationships: 'Approved on existing relationship', 'Existing customer', 'Top-up request'. These cases skip Income Verification and jump directly to APPROVAL",
+      "compliance_impact": "High - Assumes historical relationship validates current repayment capacity. Ignores income changes, job loss, or deteriorating financial condition. Creates concentration risk in existing customer portfolio"
+    },
+    {
+      "rule": "Student/declined applications receive CREDIT_ASSESSMENT instead of standard workflow",
+      "confidence": "medium",
+      "evidence": "Case APP-1006: 'Student borrower', 'Declined \u2013 age or income not as per policy'. Uses CREDIT_ASSESSMENT step not in standard SOP, suggesting special handling for non-standard profiles",
+      "compliance_impact": "Medium - Creates parallel processing track without documented procedures. Risk of inconsistent decline decisions and potential discrimination issues"
+    },
+    {
+      "rule": "High-value loans trigger additional RISK_REVIEW step outside standard SOP",
+      "confidence": "medium",
+      "evidence": "Case APP-1003: 'High ticket salaried, higher EMI share', 'Additional risk review', 'Approved at regional credit'. Shows escalation workflow not documented in SOP",
+      "compliance_impact": "Medium - Positive control but undocumented. Creates approval authority confusion and potential delays. Should be formalized in SOP"
+    },
+    {
+      "rule": "Same-day approval is standard practice for low-ticket, stable profile customers",
+      "confidence": "medium",
+      "evidence": "Case APP-1004: 'Low ticket,stable profile', 'Approved same day'. Suggests speed-based processing tier",
+      "compliance_impact": "Medium - Speed prioritization may compromise due diligence. Risk of fraud in 'stable profile' assessment without verification"
+    }
+  ],
+  "systemic_issues": [
+    {
+      "issue": "Standard Operating Procedure does not reflect actual operational workflow",
+      "frequency": "9/9 deviations (100%)",
+      "impact": "Complete disconnect between documented SOP and practice. Officers universally follow undocumented procedures including APPROVAL, CREDIT_ASSESSMENT, and RISK_REVIEW steps. Income Verification appears to be a theoretical requirement never implemented in practice",
+      "recommended_fix": "Urgent SOP revision required. Either: (1) Update SOP to reflect actual workflow with proper controls, or (2) Implement Income Verification with system-enforced checkpoints. Current state creates regulatory exposure and audit findings"
+    },
+    {
+      "issue": "No system controls to enforce Income Verification step",
+      "frequency": "9/9 cases skip Income Verification",
+      "impact": "100% bypass rate indicates no technical controls preventing skip. Officers can approve loans without income documentation. Creates credit risk and regulatory compliance exposure",
+      "recommended_fix": "Implement hard stops in loan origination system requiring income document upload and verification before proceeding to approval. Add maker-checker controls for any override"
+    },
+    {
+      "issue": "Multiple approval workflows operating without standardization",
+      "frequency": "5 different processing patterns across 5 cases",
+      "impact": "Each case shows different combination of steps: branch approval, regional credit approval, same-day approval, relationship-based approval. Inconsistent controls and approval authorities create audit trail gaps",
+      "recommended_fix": "Standardize approval matrix by loan amount, customer type, and risk rating. Document all approval workflows in SOP. Implement workflow management system to enforce routing rules"
+    },
+    {
+      "issue": "Evening batch processing pattern masks real-time compliance gaps",
+      "frequency": "All 9 deviations timestamped at 7 PM hour",
+      "impact": "Concentrated evening processing (100% between 19:00-20:00) suggests end-of-day batch reconciliation or system-generated deviation detection. Real-time compliance monitoring absent during business hours when decisions are made",
+      "recommended_fix": "Implement real-time compliance checks during loan processing, not post-facto. Add in-workflow alerts to officers when deviating from SOP. Enable supervisory intervention before approval"
+    }
+  ],
+  "time_patterns": [
+    {
+      "pattern": "All deviations detected during evening hours (7 PM), with 100% concentration in single hour window",
+      "reason": "Likely indicates: (1) Batch compliance checking runs at end of business day, (2) System reconciliation process, or (3) Officers completing documentation after verbal approvals given during day. Thursday peak suggests weekly processing cycle",
+      "recommendation": "Shift to real-time compliance monitoring. Investigate why all deviations cluster at 7 PM - if batch processing, implement intraday checks. If documentation lag, enforce same-time documentation requirements"
+    },
+    {
+      "pattern": "Thursday shows peak deviation activity",
+      "reason": "May indicate weekly processing targets, mid-week workload peak, or specific operational schedule (e.g., weekly credit committee meetings requiring pre-submission processing)",
+      "recommendation": "Analyze weekly workload distribution. If Thursday is target-driven, implement additional quality checks. Consider workload balancing across week to reduce pressure-driven shortcuts"
+    }
+  ],
+  "justification_analysis": {
+    "most_common_reasons": [
+      {
+        "reason": "Existing customer relationship / Top-up loan",
+        "count": 3,
+        "percentage": "33%"
+      },
+      {
+        "reason": "Ticket size and employment profile assessment (Low/Medium/High ticket + salaried/stable)",
+        "count": 4,
+        "percentage": "44%"
+      },
+      {
+        "reason": "Special customer segment handling (Student, Online, Digital)",
+        "count": 2,
+        "percentage": "22%"
+      }
+    ],
+    "justified_count": 0,
+    "not_justified_count": 9,
+    "unclear_count": 0,
+    "analysis": "While officers provide contextual explanations (relationship status, ticket size, customer type), none constitute valid justification for skipping mandatory Income Verification. All explanations reveal informal risk assessment practices that bypass documented controls. The consistency of explanations suggests institutionalized workarounds rather than individual officer discretion"
+  },
+  "risk_insights": [
+    "Critical Control Failure: 100% bypass rate of Income Verification represents complete breakdown of fundamental credit risk control. This is not sporadic deviation but systematic non-compliance indicating the control is either impossible to execute or culturally rejected",
+    "Shadow Operating Procedures: Officers universally follow undocumented workflows (APPROVAL, CREDIT_ASSESSMENT, RISK_REVIEW steps) suggesting parallel 'real' SOP exists informally. This creates regulatory risk as actual practices are unaudited and uncontrolled",
+    "Relationship Banking Override: 60% of cases show existing customer relationships used to bypass verification. While relationship banking is valid strategy, it requires documented controls - current practice is informal and uncontrolled",
+    "Ticket-Size Risk Tiering: Officers use loan amount + employment type as informal risk classification ('Low ticket stable', 'High ticket salaried'). This proxy-based underwriting bypasses income verification but lacks documented thresholds, criteria, or approval authorities",
+    "Digital Channel Divergence: Online applications (EMP-DIGI) show different workflow with additional RISK_REVIEW step, suggesting channel-specific procedures not documented in standard SOP. Creates inconsistent customer experience and control gaps",
+    "Batch Compliance Detection: Evening-only deviation detection (7 PM cluster) means compliance failures discovered hours after approval decisions made. Prevents real-time intervention and correction",
+    "Universal Officer Participation: All 5 officers (100%) exhibit identical deviation patterns, indicating systemic training gap or institutional practice rather than individual non-compliance. Suggests management awareness and implicit acceptance of workarounds"
+  ],
+  "recommendations": [
+    "[critical] Emergency SOP Reconciliation: Conduct immediate gap analysis between documented SOP and actual practices. Convene cross-functional team (Operations, Credit, Compliance, IT) to either: (A) Revise SOP to reflect actual workflow with proper controls, or (B) Implement documented SOP with system enforcement. Current state creates severe regulatory and audit risk",
+    "[critical] Implement Hard Controls for Income Verification: Add system-enforced checkpoints requiring income document upload, verification, and approval before loan can proceed. Remove officer ability to skip this step. For any legitimate exceptions (e.g., existing customers with recent verification), create documented override process with senior approval and audit trail",
+    "[high] Formalize Relationship Banking Procedures: Document criteria for existing customer fast-track processing including: (1) Recency of last income verification (e.g., within 6 months), (2) Account performance requirements, (3) Maximum loan amount without re-verification, (4) Approval authority matrix. Implement system flags to identify eligible customers automatically",
+    "[high] Standardize Risk-Based Workflow Tiers: Formalize the informal ticket-size tiering observed in practice. Create documented workflow variants for: (1) Low-ticket standard customers, (2) High-ticket/high-EMI cases, (3) Existing customers, (4) Digital channel, (5) Special segments (students, etc.). Each tier should have clear criteria, required steps, and approval authorities documented in SOP",
+    "[high] Deploy Real-Time Compliance Monitoring: Replace batch evening compliance checks with in-workflow real-time alerts. When officer attempts to skip required step or perform unexpected step, trigger immediate notification with: (1) Reason code requirement, (2) Supervisor notification for high-risk deviations, (3) Block progression for critical control bypasses. Capture compliance data at point of decision, not end of day",
+    "[medium] Workload and Incentive Analysis: Investigate why 100% of officers follow identical workarounds. Analyze: (1) Daily case volume vs. time required for full SOP compliance, (2) Performance incentives that may reward speed over compliance, (3) Training adequacy on Income Verification procedures, (4) System usability issues making compliance difficult. Address root causes driving systematic non-compliance",
+    "[medium] Channel-Specific SOP Documentation: Formalize the digital channel workflow observed with EMP-DIGI including Video KYC, regional credit approval, and additional risk review. Ensure all channels have documented procedures with appropriate controls for their risk profiles. Prevent undocumented workflow divergence",
+    "[medium] Weekly Processing Pattern Review: Investigate Thursday deviation peak. If driven by weekly targets or credit committee schedules, implement: (1) Workload smoothing across week, (2) Enhanced quality checks on high-volume days, (3) Supervisor spot-checks during peak periods, (4) Consider staggered targets to reduce pressure-driven shortcuts"
+  ],
+  "api_calls_made": 1,
+  "deviations_analyzed": 9
+}

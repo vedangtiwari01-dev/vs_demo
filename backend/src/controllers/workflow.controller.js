@@ -512,10 +512,14 @@ const uploadWithMapping = async (req, res, next) => {
 
 const analyzePatterns = async (req, res, next) => {
   try {
-    // Get recent deviations (limit to 50 to avoid timeouts)
+    // Get ALL deviations (no limit) - now using layered approach with data cleaning & statistical analysis
+    // The AI service will:
+    // 1. Clean the data (remove duplicates, validate, normalize)
+    // 2. Perform statistical analysis on ALL deviations
+    // 3. Use statistical context to enhance AI pattern analysis
     const deviations = await Deviation.findAll({
       order: [['detected_at', 'DESC']],
-      limit: 50,
+      // No limit - send ALL deviations for comprehensive analysis
     });
 
     if (deviations.length === 0) {
@@ -524,9 +528,9 @@ const analyzePatterns = async (req, res, next) => {
       });
     }
 
-    console.log(`[analyzePatterns] Analyzing ${deviations.length} deviations`);
+    console.log(`[analyzePatterns] Analyzing ${deviations.length} deviations with layered approach (cleaning + stats + AI)`);
 
-    // Format deviations for AI analysis
+    // Format deviations for AI analysis (include timestamp for temporal analysis)
     const deviationsWithNotes = deviations.map(dev => ({
       case_id: dev.case_id,
       officer_id: dev.officer_id,
@@ -535,22 +539,30 @@ const analyzePatterns = async (req, res, next) => {
       description: dev.description,
       expected_behavior: dev.expected_behavior,
       actual_behavior: dev.actual_behavior,
-      notes: dev.notes || null
+      notes: dev.notes || null,
+      detected_at: dev.detected_at, // Include for temporal analysis
+      created_at: dev.created_at
     }));
 
-    // Call AI service for pattern analysis
-    console.log('[analyzePatterns] Sending to AI service...');
+    // Call AI service for layered pattern analysis
+    // Layer 1: Data Cleaning (duplicates, validation, normalization)
+    // Layer 2: Statistical Analysis (distributions, correlations, temporal patterns)
+    // Layer 3: AI Pattern Analysis (behavioral patterns, hidden rules, recommendations)
+    console.log('[analyzePatterns] Sending to AI service for layered analysis...');
     const patternAnalysis = await aiService.analyzeDeviationPatterns(deviationsWithNotes);
-    console.log('[analyzePatterns] AI analysis complete');
+    console.log('[analyzePatterns] Layered analysis complete');
 
     return successResponse(
       res,
       {
-        deviations_analyzed: deviations.length,
+        total_deviations: deviations.length,
+        deviations_analyzed: patternAnalysis.deviations_analyzed || deviations.length,
         api_calls_made: patternAnalysis.api_calls_made || 1,
+        data_quality: patternAnalysis.data_quality || null,
+        statistical_summary: patternAnalysis.statistical_summary || null,
         patterns: patternAnalysis
       },
-      'Pattern analysis completed'
+      'Layered pattern analysis completed successfully'
     );
   } catch (error) {
     next(error);

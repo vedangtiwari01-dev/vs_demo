@@ -76,22 +76,36 @@ async def validate_approval(request: DeviationDetectionRequest):
 @router.post('/analyze-patterns')
 async def analyze_patterns(request: PatternAnalysisRequest):
     """
-    Analyze patterns across ALL deviations with notes using Claude LLM.
+    Analyze patterns across ALL deviations with LAYERED APPROACH:
 
-    This is a cost-effective batch analysis that finds:
+    Layer 1: Data Cleaning
+    - Remove duplicates
+    - Validate data types
+    - Handle missing values
+    - Normalize text fields
+
+    Layer 2: Statistical Analysis
+    - Distribution analysis (severity, types)
+    - Temporal patterns (time-based trends)
+    - Officer-level statistics
+    - Risk indicators
+
+    Layer 3: AI Pattern Analysis (with statistical context)
     - Behavioral patterns (officer habits)
     - Hidden rules (informal practices)
     - Systemic issues (recurring problems)
-    - Time-based trends
+    - Enhanced recommendations
 
     Makes 1 API call for all deviations instead of individual analysis.
     """
     try:
         from app.services.deviation.notes_analyzer import NotesAnalyzer
+        from app.services.data import DataCleaner, StatisticalAnalyzer
         from app.models.schemas import PatternAnalysisResponse
         import logging
 
         logger = logging.getLogger(__name__)
+        logger.info(f"=== LAYERED PATTERN ANALYSIS STARTED ===")
         logger.info(f"Pattern analysis requested for {len(request.deviations)} deviations")
 
         # Check if we have any deviations at all
@@ -115,16 +129,93 @@ async def analyze_patterns(request: PatternAnalysisRequest):
                 deviations_analyzed=0
             )
 
+        # ===================================================================
+        # LAYER 1: DATA CLEANING
+        # ===================================================================
+        logger.info("--- Layer 1: Data Cleaning ---")
+        cleaned_deviations, cleaning_report = DataCleaner.clean_deviations(
+            request.deviations,
+            remove_duplicates=True,
+            validate_types=True,
+            handle_missing=True,
+            normalize_text=True
+        )
+
+        data_quality = DataCleaner.get_data_quality_score(cleaning_report)
+        logger.info(f"Data cleaning complete: {len(cleaned_deviations)}/{len(request.deviations)} deviations retained")
+        logger.info(f"Data Quality Score: {data_quality['score']}/100 (Grade: {data_quality['grade']})")
+        logger.info(f"Cleaning summary: {cleaning_report['duplicates_removed']} duplicates, "
+                   f"{cleaning_report['invalid_types_fixed']} type fixes, "
+                   f"{cleaning_report['missing_values_handled']} missing handled")
+
+        if len(cleaned_deviations) == 0:
+            logger.error("No valid deviations after cleaning")
+            return PatternAnalysisResponse(
+                overall_summary=f"All {len(request.deviations)} deviations were filtered out during data cleaning. "
+                              f"Data quality issues: {cleaning_report['validation_errors'][:3]}",
+                behavioral_patterns=[],
+                hidden_rules=[],
+                systemic_issues=[],
+                time_patterns=[],
+                justification_analysis={
+                    "most_common_reasons": [],
+                    "justified_count": 0,
+                    "not_justified_count": 0,
+                    "unclear_count": 0
+                },
+                risk_insights=[f"Data quality: {data_quality['assessment']}"],
+                recommendations=["Improve data quality at source", "Review data validation rules"],
+                api_calls_made=0,
+                deviations_analyzed=0
+            )
+
+        # ===================================================================
+        # LAYER 2: STATISTICAL ANALYSIS
+        # ===================================================================
+        logger.info("--- Layer 2: Statistical Analysis ---")
+        statistical_analysis = StatisticalAnalyzer.analyze(cleaned_deviations)
+
+        logger.info(f"Statistical analysis complete:")
+        logger.info(f"  - Total deviations: {statistical_analysis['overview']['total_deviations']}")
+        logger.info(f"  - Unique cases: {statistical_analysis['overview']['unique_cases']}")
+        logger.info(f"  - Unique officers: {statistical_analysis['overview']['unique_officers']}")
+        logger.info(f"  - Severity score: {statistical_analysis['severity_distribution']['severity_score']}/100")
+        logger.info(f"  - Top deviation type: {statistical_analysis['deviation_type_distribution']['top_10_types'][0]['type'] if statistical_analysis['deviation_type_distribution']['top_10_types'] else 'N/A'}")
+
         # Count deviations with notes (for logging)
-        deviations_with_notes = [d for d in request.deviations if d.get('notes')]
-        logger.info(f"Found {len(deviations_with_notes)} deviations with notes, {len(request.deviations) - len(deviations_with_notes)} without notes")
+        deviations_with_notes = [d for d in cleaned_deviations if d.get('notes')]
+        logger.info(f"Found {len(deviations_with_notes)} deviations with notes, "
+                   f"{len(cleaned_deviations) - len(deviations_with_notes)} without notes")
+
+        # ===================================================================
+        # LAYER 3: AI PATTERN ANALYSIS (with statistical context)
+        # ===================================================================
+        logger.info("--- Layer 3: AI Pattern Analysis ---")
+        logger.info("Preparing context-enhanced analysis with statistical insights...")
 
         # Initialize notes analyzer
         analyzer = NotesAnalyzer()
 
-        # Perform batch pattern analysis (1 API call!)
-        pattern_result = analyzer.analyze_pattern_batch(request.deviations)
+        # Perform batch pattern analysis with statistical context (1 API call!)
+        # Pass both cleaned deviations and statistical analysis as context
+        pattern_result = analyzer.analyze_pattern_batch(
+            cleaned_deviations,
+            statistical_context=statistical_analysis
+        )
 
+        # Enhance the response with cleaning and statistical metadata
+        pattern_result['data_quality'] = data_quality
+        pattern_result['cleaning_report'] = cleaning_report
+        pattern_result['statistical_summary'] = {
+            'total_analyzed': statistical_analysis['overview']['total_deviations'],
+            'severity_score': statistical_analysis['severity_distribution']['severity_score'],
+            'severity_assessment': statistical_analysis['severity_distribution']['severity_assessment'],
+            'top_deviation_types': statistical_analysis['deviation_type_distribution']['top_10_types'][:5],
+            'critical_mass_score': statistical_analysis['risk_indicators']['critical_mass_score'],
+            'risk_assessment': statistical_analysis['risk_indicators']['critical_mass_assessment']
+        }
+
+        logger.info("=== LAYERED PATTERN ANALYSIS COMPLETED ===")
         return PatternAnalysisResponse(**pattern_result)
 
     except Exception as e:

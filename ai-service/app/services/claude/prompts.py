@@ -1,7 +1,7 @@
 """
 Centralized prompt templates for Claude API interactions.
 """
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 # SOP Rule Extraction Prompt
 SOP_RULE_EXTRACTION_PROMPT = """You are an expert at analyzing Standard Operating Procedures (SOPs) for loan processing and extracting compliance rules.
@@ -518,9 +518,68 @@ Return your analysis as JSON:
 
 Focus on finding PATTERNS across multiple deviations, not analyzing individual cases."""
 
-def format_batch_pattern_analysis_prompt(deviations_with_notes: List[Dict[str, Any]]) -> str:
-    """Format the batch pattern analysis prompt."""
+def format_batch_pattern_analysis_prompt(
+    deviations_with_notes: List[Dict[str, Any]],
+    statistical_context: Optional[Dict[str, Any]] = None
+) -> str:
+    """
+    Format the batch pattern analysis prompt with optional statistical context.
+
+    Args:
+        deviations_with_notes: List of deviations to analyze
+        statistical_context: Optional statistical analysis to provide context
+
+    Returns:
+        Formatted prompt string
+    """
     deviation_count = len(deviations_with_notes)
+
+    # Format statistical context if provided
+    stats_section = ""
+    if statistical_context:
+        severity_dist = statistical_context.get('severity_distribution', {})
+        overview = statistical_context.get('overview', {})
+        deviation_types = statistical_context.get('deviation_type_distribution', {})
+        temporal = statistical_context.get('temporal_patterns', {})
+        risk_indicators = statistical_context.get('risk_indicators', {})
+
+        stats_section = f"""
+**STATISTICAL CONTEXT (Analyzed ALL {overview.get('total_deviations', 0)} deviations):**
+
+📊 **Overview:**
+- Total Deviations: {overview.get('total_deviations', 0)}
+- Unique Cases: {overview.get('unique_cases', 0)}
+- Unique Officers: {overview.get('unique_officers', 0)}
+- Avg Deviations/Case: {overview.get('average_deviations_per_case', 0)}
+- Avg Deviations/Officer: {overview.get('average_deviations_per_officer', 0)}
+
+🔴 **Severity Distribution:**
+- Severity Score: {severity_dist.get('severity_score', 0)}/100
+- Assessment: {severity_dist.get('severity_assessment', 'Unknown')}
+- Critical: {severity_dist.get('distribution', {}).get('critical', {}).get('count', 0)} ({severity_dist.get('distribution', {}).get('critical', {}).get('percentage', 0)}%)
+- High: {severity_dist.get('distribution', {}).get('high', {}).get('count', 0)} ({severity_dist.get('distribution', {}).get('high', {}).get('percentage', 0)}%)
+- Medium: {severity_dist.get('distribution', {}).get('medium', {}).get('count', 0)} ({severity_dist.get('distribution', {}).get('medium', {}).get('percentage', 0)}%)
+- Low: {severity_dist.get('distribution', {}).get('low', {}).get('count', 0)} ({severity_dist.get('distribution', {}).get('low', {}).get('percentage', 0)}%)
+
+📈 **Top 5 Deviation Types:**
+{_format_top_types(deviation_types.get('top_10_types', [])[:5])}
+
+⚠️ **Risk Indicators:**
+- Critical Mass Score: {risk_indicators.get('critical_mass_score', 0)}/100
+- Risk Assessment: {risk_indicators.get('critical_mass_assessment', 'Unknown')}
+- Concentration Risk: Top 5 officers account for {risk_indicators.get('concentration_risk', {}).get('top_5_officer_percentage', 0)}% of deviations
+- Issue Diversity: {risk_indicators.get('issue_diversity', {}).get('unique_types', 0)} unique deviation types
+
+{_format_temporal_patterns(temporal)}
+
+**USE THIS CONTEXT** to:
+1. Validate your findings against the statistics
+2. Focus on the highest-risk areas identified
+3. Explain why certain patterns emerge
+4. Make data-driven recommendations
+
+---
+"""
 
     # Format ALL deviations (with or without notes) into readable text
     deviations_text = []
@@ -544,7 +603,40 @@ Deviation {i}:
 
     deviations_formatted = "\n\n".join(deviations_text)
 
-    return BATCH_PATTERN_ANALYSIS_PROMPT.format(
+    prompt_template = stats_section + BATCH_PATTERN_ANALYSIS_PROMPT
+
+    return prompt_template.format(
         deviation_count=deviation_count,
         deviations_with_notes=deviations_formatted
     )
+
+
+def _format_top_types(top_types: List[Dict[str, Any]]) -> str:
+    """Format top deviation types for display."""
+    if not top_types:
+        return "No data available"
+
+    lines = []
+    for i, dtype in enumerate(top_types, 1):
+        lines.append(f"  {i}. {dtype.get('type', 'unknown')}: {dtype.get('count', 0)} ({dtype.get('percentage', 0)}%)")
+
+    return "\n".join(lines)
+
+
+def _format_temporal_patterns(temporal: Dict[str, Any]) -> str:
+    """Format temporal patterns for display."""
+    if not temporal.get('has_temporal_data'):
+        return ""
+
+    period_dist = temporal.get('period_distribution', {})
+    peak_hours = temporal.get('peak_hours', [])[:3]
+    peak_days = temporal.get('peak_days', [])[:3]
+
+    return f"""⏰ **Temporal Patterns:**
+- Morning (6am-12pm): {period_dist.get('morning', {}).get('count', 0)} ({period_dist.get('morning', {}).get('percentage', 0)}%)
+- Afternoon (12pm-6pm): {period_dist.get('afternoon', {}).get('count', 0)} ({period_dist.get('afternoon', {}).get('percentage', 0)}%)
+- Evening (6pm-12am): {period_dist.get('evening', {}).get('count', 0)} ({period_dist.get('evening', {}).get('percentage', 0)}%)
+- Night (12am-6am): {period_dist.get('night', {}).get('count', 0)} ({period_dist.get('night', {}).get('percentage', 0)}%)
+- Peak Hours: {', '.join(peak_hours)}
+- Peak Days: {', '.join(peak_days)}
+"""
