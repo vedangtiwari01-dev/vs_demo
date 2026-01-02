@@ -520,19 +520,26 @@ Focus on finding PATTERNS across multiple deviations, not analyzing individual c
 
 def format_batch_pattern_analysis_prompt(
     deviations_with_notes: List[Dict[str, Any]],
-    statistical_context: Optional[Dict[str, Any]] = None
+    statistical_context: Optional[Dict[str, Any]] = None,
+    ml_context: Optional[str] = None
 ) -> str:
     """
-    Format the batch pattern analysis prompt with optional statistical context.
+    Format the batch pattern analysis prompt with optional statistical and ML context.
 
     Args:
         deviations_with_notes: List of deviations to analyze
         statistical_context: Optional statistical analysis to provide context
+        ml_context: Optional ML analysis context (clustering, anomalies)
 
     Returns:
         Formatted prompt string
     """
     deviation_count = len(deviations_with_notes)
+
+    # Format ML context if provided
+    ml_section = ""
+    if ml_context:
+        ml_section = ml_context + "\n\n---\n\n"
 
     # Format statistical context if provided
     stats_section = ""
@@ -603,7 +610,8 @@ Deviation {i}:
 
     deviations_formatted = "\n\n".join(deviations_text)
 
-    prompt_template = stats_section + BATCH_PATTERN_ANALYSIS_PROMPT
+    # Assemble prompt: ML context + Stats context + Main prompt
+    prompt_template = ml_section + stats_section + BATCH_PATTERN_ANALYSIS_PROMPT
 
     return prompt_template.format(
         deviation_count=deviation_count,

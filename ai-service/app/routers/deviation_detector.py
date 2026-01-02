@@ -188,22 +188,58 @@ async def analyze_patterns(request: PatternAnalysisRequest):
                    f"{len(cleaned_deviations) - len(deviations_with_notes)} without notes")
 
         # ===================================================================
-        # LAYER 3: AI PATTERN ANALYSIS (with statistical context)
+        # LAYER 3: ML ANALYSIS (clustering, anomaly detection, sampling)
         # ===================================================================
-        logger.info("--- Layer 3: AI Pattern Analysis ---")
-        logger.info("Preparing context-enhanced analysis with statistical insights...")
+        logger.info("--- Layer 3: ML Analysis ---")
+        logger.info("Running ML pipeline: feature engineering, clustering, anomaly detection, intelligent sampling...")
+
+        # Import ML pipeline
+        from app.services.ml.ml_pipeline import MLPipeline
+
+        # Initialize ML pipeline
+        # Target sample size: 75-100 deviations for LLM
+        # Contamination: 10% expected anomalies
+        ml_pipeline = MLPipeline(target_sample_size=75, contamination=0.1)
+
+        # Run ML analysis
+        ml_results = ml_pipeline.analyze(cleaned_deviations)
+
+        # Extract results
+        ml_selected_deviations = ml_results['selected_deviations']
+        ml_metadata = ml_results['ml_metadata']
+
+        if ml_metadata.get('ml_applied'):
+            logger.info(f"ML analysis complete:")
+            logger.info(f"  - Original: {len(cleaned_deviations)} deviations")
+            logger.info(f"  - Selected: {len(ml_selected_deviations)} deviations")
+            logger.info(f"  - Compression: {ml_metadata['sampling']['compression_ratio']:.1f}x")
+            logger.info(f"  - Clusters: {ml_metadata['clustering']['n_clusters']}")
+            logger.info(f"  - Anomalies: {ml_metadata['anomaly_detection']['n_anomalies']}")
+        else:
+            logger.warning(f"ML analysis skipped: {ml_metadata.get('reason', 'unknown')}")
+            ml_selected_deviations = cleaned_deviations  # Use all if ML not applied
+
+        # ===================================================================
+        # LAYER 4: AI PATTERN ANALYSIS (with statistical + ML context)
+        # ===================================================================
+        logger.info("--- Layer 4: AI Pattern Analysis ---")
+        logger.info("Preparing context-enhanced analysis with statistical insights and ML labels...")
 
         # Initialize notes analyzer
         analyzer = NotesAnalyzer()
 
-        # Perform batch pattern analysis with statistical context (1 API call!)
-        # Pass both cleaned deviations and statistical analysis as context
+        # Prepare combined context for LLM
+        ml_context_text = ml_pipeline.get_ml_context_for_llm(ml_metadata) if ml_metadata.get('ml_applied') else None
+
+        # Perform batch pattern analysis with statistical + ML context (1 API call!)
+        # Pass selected deviations (sampled intelligently) and full context
         pattern_result = analyzer.analyze_pattern_batch(
-            cleaned_deviations,
-            statistical_context=statistical_analysis
+            ml_selected_deviations,
+            statistical_context=statistical_analysis,
+            ml_context=ml_context_text
         )
 
-        # Enhance the response with cleaning and statistical metadata
+        # Enhance the response with cleaning, statistical, and ML metadata
         pattern_result['data_quality'] = data_quality
         pattern_result['cleaning_report'] = cleaning_report
         pattern_result['statistical_summary'] = {
@@ -215,7 +251,25 @@ async def analyze_patterns(request: PatternAnalysisRequest):
             'risk_assessment': statistical_analysis['risk_indicators']['critical_mass_assessment']
         }
 
-        logger.info("=== LAYERED PATTERN ANALYSIS COMPLETED ===")
+        # Add ML summary if applied
+        if ml_metadata.get('ml_applied'):
+            pattern_result['ml_summary'] = {
+                'ml_applied': True,
+                'original_count': len(cleaned_deviations),
+                'selected_count': len(ml_selected_deviations),
+                'compression_ratio': ml_metadata['sampling']['compression_ratio'],
+                'clusters_found': ml_metadata['clustering']['n_clusters'],
+                'anomalies_detected': ml_metadata['anomaly_detection']['n_anomalies'],
+                'clustering_method': ml_metadata['clustering']['method'],
+                'sampling_composition': ml_metadata['sampling']['composition']
+            }
+        else:
+            pattern_result['ml_summary'] = {
+                'ml_applied': False,
+                'reason': ml_metadata.get('reason', 'unknown')
+            }
+
+        logger.info("=== LAYERED PATTERN ANALYSIS COMPLETED (4 LAYERS) ===")
         return PatternAnalysisResponse(**pattern_result)
 
     except Exception as e:
