@@ -34,14 +34,20 @@ class DeviationClusterer:
 
     def cluster(self, feature_matrix: np.ndarray,
                 min_clusters: int = 3,
-                max_clusters: int = 15) -> Tuple[np.ndarray, Dict[str, Any]]:
+                max_clusters: int = 100) -> Tuple[np.ndarray, Dict[str, Any]]:
         """
         Cluster deviations using DBSCAN with K-means fallback.
 
+        DBSCAN is more accurate than K-means as it:
+        - Automatically determines cluster count
+        - Handles noise/outliers
+        - Finds clusters of arbitrary shape
+
         Args:
             feature_matrix: Numpy array of shape (n_samples, n_features)
-            min_clusters: Minimum acceptable number of clusters
-            max_clusters: Maximum acceptable number of clusters
+            min_clusters: Minimum acceptable number of clusters (default: 3)
+            max_clusters: Maximum acceptable number of clusters (default: 100)
+                         Increased from 15 to allow DBSCAN to find natural groupings
 
         Returns:
             Tuple of (cluster_labels, metadata)
@@ -96,14 +102,26 @@ class DeviationClusterer:
         Returns:
             Tuple of (labels, metadata)
         """
-        # DBSCAN parameters
+        # DBSCAN parameters (adaptive based on dataset size)
         # eps: Maximum distance between samples to be neighbors
         # min_samples: Minimum samples in neighborhood to form core point
 
-        eps = 0.5
-        min_samples = 5
+        n_samples = X_scaled.shape[0]
 
-        logger.info(f"Running DBSCAN with eps={eps}, min_samples={min_samples}")
+        # Adaptive eps: increase for larger datasets to get bigger clusters
+        if n_samples < 100:
+            eps = 0.5
+        elif n_samples < 500:
+            eps = 0.8
+        elif n_samples < 1000:
+            eps = 1.0
+        else:
+            eps = 1.2  # Larger datasets need larger eps
+
+        # Adaptive min_samples: increase for larger datasets
+        min_samples = min(10, max(5, n_samples // 200))
+
+        logger.info(f"Running DBSCAN with eps={eps}, min_samples={min_samples} (adaptive for {n_samples} samples)")
 
         dbscan = DBSCAN(eps=eps, min_samples=min_samples, metric='euclidean')
         labels = dbscan.fit_predict(X_scaled)

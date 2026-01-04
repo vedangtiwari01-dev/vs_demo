@@ -8,15 +8,49 @@ from app.services.claude.prompts import format_batch_pattern_analysis_prompt
 logger = logging.getLogger(__name__)
 
 def extract_json_from_text(text: str) -> str:
-    """Extract JSON from text that might contain markdown code fences or extra text."""
+    """
+    Extract JSON from text that might contain markdown code fences or extra text.
+    Also cleans up common JSON formatting issues like trailing commas.
+    """
     text = text.strip()
+
+    # Try to extract from markdown code fence
     json_fence_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
     if json_fence_match:
-        return json_fence_match.group(1)
-    json_match = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
-    if json_match:
-        return json_match.group(1)
-    return text
+        json_text = json_fence_match.group(1)
+    else:
+        # Try to extract raw JSON
+        json_match = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
+        if json_match:
+            json_text = json_match.group(1)
+        else:
+            json_text = text
+
+    # Clean up common JSON issues:
+    # 1. Remove trailing commas before closing brackets/braces
+    json_text = re.sub(r',\s*}', '}', json_text)  # Remove trailing comma before }
+    json_text = re.sub(r',\s*]', ']', json_text)  # Remove trailing comma before ]
+
+    # 2. Fix multiple commas
+    json_text = re.sub(r',\s*,', ',', json_text)
+
+    # 3. Fix missing commas between closing and opening braces (common Claude error)
+    #    Example: }{ should be },{
+    json_text = re.sub(r'}\s*{', '},{', json_text)
+    json_text = re.sub(r'}\s*\[', '},[', json_text)
+    json_text = re.sub(r']\s*{', '],{', json_text)
+    json_text = re.sub(r']\s*\[', '],[', json_text)
+
+    # 4. Fix missing commas after closing brace/bracket before opening quote
+    #    Example: }" should be },"
+    json_text = re.sub(r'}(\s*")', r'},\1', json_text)
+    json_text = re.sub(r'](\s*")', r'],\1', json_text)
+
+    # 5. Fix missing commas after string before opening brace/bracket
+    #    Example: "text"{ should be "text",{
+    json_text = re.sub(r'"(\s*[{\[])', r'",\1', json_text)
+
+    return json_text
 
 class NotesAnalyzer:
     """
@@ -113,9 +147,30 @@ class NotesAnalyzer:
                 max_tokens=4096  # Larger response for comprehensive analysis
             )
 
-            # Extract and parse JSON response (handles markdown code fences)
-            json_text = extract_json_from_text(response['text'])
-            pattern_analysis = json.loads(json_text)
+            # Save response text for error logging
+            response_text = response['text']
+
+            # Extract and parse JSON response (handles markdown code fences & trailing commas)
+            json_text = extract_json_from_text(response_text)
+            logger.info(f"Extracted JSON length: {len(json_text)} characters")
+
+            try:
+                pattern_analysis = json.loads(json_text)
+            except json.JSONDecodeError as parse_error:
+                # Log the problematic JSON section
+                error_pos = parse_error.pos if hasattr(parse_error, 'pos') else 0
+                start = max(0, error_pos - 200)
+                end = min(len(json_text), error_pos + 200)
+                logger.error(f"JSON parsing failed at position {error_pos}")
+                logger.error(f"Context around error: ...{json_text[start:end]}...")
+
+                # Log the full JSON to a temp file for debugging
+                import tempfile
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                    f.write(json_text)
+                    logger.error(f"Full JSON saved to: {f.name}")
+
+                raise  # Re-raise to be caught by outer handler
 
             # Fix recommendations if Claude returned objects instead of strings
             if 'recommendations' in pattern_analysis and isinstance(pattern_analysis['recommendations'], list):
@@ -141,9 +196,16 @@ class NotesAnalyzer:
 
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse Claude response as JSON: {str(e)}")
+            logger.error(f"JSON decode error details: line={e.lineno if hasattr(e, 'lineno') else 'N/A'}, col={e.colno if hasattr(e, 'colno') else 'N/A'}")
+            logger.error(f"Response text length: {len(response_text) if 'response_text' in locals() else 'N/A'} chars")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return self._empty_pattern_analysis()
         except Exception as e:
             logger.error(f"Error analyzing patterns with Claude: {str(e)}")
+            logger.error(f"Error type: {type(e).__name__}")
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             return self._empty_pattern_analysis()
 
     def _analyze_large_batch(

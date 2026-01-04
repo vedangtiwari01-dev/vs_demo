@@ -27,6 +27,31 @@ async def detect_deviations(request: DeviationDetectionRequest):
         logger.info(f"Sample rule after model_dump: {rules_dict[0] if rules_dict else 'No rules'}")
         logger.info(f"Sample log after model_dump: {logs_dict[0] if logs_dict else 'No logs'}")
 
+        # ===================================================================
+        # STEP 0: CLEAN WORKFLOW LOGS (Before deviation detection)
+        # ===================================================================
+        logger.info("--- Step 0: Cleaning Workflow Logs ---")
+        from app.services.data import WorkflowLogCleaner
+
+        cleaned_logs, log_cleaning_report = WorkflowLogCleaner.clean_logs(
+            logs_dict,
+            remove_duplicates=True,
+            validate_types=True,
+            handle_missing=True,
+            normalize_text=True
+        )
+
+        log_quality = WorkflowLogCleaner.get_data_quality_score(log_cleaning_report)
+        logger.info(f"Workflow log cleaning complete: {len(logs_dict)} → {len(cleaned_logs)} logs")
+        logger.info(f"Log Quality Score: {log_quality['score']}/100 (Grade: {log_quality['grade']})")
+
+        if len(cleaned_logs) == 0:
+            logger.error("No valid logs after cleaning")
+            return DeviationDetectionResponse(deviations=[])
+
+        # Use cleaned logs for deviation detection
+        logs_dict = cleaned_logs
+
         # Check sequences
         logger.info("Starting sequence check...")
         sequence_deviations = SequenceChecker.check_sequence(logs_dict, rules_dict)
@@ -130,50 +155,44 @@ async def analyze_patterns(request: PatternAnalysisRequest):
             )
 
         # ===================================================================
-        # LAYER 1: DATA CLEANING
+        # LAYER 1: SKIP DEVIATION CLEANING (Logs already cleaned at Step 0)
         # ===================================================================
-        logger.info("--- Layer 1: Data Cleaning ---")
-        cleaned_deviations, cleaning_report = DataCleaner.clean_deviations(
-            request.deviations,
-            remove_duplicates=True,
-            validate_types=True,
-            handle_missing=True,
-            normalize_text=True
-        )
-
-        data_quality = DataCleaner.get_data_quality_score(cleaning_report)
-        logger.info(f"Data cleaning complete: {len(cleaned_deviations)}/{len(request.deviations)} deviations retained")
-        logger.info(f"Data Quality Score: {data_quality['score']}/100 (Grade: {data_quality['grade']})")
-        logger.info(f"Cleaning summary: {cleaning_report['duplicates_removed']} duplicates, "
-                   f"{cleaning_report['invalid_types_fixed']} type fixes, "
-                   f"{cleaning_report['missing_values_handled']} missing handled")
-
-        if len(cleaned_deviations) == 0:
-            logger.error("No valid deviations after cleaning")
-            return PatternAnalysisResponse(
-                overall_summary=f"All {len(request.deviations)} deviations were filtered out during data cleaning. "
-                              f"Data quality issues: {cleaning_report['validation_errors'][:3]}",
-                behavioral_patterns=[],
-                hidden_rules=[],
-                systemic_issues=[],
-                time_patterns=[],
-                justification_analysis={
-                    "most_common_reasons": [],
-                    "justified_count": 0,
-                    "not_justified_count": 0,
-                    "unclear_count": 0
-                },
-                risk_insights=[f"Data quality: {data_quality['assessment']}"],
-                recommendations=["Improve data quality at source", "Review data validation rules"],
-                api_calls_made=0,
-                deviations_analyzed=0
-            )
+        # NOTE: We don't clean deviations because:
+        # 1. Workflow logs are already cleaned (Step 0)
+        # 2. Multiple occurrences of same deviation are valid (not duplicates)
+        # 3. Cleaning deviations can hide important patterns
+        logger.info("--- Layer 1: Using raw deviations (no cleaning) ---")
+        cleaned_deviations = request.deviations
+        logger.info(f"Total deviations to analyze: {len(cleaned_deviations)}")
 
         # ===================================================================
-        # LAYER 2: STATISTICAL ANALYSIS
+        # LAYER 2: STATISTICAL ANALYSIS (Basic + Advanced)
         # ===================================================================
         logger.info("--- Layer 2: Statistical Analysis ---")
         statistical_analysis = StatisticalAnalyzer.analyze(cleaned_deviations)
+
+        # Add advanced statistical analysis
+        logger.info("--- Layer 2a: Advanced Statistical Analysis ---")
+        from app.services.data import AdvancedStatistics
+
+        # Correlations and lift/odds on deviations
+        statistical_analysis['advanced_correlations'] = AdvancedStatistics.analyze_correlations(cleaned_deviations)
+        statistical_analysis['lift_and_odds'] = AdvancedStatistics.calculate_lift_and_odds(cleaned_deviations)
+
+        # Time-series, control charts, change-point detection on WORKFLOW LOGS (if provided)
+        # This shows workflow health trends, not just deviation trends
+        if request.workflow_logs:
+            logger.info(f"Analyzing workflow logs for temporal patterns ({len(request.workflow_logs)} logs)")
+            statistical_analysis['time_series'] = AdvancedStatistics.time_series_analysis_logs(request.workflow_logs)
+            statistical_analysis['control_charts'] = AdvancedStatistics.control_charts_logs(request.workflow_logs)
+            statistical_analysis['change_points'] = AdvancedStatistics.change_point_detection_logs(request.workflow_logs)
+        else:
+            logger.warning("No workflow logs provided - temporal analysis will be limited")
+            statistical_analysis['time_series'] = {'available': False, 'message': 'Workflow logs not provided'}
+            statistical_analysis['control_charts'] = {'available': False, 'message': 'Workflow logs not provided'}
+            statistical_analysis['change_points'] = {'available': False, 'message': 'Workflow logs not provided'}
+
+        logger.info("Advanced statistical analysis complete")
 
         logger.info(f"Statistical analysis complete:")
         logger.info(f"  - Total deviations: {statistical_analysis['overview']['total_deviations']}")
@@ -239,16 +258,20 @@ async def analyze_patterns(request: PatternAnalysisRequest):
             ml_context=ml_context_text
         )
 
-        # Enhance the response with cleaning, statistical, and ML metadata
-        pattern_result['data_quality'] = data_quality
-        pattern_result['cleaning_report'] = cleaning_report
+        # Enhance the response with statistical and ML metadata
         pattern_result['statistical_summary'] = {
             'total_analyzed': statistical_analysis['overview']['total_deviations'],
             'severity_score': statistical_analysis['severity_distribution']['severity_score'],
             'severity_assessment': statistical_analysis['severity_distribution']['severity_assessment'],
             'top_deviation_types': statistical_analysis['deviation_type_distribution']['top_10_types'][:5],
             'critical_mass_score': statistical_analysis['risk_indicators']['critical_mass_score'],
-            'risk_assessment': statistical_analysis['risk_indicators']['critical_mass_assessment']
+            'risk_assessment': statistical_analysis['risk_indicators']['critical_mass_assessment'],
+            # Add advanced statistics
+            'advanced_correlations': statistical_analysis.get('advanced_correlations'),
+            'lift_and_odds': statistical_analysis.get('lift_and_odds'),
+            'time_series': statistical_analysis.get('time_series'),
+            'control_charts': statistical_analysis.get('control_charts'),
+            'change_points': statistical_analysis.get('change_points')
         }
 
         # Add ML summary if applied

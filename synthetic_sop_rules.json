@@ -1,0 +1,59 @@
+[
+  {
+    "id": 1,
+    "rule_type": "sequence",
+    "rule_description": "APPLICATION_RECEIVED must be the first step",
+    "step_number": 1,
+    "severity": "critical",
+    "expected_sequence": [
+      "APPLICATION_RECEIVED"
+    ]
+  },
+  {
+    "id": 2,
+    "rule_type": "sequence",
+    "rule_description": "DOCUMENT_VERIFICATION must occur before CREDIT_ASSESSMENT",
+    "step_number": 2,
+    "severity": "high",
+    "expected_sequence": [
+      "APPLICATION_RECEIVED",
+      "DOCUMENT_VERIFICATION"
+    ]
+  },
+  {
+    "id": 3,
+    "rule_type": "mandatory_step",
+    "rule_description": "INCOME_VERIFICATION is mandatory for all loan applications",
+    "step_number": 3,
+    "severity": "critical",
+    "required_steps": [
+      "INCOME_VERIFICATION"
+    ]
+  },
+  {
+    "id": 4,
+    "rule_type": "mandatory_step",
+    "rule_description": "CREDIT_ASSESSMENT is mandatory",
+    "step_number": 4,
+    "severity": "critical",
+    "required_steps": [
+      "CREDIT_ASSESSMENT"
+    ]
+  },
+  {
+    "id": 5,
+    "rule_type": "approval",
+    "rule_description": "Two-level approval required - APPROVAL_L1 and APPROVAL_L2",
+    "step_number": 6,
+    "severity": "high",
+    "approval_levels": 2
+  },
+  {
+    "id": 6,
+    "rule_type": "approval",
+    "rule_description": "Self-approval not permitted - approver must differ from case officer",
+    "step_number": 6,
+    "severity": "critical",
+    "validation": "different_officer"
+  }
+]

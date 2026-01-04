@@ -212,7 +212,7 @@ class StatisticalAnalyzer:
                     logger.debug(f"Could not parse timestamp: {timestamp}, {e}")
 
         if not timestamps:
-            logger.warning("No valid timestamps found for temporal analysis")
+            logger.debug("No valid timestamps found for deviation temporal analysis (expected - deviations don't have meaningful timestamps)")
             return {
                 'has_temporal_data': False,
                 'message': 'No temporal data available'

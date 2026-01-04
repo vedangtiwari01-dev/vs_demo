@@ -128,6 +128,7 @@ class ColumnMappingResponse(BaseModel):
 # Pattern Analysis Schemas
 class PatternAnalysisRequest(BaseModel):
     deviations: List[Dict[str, Any]]
+    workflow_logs: Optional[List[Dict[str, Any]]] = None  # For time-series/control charts
 
 class PatternAnalysisResponse(BaseModel):
     overall_summary: str
@@ -140,3 +141,11 @@ class PatternAnalysisResponse(BaseModel):
     recommendations: List[str]
     api_calls_made: int
     deviations_analyzed: int
+
+    # Phase 1: Data Processing metadata
+    data_quality: Optional[Dict[str, Any]] = None
+    cleaning_report: Optional[Dict[str, Any]] = None
+    statistical_summary: Optional[Dict[str, Any]] = None
+
+    # Phase 2: ML metadata
+    ml_summary: Optional[Dict[str, Any]] = None

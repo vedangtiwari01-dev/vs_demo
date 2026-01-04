@@ -516,6 +516,16 @@ Return your analysis as JSON:
   ]
 }}
 
+CRITICAL JSON FORMATTING RULES - READ CAREFULLY:
+1. "recommendations" MUST be an array of simple strings ONLY - NO objects with fields
+2. Each recommendation is just a plain string - do NOT add "priority", "timeline", "impact" fields
+3. Keep recommendations concise (1-2 sentences each)
+4. Do NOT add trailing commas before closing brackets ] or braces }}
+5. If you want to show priority, include it IN the string: "[HIGH] Do this immediately"
+6. Do NOT create objects inside the recommendations array
+7. WRONG: {{"recommendation": "text", "timeline": "2 months"}}
+8. CORRECT: "Do this within 2 months"
+
 Focus on finding PATTERNS across multiple deviations, not analyzing individual cases."""
 
 def format_batch_pattern_analysis_prompt(
