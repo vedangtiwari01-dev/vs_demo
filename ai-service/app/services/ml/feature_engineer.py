@@ -2,19 +2,20 @@
 ML Feature Engineering Module
 
 Converts deviation data into numerical features for ML algorithms:
-1. TF-IDF for text descriptions
-2. One-hot encoding for categorical fields
-3. Severity scoring (numerical)
-4. Temporal features (hour, day of week)
-5. Officer features (top 20 officers)
+1. One-hot encoding for deviation types (top 20 types)
+2. Severity scoring (ordinal: critical=4, high=3, medium=2, low=1)
+3. Temporal features (hour, day of week - normalized 0-1)
+4. Officer features (top 20 officers - binary flags)
+5. Description length (complexity indicator)
 
-As described in ML_SYSTEM_EXPLAINED.md
+Total: 44 features per deviation (down from 144)
+Note: TF-IDF removed - deviation descriptions are hardcoded templates,
+so type field already captures all semantic information.
 """
 
 import logging
 import numpy as np
 from typing import List, Dict, Any, Tuple
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder
 from datetime import datetime
 from collections import Counter
@@ -29,7 +30,6 @@ class FeatureEngineer:
 
     def __init__(self):
         """Initialize feature engineering components."""
-        self.tfidf = None
         self.severity_map = {'critical': 4, 'high': 3, 'medium': 2, 'low': 1}
         self.top_officers = None
         self.deviation_types = None
@@ -52,28 +52,17 @@ class FeatureEngineer:
         if len(deviations) == 0:
             return np.array([]), {}
 
-        # Extract text descriptions for TF-IDF
-        descriptions = [d.get('description', '') for d in deviations]
-
-        # 1. TEXT FEATURES (TF-IDF)
-        logger.info("Generating TF-IDF features from descriptions...")
-        tfidf_features, tfidf_feature_names = self._create_tfidf_features(descriptions)
-
-        # 2. CATEGORICAL FEATURES (One-hot encoding)
-        logger.info("Encoding categorical features...")
+        # 1. CATEGORICAL FEATURES (One-hot encoding for deviation types)
+        logger.info("Encoding categorical features (deviation types)...")
         categorical_features, categorical_names = self._create_categorical_features(deviations)
 
-        # 3. NUMERICAL FEATURES (Severity, temporal, officer)
+        # 2. NUMERICAL FEATURES (Severity, temporal, officer, description length)
         logger.info("Creating numerical features...")
         numerical_features, numerical_names = self._create_numerical_features(deviations)
 
         # Combine all features
         all_features = []
         self.feature_names = []
-
-        if tfidf_features.shape[1] > 0:
-            all_features.append(tfidf_features)
-            self.feature_names.extend(tfidf_feature_names)
 
         if categorical_features.shape[1] > 0:
             all_features.append(categorical_features)
@@ -86,12 +75,11 @@ class FeatureEngineer:
         # Stack horizontally
         feature_matrix = np.hstack(all_features) if all_features else np.array([])
 
-        logger.info(f"Feature engineering complete: {feature_matrix.shape[0]} samples, {feature_matrix.shape[1]} features")
+        logger.info(f"Feature engineering complete: {feature_matrix.shape[0]} samples, {feature_matrix.shape[1]} features (44 features per deviation)")
 
         metadata = {
             'n_features': feature_matrix.shape[1],
             'feature_names': self.feature_names,
-            'tfidf_features': tfidf_features.shape[1],
             'categorical_features': categorical_features.shape[1],
             'numerical_features': numerical_features.shape[1],
             'top_officers': self.top_officers,
@@ -99,35 +87,6 @@ class FeatureEngineer:
         }
 
         return feature_matrix, metadata
-
-    def _create_tfidf_features(self, descriptions: List[str]) -> Tuple[np.ndarray, List[str]]:
-        """
-        Create TF-IDF features from text descriptions.
-
-        Args:
-            descriptions: List of text descriptions
-
-        Returns:
-            Tuple of (tfidf_matrix, feature_names)
-        """
-        # Initialize TF-IDF with reasonable parameters
-        self.tfidf = TfidfVectorizer(
-            max_features=100,  # Top 100 words
-            min_df=2,  # Must appear in at least 2 documents
-            max_df=0.8,  # Ignore words in >80% of documents
-            stop_words='english',
-            ngram_range=(1, 2)  # Unigrams and bigrams
-        )
-
-        try:
-            tfidf_matrix = self.tfidf.fit_transform(descriptions).toarray()
-            feature_names = [f"tfidf_{name}" for name in self.tfidf.get_feature_names_out()]
-            logger.info(f"Generated {len(feature_names)} TF-IDF features")
-            return tfidf_matrix, feature_names
-
-        except Exception as e:
-            logger.warning(f"TF-IDF generation failed: {e}. Using zero features.")
-            return np.zeros((len(descriptions), 0)), []
 
     def _create_categorical_features(self, deviations: List[Dict[str, Any]]) -> Tuple[np.ndarray, List[str]]:
         """
@@ -276,19 +235,16 @@ class FeatureEngineer:
             deviations: List of deviation dictionaries
 
         Returns:
-            Feature matrix
+            Feature matrix (44 features per deviation)
         """
-        if self.tfidf is None:
+        if self.deviation_types is None or self.top_officers is None:
             raise ValueError("FeatureEngineer must be fitted before transform")
 
         # Apply same transformations
-        descriptions = [d.get('description', '') for d in deviations]
-        tfidf_features = self.tfidf.transform(descriptions).toarray()
-
         categorical_features, _ = self._create_categorical_features(deviations)
         numerical_features, _ = self._create_numerical_features(deviations)
 
-        # Combine
-        feature_matrix = np.hstack([tfidf_features, categorical_features, numerical_features])
+        # Combine (no TF-IDF)
+        feature_matrix = np.hstack([categorical_features, numerical_features])
 
         return feature_matrix

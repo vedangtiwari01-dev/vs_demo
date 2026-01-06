@@ -118,12 +118,16 @@ class SequenceChecker:
         """Compare expected and actual sequences"""
         deviations = []
 
+        # Extract case start time (timestamp of first log entry)
+        case_start_time = logs[0]['timestamp'] if logs else None
+
         # Check for missing steps
         missing_steps = set(expected) - set(actual)
         for step in missing_steps:
             deviations.append({
                 'case_id': case_id,
                 'officer_id': officer_id,
+                'timestamp': case_start_time,
                 'deviation_type': 'missing_step',
                 'severity': 'high',
                 'description': f'Missing required step: {step}',
@@ -146,6 +150,7 @@ class SequenceChecker:
                     deviations.append({
                         'case_id': case_id,
                         'officer_id': officer_id,
+                        'timestamp': case_start_time,
                         'deviation_type': 'wrong_sequence',
                         'severity': 'high',
                         'description': f'Wrong step order: {next_step} before {current_step}',
@@ -164,6 +169,7 @@ class SequenceChecker:
             deviations.append({
                 'case_id': case_id,
                 'officer_id': officer_id,
+                'timestamp': case_start_time,
                 'deviation_type': 'unexpected_step',
                 'severity': 'medium',
                 'description': f'Unexpected step performed: {step}',

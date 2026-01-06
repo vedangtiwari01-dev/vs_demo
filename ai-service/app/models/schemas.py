@@ -64,6 +64,7 @@ class DeviationDetectionRequest(BaseModel):
 class Deviation(BaseModel):
     case_id: str
     officer_id: str
+    timestamp: Optional[str] = None  # Case start time for temporal pattern analysis
     deviation_type: str
     rule_id: Optional[int] = None
     severity: str

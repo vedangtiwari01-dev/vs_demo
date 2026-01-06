@@ -587,6 +587,16 @@ def format_batch_pattern_analysis_prompt(
 - Concentration Risk: Top 5 officers account for {risk_indicators.get('concentration_risk', {}).get('top_5_officer_percentage', 0)}% of deviations
 - Issue Diversity: {risk_indicators.get('issue_diversity', {}).get('unique_types', 0)} unique deviation types
 
+{_format_advanced_correlations(statistical_context.get('advanced_correlations', {}))}
+
+{_format_association_rules(statistical_context.get('lift_and_odds', {}))}
+
+{_format_time_series(statistical_context.get('time_series', {}))}
+
+{_format_control_charts(statistical_context.get('control_charts', {}))}
+
+{_format_change_points(statistical_context.get('change_points', {}))}
+
 {_format_temporal_patterns(temporal)}
 
 **USE THIS CONTEXT** to:
@@ -658,3 +668,119 @@ def _format_temporal_patterns(temporal: Dict[str, Any]) -> str:
 - Peak Hours: {', '.join(peak_hours)}
 - Peak Days: {', '.join(peak_days)}
 """
+
+
+def _format_advanced_correlations(adv_corr: Dict[str, Any]) -> str:
+    """Format advanced correlation analysis for display."""
+    if not adv_corr:
+        return ""
+
+    return f"""📊 **Advanced Correlations:**
+- Severity ↔ Type: Cramér's V = {adv_corr.get('severity_type_cramers_v', 'N/A')}
+  → Interpretation: {adv_corr.get('severity_type_interpretation', 'No significant correlation')}
+- Officer ↔ Type: Chi-square p-value = {adv_corr.get('officer_type_chi2_pvalue', 'N/A')}
+  → Significant: {'Yes - Officers show distinct deviation patterns' if adv_corr.get('officer_type_chi2_pvalue', 1) < 0.05 else 'No - Officer behavior appears random'}
+- Officer ↔ Severity: Cramér's V = {adv_corr.get('officer_severity_cramers_v', 'N/A')}
+  → Interpretation: {adv_corr.get('officer_severity_interpretation', 'No significant correlation')}
+"""
+
+
+def _format_association_rules(lift_odds: Dict[str, Any]) -> str:
+    """Format association rules (lift & odds) for display."""
+    if not lift_odds or not lift_odds.get('top_officer_type_associations'):
+        return ""
+
+    rules = lift_odds.get('top_officer_type_associations', [])[:3]
+    if not rules:
+        return ""
+
+    lines = ["🔗 **Association Rules (Top 3 Officer-Type Patterns):**"]
+    for rule in rules:
+        officer = rule.get('officer', 'unknown')
+        dtype = rule.get('deviation_type', 'unknown')
+        lift = rule.get('lift', 0)
+        confidence = rule.get('confidence', 0)
+
+        interpretation = f"{lift:.1f}x more likely than average" if lift > 1 else f"{1/lift:.1f}x less likely than average"
+        lines.append(f"  • Officer {officer} → {dtype}: Lift = {lift:.2f}x, Confidence = {confidence:.1%}")
+        lines.append(f"    → This officer is {interpretation} to commit this deviation type")
+
+    return "\n".join(lines) + "\n"
+
+
+def _format_time_series(ts: Dict[str, Any]) -> str:
+    """Format time series trend analysis for display."""
+    if not ts or not ts.get('has_time_series_data'):
+        return ""
+
+    trend = ts.get('trend_direction', 'stable')
+    ma_trend = ts.get('ma_7day_trend', 'N/A')
+    ema_latest = ts.get('ema_latest', 'N/A')
+    volatility = ts.get('volatility', 'N/A')
+
+    trend_emoji = "📈" if trend == "increasing" else "📉" if trend == "decreasing" else "📊"
+
+    return f"""{trend_emoji} **Time Series Trends:**
+- 7-day Moving Average: {ma_trend} deviations/day (trend: {trend})
+- Latest EMA Forecast: {ema_latest} deviations/day
+- Volatility (Std Dev): {volatility}
+- Trend Direction: {trend.upper()}
+  → {'⚠️ Deviation rate is INCREASING - investigate root causes' if trend == 'increasing' else '✅ Deviation rate is DECREASING - controls working' if trend == 'decreasing' else 'Deviation rate is STABLE'}
+"""
+
+
+def _format_control_charts(cc: Dict[str, Any]) -> str:
+    """Format control chart analysis for display."""
+    if not cc or not cc.get('has_control_chart_data'):
+        return ""
+
+    shewhart_out = cc.get('shewhart_out_of_control_count', 0)
+    cusum_alert = cc.get('cusum_alert', False)
+    ewma_alert = cc.get('ewma_alert', False)
+
+    alert_emoji = "🚨" if (shewhart_out > 0 or cusum_alert or ewma_alert) else "✅"
+
+    lines = [f"{alert_emoji} **Control Chart Alerts:**"]
+    lines.append(f"  • Shewhart Chart: {shewhart_out} out-of-control points detected")
+
+    if shewhart_out > 0:
+        lines.append(f"    → ⚠️ Process showing unusual spikes beyond 3-sigma control limits")
+
+    if cusum_alert:
+        lines.append(f"  • CUSUM Chart: ⚠️ ALERT - Sustained shift detected in process mean")
+        lines.append(f"    → Deviation rate has persistently changed (policy/system change?)")
+    else:
+        lines.append(f"  • CUSUM Chart: ✅ Normal - No sustained shifts detected")
+
+    if ewma_alert:
+        lines.append(f"  • EWMA Chart: ⚠️ ALERT - Recent drift detected")
+    else:
+        lines.append(f"  • EWMA Chart: ✅ Normal - No recent drift")
+
+    return "\n".join(lines) + "\n"
+
+
+def _format_change_points(cp: Dict[str, Any]) -> str:
+    """Format change-point detection results for display."""
+    if not cp or not cp.get('change_points'):
+        return ""
+
+    change_points = cp.get('change_points', [])[:5]  # Top 5 change points
+    if not change_points:
+        return ""
+
+    lines = ["🔄 **Change Points Detected (Process Structural Breaks):**"]
+    for point in change_points:
+        day = point.get('day', 'N/A')
+        date = point.get('date', 'N/A')
+        before_avg = point.get('before_avg', 'N/A')
+        after_avg = point.get('after_avg', 'N/A')
+
+        change_type = "INCREASE" if after_avg > before_avg else "DECREASE"
+        emoji = "📈" if change_type == "INCREASE" else "📉"
+
+        lines.append(f"  {emoji} Day {day} ({date}): {change_type} detected")
+        lines.append(f"    → Before: {before_avg:.1f} dev/day → After: {after_avg:.1f} dev/day")
+        lines.append(f"    → Possible policy change, system update, or training intervention")
+
+    return "\n".join(lines) + "\n"

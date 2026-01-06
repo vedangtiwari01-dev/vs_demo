@@ -90,10 +90,14 @@ class RuleValidator:
 
         officer_id = logs[0]['officer_id'] if logs else 'unknown'
 
+        # Extract case start time (timestamp of first log entry)
+        case_start_time = logs[0]['timestamp'] if logs else None
+
         if not has_manager_approval:
             deviations.append({
                 'case_id': case_id,
                 'officer_id': officer_id,
+                'timestamp': case_start_time,
                 'deviation_type': 'missing_approval',
                 'severity': 'critical',
                 'description': 'Missing manager approval',
@@ -109,6 +113,7 @@ class RuleValidator:
             deviations.append({
                 'case_id': case_id,
                 'officer_id': officer_id,
+                'timestamp': case_start_time,
                 'deviation_type': 'missing_approval',
                 'severity': 'critical',
                 'description': 'Missing final approval',
@@ -133,6 +138,9 @@ class RuleValidator:
 
         officer_id = logs[0]['officer_id']
 
+        # Extract case start time (timestamp of first log entry)
+        case_start_time = logs[0]['timestamp'] if logs else None
+
         # Calculate time between first and last step
         first_timestamp = datetime.fromisoformat(logs[0]['timestamp'])
         last_timestamp = datetime.fromisoformat(logs[-1]['timestamp'])
@@ -143,6 +151,7 @@ class RuleValidator:
             deviations.append({
                 'case_id': case_id,
                 'officer_id': officer_id,
+                'timestamp': case_start_time,
                 'deviation_type': 'timing_violation',
                 'severity': 'medium',
                 'description': 'Process completed too quickly',
@@ -164,6 +173,7 @@ class RuleValidator:
                 deviations.append({
                     'case_id': case_id,
                     'officer_id': officer_id,
+                    'timestamp': case_start_time,
                     'deviation_type': 'timing_violation',
                     'severity': 'low',
                     'description': f'Long delay between {logs[i]["step_name"]} and {logs[i+1]["step_name"]}',

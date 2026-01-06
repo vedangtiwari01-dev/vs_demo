@@ -619,7 +619,19 @@ class AdvancedStatistics:
 
         # Trend detection (linear regression)
         x = np.arange(len(counts))
-        slope, intercept = np.polyfit(x, counts, 1)
+        try:
+            # Check for valid data before polyfit
+            if len(counts) < 2 or np.std(counts) == 0 or np.any(np.isnan(counts)) or np.any(np.isinf(counts)):
+                # Insufficient or invalid data for trend analysis
+                slope = 0.0
+                intercept = np.mean(counts) if len(counts) > 0 else 0.0
+            else:
+                slope, intercept = np.polyfit(x, counts, 1)
+        except (np.linalg.LinAlgError, ValueError, RuntimeWarning):
+            # Fallback if polyfit fails
+            slope = 0.0
+            intercept = np.mean(counts) if len(counts) > 0 else 0.0
+
         trend_direction = "increasing" if slope > 0.1 else "decreasing" if slope < -0.1 else "stable"
 
         return {
@@ -773,17 +785,33 @@ class AdvancedStatistics:
         dates = sorted(daily_counts.keys())
         counts = np.array([daily_counts[d] for d in dates])
 
-        # Use PELT algorithm
-        algo = rpt.Pelt(model="rbf").fit(counts.reshape(-1, 1))
-        change_points = algo.predict(pen=3)
+        # Check if data has sufficient variance and length for change-point detection
+        if len(counts) < 10 or np.std(counts) == 0 or np.any(np.isnan(counts)) or np.any(np.isinf(counts)):
+            logger.warning(f"Insufficient variance or length for change-point detection: len={len(counts)}, std={np.std(counts)}")
+            return {
+                'available': False,
+                'message': f'Insufficient data variance for change-point detection (need at least 10 days with varying counts)'
+            }
 
-        # Remove the last point
-        change_points = [cp for cp in change_points if cp < len(counts)]
+        try:
+            # Use PELT algorithm with adaptive penalty based on data length
+            penalty = max(1, len(counts) // 5)  # Adaptive penalty
+            algo = rpt.Pelt(model="rbf").fit(counts.reshape(-1, 1))
+            change_points = algo.predict(pen=penalty)
 
-        return {
-            'available': True,
-            'change_points': change_points,
-            'change_dates': [str(dates[cp]) for cp in change_points if cp < len(dates)],
-            'interpretation': f"Detected {len(change_points)} significant changes in workflow execution patterns",
-            'segments': len(change_points) + 1
-        }
+            # Remove the last point (ruptures includes end point)
+            change_points = [cp for cp in change_points if cp < len(counts)]
+
+            return {
+                'available': True,
+                'change_points': change_points,
+                'change_dates': [str(dates[cp]) for cp in change_points if cp < len(dates)],
+                'interpretation': f"Detected {len(change_points)} significant changes in workflow execution patterns",
+                'segments': len(change_points) + 1
+            }
+        except Exception as e:
+            logger.warning(f"Change-point detection failed: {e}")
+            return {
+                'available': False,
+                'message': f'Change-point detection failed: {str(e)}'
+            }

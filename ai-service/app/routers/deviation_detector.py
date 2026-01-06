@@ -7,6 +7,14 @@ from app.models.schemas import (
 )
 from app.services.deviation.sequence_checker import SequenceChecker
 from app.services.deviation.rule_validator import RuleValidator
+from app.services.deviation.eligibility_checker import EligibilityChecker
+from app.services.deviation.kyc_checker import KYCChecker
+from app.services.deviation.documentation_checker import DocumentationChecker
+from app.services.deviation.collateral_checker import CollateralChecker
+from app.services.deviation.disbursement_checker import DisbursementChecker
+from app.services.deviation.collection_checker import CollectionChecker
+from app.services.deviation.regulatory_checker import RegulatoryChecker
+from app.services.deviation.data_quality_checker import DataQualityChecker
 
 router = APIRouter(prefix='/ai/deviation', tags=['Deviation Detection'])
 
@@ -52,19 +60,88 @@ async def detect_deviations(request: DeviationDetectionRequest):
         # Use cleaned logs for deviation detection
         logs_dict = cleaned_logs
 
-        # Check sequences
-        logger.info("Starting sequence check...")
-        sequence_deviations = SequenceChecker.check_sequence(logs_dict, rules_dict)
-        logger.info(f"Found {len(sequence_deviations)} sequence deviations")
+        # ===================================================================
+        # DEVIATION DETECTION: Run all 10 checkers (with defensive error handling)
+        # ===================================================================
+        all_deviations = []
 
-        # Validate other rules
-        logger.info("Starting rule validation...")
-        rule_deviations = RuleValidator.validate_all(logs_dict, rules_dict)
-        logger.info(f"Found {len(rule_deviations)} rule deviations")
+        # Core checkers (always run)
+        logger.info("Running core deviation checkers...")
 
-        # Combine all deviations
-        all_deviations = sequence_deviations + rule_deviations
-        logger.info(f"Total deviations: {len(all_deviations)}")
+        try:
+            sequence_deviations = SequenceChecker.check_sequence(logs_dict, rules_dict)
+            logger.info(f"  - SequenceChecker: {len(sequence_deviations)} deviations")
+            all_deviations.extend(sequence_deviations)
+        except Exception as e:
+            logger.warning(f"SequenceChecker failed: {e}")
+
+        try:
+            rule_deviations = RuleValidator.validate_all(logs_dict, rules_dict)
+            logger.info(f"  - RuleValidator: {len(rule_deviations)} deviations")
+            all_deviations.extend(rule_deviations)
+        except Exception as e:
+            logger.warning(f"RuleValidator failed: {e}")
+
+        try:
+            data_quality_deviations = DataQualityChecker.check_data_quality(logs_dict, rules_dict)
+            logger.info(f"  - DataQualityChecker: {len(data_quality_deviations)} deviations")
+            all_deviations.extend(data_quality_deviations)
+        except Exception as e:
+            logger.warning(f"DataQualityChecker failed: {e}")
+
+        # Extended checkers (run if data/rules available - gracefully skip if not)
+        logger.info("Running extended deviation checkers...")
+
+        try:
+            eligibility_deviations = EligibilityChecker.check_eligibility(logs_dict, rules_dict)
+            logger.info(f"  - EligibilityChecker: {len(eligibility_deviations)} deviations")
+            all_deviations.extend(eligibility_deviations)
+        except Exception as e:
+            logger.warning(f"EligibilityChecker failed: {e}")
+
+        try:
+            kyc_deviations = KYCChecker.check_kyc(logs_dict, rules_dict)
+            logger.info(f"  - KYCChecker: {len(kyc_deviations)} deviations")
+            all_deviations.extend(kyc_deviations)
+        except Exception as e:
+            logger.warning(f"KYCChecker failed: {e}")
+
+        try:
+            doc_deviations = DocumentationChecker.check_documentation(logs_dict, rules_dict)
+            logger.info(f"  - DocumentationChecker: {len(doc_deviations)} deviations")
+            all_deviations.extend(doc_deviations)
+        except Exception as e:
+            logger.warning(f"DocumentationChecker failed: {e}")
+
+        try:
+            collateral_deviations = CollateralChecker.check_collateral(logs_dict, rules_dict)
+            logger.info(f"  - CollateralChecker: {len(collateral_deviations)} deviations")
+            all_deviations.extend(collateral_deviations)
+        except Exception as e:
+            logger.warning(f"CollateralChecker failed: {e}")
+
+        try:
+            disbursement_deviations = DisbursementChecker.check_disbursement(logs_dict, rules_dict)
+            logger.info(f"  - DisbursementChecker: {len(disbursement_deviations)} deviations")
+            all_deviations.extend(disbursement_deviations)
+        except Exception as e:
+            logger.warning(f"DisbursementChecker failed: {e}")
+
+        try:
+            collection_deviations = CollectionChecker.check_collection(logs_dict, rules_dict)
+            logger.info(f"  - CollectionChecker: {len(collection_deviations)} deviations")
+            all_deviations.extend(collection_deviations)
+        except Exception as e:
+            logger.warning(f"CollectionChecker failed: {e}")
+
+        try:
+            regulatory_deviations = RegulatoryChecker.check_regulatory(logs_dict, rules_dict)
+            logger.info(f"  - RegulatoryChecker: {len(regulatory_deviations)} deviations")
+            all_deviations.extend(regulatory_deviations)
+        except Exception as e:
+            logger.warning(f"RegulatoryChecker failed: {e}")
+
+        logger.info(f"Total deviations detected across 10 checkers: {len(all_deviations)}")
 
         return DeviationDetectionResponse(deviations=all_deviations)
     except Exception as e:
