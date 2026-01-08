@@ -14,10 +14,3 @@ export const DEVIATION_TYPES = {
   missing_approval: 'Missing Approval',
   timing_violation: 'Timing Violation',
 };
-
-export const SCENARIO_TYPES = {
-  officer_shortage: 'Officer Shortage',
-  peak_load: 'Peak Load',
-  system_downtime: 'System Downtime',
-  regulatory_change: 'Regulatory Change',
-};

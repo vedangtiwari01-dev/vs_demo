@@ -64,23 +64,6 @@ export const behavioralAPI = {
   },
 };
 
-export const stressTestAPI = {
-  createScenario: async (data) => {
-    const response = await apiClient.post('/stress-test/scenarios', data);
-    return response.data;
-  },
-
-  listScenarios: async () => {
-    const response = await apiClient.get('/stress-test/scenarios');
-    return response.data;
-  },
-
-  generateLogs: async (data) => {
-    const response = await apiClient.post('/stress-test/generate', data);
-    return response.data;
-  },
-};
-
 export const analyticsAPI = {
   getDashboard: async () => {
     const response = await apiClient.get('/analytics/dashboard');

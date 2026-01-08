@@ -1,13 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Zap } from 'lucide-react';
 
 const Navbar = () => {
   const location = useLocation();
 
   const navItems = [
     { path: '/', label: 'Analysis' },
-    { path: '/stress-test', icon: Zap, label: 'Stress Testing' },
   ];
 
   return (

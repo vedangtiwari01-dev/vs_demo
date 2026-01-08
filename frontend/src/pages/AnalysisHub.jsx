@@ -1,14 +1,12 @@
-import { useState, useRef } from 'react';
+import { useRef, useContext } from 'react';
+import { AnalysisContext } from '../context/AnalysisContext';
 import SOPUploadWidget from '../components/analysis/SOPUploadWidget';
 import WorkflowUploadWidget from '../components/analysis/WorkflowUploadWidget';
 import AnalyzeButton from '../components/analysis/AnalyzeButton';
 import ResultsViewer from '../components/analysis/ResultsViewer';
 
 const AnalysisHub = () => {
-  const [selectedSop, setSelectedSop] = useState(null);
-  const [selectedWorkflow, setSelectedWorkflow] = useState(null);
-  const [analysisResult, setAnalysisResult] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const { state, updateState } = useContext(AnalysisContext);
   const analyzeButtonRef = useRef(null);
 
   const handleReanalyze = () => {
@@ -44,22 +42,22 @@ const AnalysisHub = () => {
           </div>
 
           <SOPUploadWidget
-            selectedSop={selectedSop}
-            onSelectSop={setSelectedSop}
+            selectedSop={state.selectedSop}
+            onSelectSop={(sop) => updateState({ selectedSop: sop })}
           />
 
           <WorkflowUploadWidget
-            selectedWorkflow={selectedWorkflow}
-            onSelectWorkflow={setSelectedWorkflow}
+            selectedWorkflow={state.selectedWorkflow}
+            onSelectWorkflow={(workflow) => updateState({ selectedWorkflow: workflow })}
           />
 
           <AnalyzeButton
             ref={analyzeButtonRef}
-            selectedSop={selectedSop}
-            selectedWorkflow={selectedWorkflow}
-            onAnalyze={setAnalysisResult}
-            isAnalyzing={isAnalyzing}
-            setIsAnalyzing={setIsAnalyzing}
+            selectedSop={state.selectedSop}
+            selectedWorkflow={state.selectedWorkflow}
+            onAnalyze={(result) => updateState({ analysisResult: result })}
+            isAnalyzing={state.isAnalyzing}
+            setIsAnalyzing={(analyzing) => updateState({ isAnalyzing: analyzing })}
           />
         </div>
       </aside>
@@ -67,8 +65,8 @@ const AnalysisHub = () => {
       {/* Right Panel - 75% */}
       <main className="flex-1 w-3/4 overflow-y-auto relative z-10">
         <ResultsViewer
-          analysisResult={analysisResult}
-          isAnalyzing={isAnalyzing}
+          analysisResult={state.analysisResult}
+          isAnalyzing={state.isAnalyzing}
           onReanalyze={handleReanalyze}
         />
       </main>

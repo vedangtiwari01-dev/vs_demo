@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import AnalysisHub from './pages/AnalysisHub';
-import StressTesting from './pages/StressTesting';
 
 // Old pages - archived (kept for reference)
 // import Dashboard from './pages/Dashboard';
@@ -17,7 +16,6 @@ function App() {
       <Layout>
         <Routes>
           <Route path="/" element={<AnalysisHub />} />
-          <Route path="/stress-test" element={<StressTesting />} />
 
           {/* Old routes - removed to simplify UI */}
           {/* <Route path="/dashboard" element={<Dashboard />} /> */}
