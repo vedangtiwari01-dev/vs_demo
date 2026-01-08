@@ -17,7 +17,7 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = {
-    sop: ['.pdf', '.docx'],
+    sop: ['.pdf', '.docx', '.txt'],
     logs: ['.csv', '.json']
   };
 

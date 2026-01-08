@@ -1,0 +1,95 @@
+STANDARD OPERATING PROCEDURE - LOAN PROCESSING
+Version 1.0 - Effective Date: January 1, 2025
+
+================================================
+SECTION 1: MANDATORY WORKFLOW SEQUENCE
+================================================
+
+All loan applications MUST follow this exact sequence:
+
+1. Application Received
+2. Document Verification
+3. Income Verification
+4. Credit Check
+5. Risk Assessment
+6. Manager Approval (for loans > $10,000)
+7. Final Approval
+8. Disbursement
+
+CRITICAL: Steps must be completed in this order. Skipping steps is prohibited.
+
+================================================
+SECTION 2: APPROVAL REQUIREMENTS
+================================================
+
+Approval Hierarchy:
+- Loans up to $10,000: Level 1 Officer approval only
+- Loans $10,001 to $50,000: Level 1 Officer + Manager Approval required
+- Loans above $50,000: Level 1 Officer + Manager + Senior Manager Approval required
+
+CRITICAL: Self-approval is strictly prohibited. The same officer cannot approve their own processing.
+
+Manager Approval is MANDATORY for all loans exceeding $10,000.
+
+================================================
+SECTION 3: TIMING REQUIREMENTS
+================================================
+
+Standard TAT (Turn Around Time):
+- Document Verification: Must be completed within 24 hours of application
+- Credit Check: Must be completed within 48 hours
+- Total Processing Time: Minimum 2 hours (to ensure due diligence)
+- Total Processing Time: Maximum 7 days from application to disbursement
+
+CRITICAL: Rushed processing (completing entire workflow in less than 2 hours) indicates insufficient due diligence.
+
+================================================
+SECTION 4: CREDIT AND ELIGIBILITY
+================================================
+
+Credit Score Requirements:
+- Minimum credit score: 600
+- Loans with credit score below 650 require Risk Assessment sign-off
+- Loans with credit score below 600 must be rejected unless Senior Manager exception approval is obtained
+
+Age Eligibility:
+- Minimum borrower age: 21 years
+- Maximum borrower age: 65 years
+
+================================================
+SECTION 5: DOCUMENTATION
+================================================
+
+Mandatory Documents:
+- Government-issued ID (must be current/not expired)
+- Proof of Income (salary slips, bank statements)
+- Address Proof
+- Credit Report
+
+All documents must be verified before proceeding to Risk Assessment stage.
+
+================================================
+SECTION 6: DISBURSEMENT
+================================================
+
+Pre-Disbursement Conditions:
+- All approvals must be completed
+- Final approval must be obtained
+- Loan agreement must be signed
+- Bank account verification completed
+
+Post-Disbursement QC:
+- Quality check must be performed within 48 hours of disbursement
+- QC must verify all documents and approvals are in order
+
+================================================
+SECTION 7: DATA QUALITY
+================================================
+
+Core Fields:
+- Case ID, Officer ID, Step Name, Action, Timestamp are mandatory for all workflow entries
+- Missing or invalid data in core fields constitutes a critical deviation
+
+Audit Trail:
+- All workflow steps must be logged
+- Timestamps must be accurate and sequential

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from datetime import datetime
 
 # SOP Schemas
@@ -22,7 +22,7 @@ class Rule(BaseModel):
     rule_description: str = Field(alias='description')
     step_number: Optional[float] = None
     severity: str = 'medium'
-    condition_logic: Optional[Dict[str, Any]] = None
+    condition_logic: Optional[Union[str, Dict[str, Any]]] = None  # Accept both string and dict
     required_fields: Optional[List[str]] = None
     timing_constraint: Optional[str] = None
 

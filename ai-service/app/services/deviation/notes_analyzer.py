@@ -4,6 +4,7 @@ import re
 from typing import Dict, List, Any, Optional
 from app.services.claude.client import ClaudeClient
 from app.services.claude.prompts import format_batch_pattern_analysis_prompt
+from json_repair import repair_json
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,59 @@ def extract_json_from_text(text: str) -> str:
     # 5. Fix missing commas after string before opening brace/bracket
     #    Example: "text"{ should be "text",{
     json_text = re.sub(r'"(\s*[{\[])', r'",\1', json_text)
+
+    # 6. Fix missing commas after closing quote before another quote (key-value pairs)
+    #    Example: "value" "key": should be "value", "key":
+    json_text = re.sub(r'"(\s+)"(?=[a-zA-Z_])', r'", "', json_text)
+
+    # 7. Fix missing commas after numbers before quote (next key)
+    #    Example: 42 "key": should be 42, "key":
+    json_text = re.sub(r'(\d)(\s+)"(?=[a-zA-Z_])', r'\1, "', json_text)
+
+    # 8. Fix missing commas after boolean/null before quote (next key)
+    #    Example: true "key": should be true, "key":
+    json_text = re.sub(r'(true|false|null)(\s+)"(?=[a-zA-Z_])', r'\1, "', json_text)
+
+    # 9. Remove trailing commas in nested objects/arrays (more aggressive)
+    json_text = re.sub(r',(\s*[}\]])', r'\1', json_text)
+
+    # 10. Fix missing comma after closing brace/bracket before another field at same level
+    #     Example: {"a":{"nested":1}}{"b":2} → {"a":{"nested":1}},{"b":2}
+    json_text = re.sub(r'}(\s*)"([a-zA-Z_])', r'},\1"\2', json_text)
+    json_text = re.sub(r'](\s*)"([a-zA-Z_])', r'],\1"\2', json_text)
+
+    # 11. Remove comment-like text (Claude sometimes adds // comments)
+    json_text = re.sub(r'//[^\n]*\n', '\n', json_text)
+    json_text = re.sub(r'/\*.*?\*/', '', json_text, flags=re.DOTALL)
+
+    # 12. Fix trailing text after closing brace
+    #     Sometimes Claude adds text after the final }
+    last_brace = json_text.rfind('}')
+    if last_brace != -1 and last_brace < len(json_text) - 1:
+        trailing = json_text[last_brace + 1:].strip()
+        if trailing and not trailing.startswith(','):  # Don't truncate if it's part of larger structure
+            json_text = json_text[:last_brace + 1]
+
+    return json_text
+
+
+def _aggressive_json_cleanup(json_text: str) -> str:
+    """Apply more aggressive cleaning for retry attempts."""
+    # Remove ALL trailing commas more aggressively
+    json_text = re.sub(r',\s*([}\]])', r'\1', json_text)
+
+    # Force fix recommendations array if it contains objects
+    json_text = re.sub(
+        r'"recommendations"\s*:\s*\[([^\]]*\{[^\]]*)\]',
+        lambda m: '"recommendations": []',  # Worst case: empty array
+        json_text
+    )
+
+    # Remove any text between } and ]
+    json_text = re.sub(r'}\s+(?=\])', '}', json_text)
+
+    # Remove any text between ] and }
+    json_text = re.sub(r']\s+(?=\})', ']', json_text)
 
     return json_text
 
@@ -141,8 +195,11 @@ class NotesAnalyzer:
             logger.info(f"Making 1 API call to analyze {total_deviations} deviations with full context")
             response = self.claude_client.generate(
                 prompt=prompt,
-                system="You are an expert at finding patterns and trends in compliance data. "
-                       "You have been provided with comprehensive statistical analysis and ML insights to guide your analysis.",
+                system=("You are an expert at finding patterns and trends in compliance data. "
+                       "You have been provided with comprehensive statistical analysis and ML insights to guide your analysis. "
+                       "IMPORTANT: Respond with ONLY valid JSON. No markdown, no explanations, no text outside the JSON. "
+                       "The entire response must be parseable by json.loads(). "
+                       "Do not add any comments, do not add trailing commas, ensure all string quotes are properly escaped."),
                 json_mode=True,
                 max_tokens=4096  # Larger response for comprehensive analysis
             )
@@ -150,38 +207,94 @@ class NotesAnalyzer:
             # Save response text for error logging
             response_text = response['text']
 
-            # Extract and parse JSON response (handles markdown code fences & trailing commas)
-            json_text = extract_json_from_text(response_text)
-            logger.info(f"Extracted JSON length: {len(json_text)} characters")
+            # Retry logic with progressive cleaning
+            MAX_PARSE_RETRIES = 3
+            last_error = None
+            pattern_analysis = None
 
-            try:
-                pattern_analysis = json.loads(json_text)
-            except json.JSONDecodeError as parse_error:
-                # Log the problematic JSON section
-                error_pos = parse_error.pos if hasattr(parse_error, 'pos') else 0
-                start = max(0, error_pos - 200)
-                end = min(len(json_text), error_pos + 200)
-                logger.error(f"JSON parsing failed at position {error_pos}")
-                logger.error(f"Context around error: ...{json_text[start:end]}...")
+            for retry_attempt in range(MAX_PARSE_RETRIES):
+                logger.info(f"Starting parse attempt {retry_attempt + 1}/{MAX_PARSE_RETRIES}")
+                try:
+                    # Extract and parse JSON response
+                    json_text = extract_json_from_text(response_text)
 
-                # Log the full JSON to a temp file for debugging
-                import tempfile
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-                    f.write(json_text)
-                    logger.error(f"Full JSON saved to: {f.name}")
+                    if retry_attempt > 0:
+                        logger.info(f"JSON parse retry attempt {retry_attempt}/{MAX_PARSE_RETRIES}")
 
-                raise  # Re-raise to be caught by outer handler
+                        # Retry 1: Aggressive manual cleanup
+                        if retry_attempt == 1:
+                            json_text = _aggressive_json_cleanup(json_text)
+
+                        # Retry 2: Use json-repair library as fallback
+                        elif retry_attempt == 2:
+                            logger.info("Attempting JSON repair with json-repair library")
+                            try:
+                                json_text = repair_json(json_text)
+                                logger.info("JSON repaired successfully with library")
+                            except Exception as repair_error:
+                                logger.warning(f"json-repair failed: {str(repair_error)}")
+                                # Continue with original text
+
+                    logger.info(f"Extracted JSON length: {len(json_text)} characters")
+
+                    # Attempt to parse
+                    pattern_analysis = json.loads(json_text)
+
+                    # Success! Break out of retry loop
+                    logger.info(f"JSON parsed successfully on attempt {retry_attempt + 1}")
+                    break
+
+                except json.JSONDecodeError as parse_error:
+                    last_error = parse_error
+                    error_pos = parse_error.pos if hasattr(parse_error, 'pos') else 0
+                    start = max(0, error_pos - 200)
+                    end = min(len(json_text), error_pos + 200)
+
+                    logger.warning(f"JSON parsing failed on attempt {retry_attempt + 1}/{MAX_PARSE_RETRIES}")
+                    logger.warning(f"Error at position {error_pos}: {parse_error.msg}")
+                    logger.warning(f"Context: ...{json_text[start:end]}...")
+
+                    # Save to temp file for debugging on final retry
+                    if retry_attempt == MAX_PARSE_RETRIES - 1:
+                        import tempfile
+                        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                            f.write(json_text)
+                            logger.error(f"All retries failed. Full JSON saved to: {f.name}")
+
+                        # Last retry failed - fall back to empty analysis
+                        logger.error(f"Failed to parse Claude response after {MAX_PARSE_RETRIES} attempts")
+                        logger.error(f"Final error: {str(last_error)}")
+                        return self._empty_pattern_analysis()
+
+                    # Otherwise, continue to next retry iteration
+                    continue
+
+            # Check if parsing succeeded
+            if pattern_analysis is None:
+                logger.error("Pattern analysis is None after retry loop")
+                return self._empty_pattern_analysis()
+
+            # Add defaults for optional fields that Claude sometimes omits
+            if 'recommendations' not in pattern_analysis:
+                logger.info("Claude didn't return 'recommendations' - adding empty array")
+                pattern_analysis['recommendations'] = []
+
+            if 'risk_insights' not in pattern_analysis:
+                logger.info("Claude didn't return 'risk_insights' - adding empty array")
+                pattern_analysis['risk_insights'] = []
 
             # Fix recommendations if Claude returned objects instead of strings
-            if 'recommendations' in pattern_analysis and isinstance(pattern_analysis['recommendations'], list):
+            if isinstance(pattern_analysis.get('recommendations'), list):
                 pattern_analysis['recommendations'] = [
                     rec if isinstance(rec, str) else f"[{rec.get('priority', 'NORMAL')}] {rec.get('recommendation', str(rec))}"
                     for rec in pattern_analysis['recommendations']
                 ]
 
-            # Validate response
+            # Validate response (now with defaults added)
             if not self._validate_pattern_analysis(pattern_analysis):
                 logger.warning("Invalid pattern analysis structure from Claude")
+                logger.warning(f"Missing required fields. Expected: overall_summary, behavioral_patterns, hidden_rules, systemic_issues, recommendations")
+                logger.warning(f"Actual keys: {list(pattern_analysis.keys())}")
                 return self._empty_pattern_analysis()
 
             # Add metadata

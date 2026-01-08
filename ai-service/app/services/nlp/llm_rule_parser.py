@@ -5,32 +5,100 @@ from typing import List, Dict, Any
 from app.services.claude.client import ClaudeClient
 from app.services.claude.prompts import format_sop_extraction_prompt
 from app.services.nlp.rule_parser import RuleParser
+from json_repair import repair_json
 
 logger = logging.getLogger(__name__)
 
 def extract_json_from_text(text: str) -> str:
     """
     Extract JSON from text that might contain markdown code fences or extra text.
-
-    Handles cases like:
-    - ```json {...} ```
-    - Some text before {...} some text after
-    - Plain JSON: {...}
+    Also cleans up common JSON formatting issues like trailing commas.
     """
     text = text.strip()
 
-    # Try to find JSON in markdown code fence
+    # Try to extract from markdown code fence
     json_fence_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
     if json_fence_match:
-        return json_fence_match.group(1)
+        json_text = json_fence_match.group(1)
+    else:
+        # Try to extract raw JSON
+        json_match = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
+        if json_match:
+            json_text = json_match.group(1)
+        else:
+            json_text = text
 
-    # Try to find JSON object directly (handle both {} and [])
-    json_match = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
-    if json_match:
-        return json_match.group(1)
+    # Clean up common JSON issues:
+    # 1. Remove trailing commas before closing brackets/braces
+    json_text = re.sub(r',\s*}', '}', json_text)  # Remove trailing comma before }
+    json_text = re.sub(r',\s*]', ']', json_text)  # Remove trailing comma before ]
 
-    # Return as-is if no patterns match
-    return text
+    # 2. Fix multiple commas
+    json_text = re.sub(r',\s*,', ',', json_text)
+
+    # 3. Fix missing commas between closing and opening braces (common Claude error)
+    #    Example: }{ should be },{
+    json_text = re.sub(r'}\s*{', '},{', json_text)
+    json_text = re.sub(r'}\s*\[', '},[', json_text)
+    json_text = re.sub(r']\s*{', '],{', json_text)
+    json_text = re.sub(r']\s*\[', '],[', json_text)
+
+    # 4. Fix missing commas after closing brace/bracket before opening quote
+    #    Example: }" should be },"
+    json_text = re.sub(r'}(\s*")', r'},\1', json_text)
+    json_text = re.sub(r'](\s*")', r'],\1', json_text)
+
+    # 5. Fix missing commas after string before opening brace/bracket
+    #    Example: "text"{ should be "text",{
+    json_text = re.sub(r'"(\s*[{\[])', r'",\1', json_text)
+
+    # 6. Fix missing commas after closing quote before another quote (key-value pairs)
+    #    Example: "value" "key": should be "value", "key":
+    json_text = re.sub(r'"(\s+)"(?=[a-zA-Z_])', r'", "', json_text)
+
+    # 7. Fix missing commas after numbers before quote (next key)
+    #    Example: 42 "key": should be 42, "key":
+    json_text = re.sub(r'(\d)(\s+)"(?=[a-zA-Z_])', r'\1, "', json_text)
+
+    # 8. Fix missing commas after boolean/null before quote (next key)
+    #    Example: true "key": should be true, "key":
+    json_text = re.sub(r'(true|false|null)(\s+)"(?=[a-zA-Z_])', r'\1, "', json_text)
+
+    # 9. Remove trailing commas in nested objects/arrays (more aggressive)
+    json_text = re.sub(r',(\s*[}\]])', r'\1', json_text)
+
+    # 10. Fix missing comma after closing brace/bracket before another field at same level
+    #     Example: {"a":{"nested":1}}{"b":2} → {"a":{"nested":1}},{"b":2}
+    json_text = re.sub(r'}(\s*)"([a-zA-Z_])', r'},\1"\2', json_text)
+    json_text = re.sub(r'](\s*)"([a-zA-Z_])', r'],\1"\2', json_text)
+
+    # 11. Remove comment-like text (Claude sometimes adds // comments)
+    json_text = re.sub(r'//[^\n]*\n', '\n', json_text)
+    json_text = re.sub(r'/\*.*?\*/', '', json_text, flags=re.DOTALL)
+
+    # 12. Fix trailing text after closing brace
+    #     Sometimes Claude adds text after the final }
+    last_brace = json_text.rfind('}')
+    if last_brace != -1 and last_brace < len(json_text) - 1:
+        trailing = json_text[last_brace + 1:].strip()
+        if trailing and not trailing.startswith(','):  # Don't truncate if it's part of larger structure
+            json_text = json_text[:last_brace + 1]
+
+    return json_text
+
+
+def _aggressive_json_cleanup(json_text: str) -> str:
+    """Apply more aggressive cleaning for retry attempts."""
+    # Remove ALL trailing commas more aggressively
+    json_text = re.sub(r',\s*([}\]])', r'\1', json_text)
+
+    # Remove any text between } and ]
+    json_text = re.sub(r'}\s+(?=\])', '}', json_text)
+
+    # Remove any text between ] and }
+    json_text = re.sub(r']\s+(?=\})', ']', json_text)
+
+    return json_text
 
 class LLMRuleParser:
     """
@@ -84,13 +152,74 @@ class LLMRuleParser:
             # Call Claude
             response = self.claude_client.generate(
                 prompt=prompt,
-                system="You are an expert at analyzing compliance documents and extracting rules.",
+                system=("You are an expert at analyzing compliance documents and extracting rules. "
+                       "IMPORTANT: Respond with ONLY valid JSON. No markdown, no explanations, no text outside the JSON. "
+                       "The entire response must be parseable by json.loads()."),
                 json_mode=True
             )
 
-            # Extract and parse JSON response (handles markdown code fences)
-            json_text = extract_json_from_text(response['text'])
-            result = json.loads(json_text)
+            # Save response text for retry attempts
+            response_text = response['text']
+
+            # Retry logic with progressive cleaning
+            MAX_PARSE_RETRIES = 3
+            last_error = None
+            result = None
+
+            for retry_attempt in range(MAX_PARSE_RETRIES):
+                logger.info(f"Starting parse attempt {retry_attempt + 1}/{MAX_PARSE_RETRIES}")
+                try:
+                    # Extract and parse JSON response
+                    json_text = extract_json_from_text(response_text)
+
+                    if retry_attempt > 0:
+                        logger.info(f"JSON parse retry attempt {retry_attempt}/{MAX_PARSE_RETRIES}")
+
+                        # Retry 1: Aggressive manual cleanup
+                        if retry_attempt == 1:
+                            json_text = _aggressive_json_cleanup(json_text)
+
+                        # Retry 2: Use json-repair library as fallback
+                        elif retry_attempt == 2:
+                            logger.info("Attempting JSON repair with json-repair library")
+                            try:
+                                json_text = repair_json(json_text)
+                                logger.info("JSON repaired successfully with library")
+                            except Exception as repair_error:
+                                logger.warning(f"json-repair failed: {str(repair_error)}")
+                                # Continue with original text
+
+                    logger.info(f"Extracted JSON length: {len(json_text)} characters")
+
+                    # Attempt to parse
+                    result = json.loads(json_text)
+
+                    # Success! Break out of retry loop
+                    logger.info(f"JSON parsed successfully on attempt {retry_attempt + 1}")
+                    break
+
+                except json.JSONDecodeError as parse_error:
+                    last_error = parse_error
+                    error_pos = parse_error.pos if hasattr(parse_error, 'pos') else 0
+                    start = max(0, error_pos - 200)
+                    end = min(len(json_text), error_pos + 200)
+
+                    logger.warning(f"JSON parsing failed on attempt {retry_attempt + 1}/{MAX_PARSE_RETRIES}")
+                    logger.warning(f"Error at position {error_pos}: {parse_error.msg}")
+                    logger.warning(f"Context: ...{json_text[start:end]}...")
+
+                    # Last retry? Fall back
+                    if retry_attempt == MAX_PARSE_RETRIES - 1:
+                        logger.error(f"All retries failed for SOP extraction")
+                        raise last_error  # Re-raise to trigger fallback
+
+                    # Otherwise, continue to next retry iteration
+                    continue
+
+            # Check if parsing succeeded
+            if result is None:
+                logger.error("SOP extraction result is None after retry loop")
+                raise json.JSONDecodeError("Failed to parse after retries", response_text, 0)
 
             # Validate response
             if not self._validate_rules(result):

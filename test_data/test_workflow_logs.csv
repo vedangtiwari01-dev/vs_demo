@@ -1,0 +1,44 @@
+case_id,officer_id,step_name,action,timestamp,duration_seconds,status,notes,loan_amount
+LOAN-001,EMP-101,Application Received,Initiated,2025-01-05 09:00:00,300,completed,Standard home loan application,25000
+LOAN-001,EMP-101,Document Verification,Completed,2025-01-05 10:00:00,1800,completed,All documents verified - ID and income proof checked,25000
+LOAN-001,EMP-101,Income Verification,Completed,2025-01-05 11:30:00,1200,completed,Monthly income: $5000,25000
+LOAN-001,EMP-101,Credit Check,Completed,2025-01-05 13:00:00,900,completed,Credit score: 720 - Good standing,25000
+LOAN-001,EMP-101,Risk Assessment,Completed,2025-01-05 14:00:00,600,completed,Low risk profile,25000
+LOAN-001,EMP-102,Manager Approval,Approved,2025-01-05 15:00:00,300,completed,Approved by manager,25000
+LOAN-001,EMP-102,Final Approval,Approved,2025-01-05 15:30:00,180,completed,Final approval granted,25000
+LOAN-001,EMP-101,Disbursement,Completed,2025-01-06 10:00:00,600,completed,Amount disbursed to account,25000
+LOAN-002,EMP-103,Application Received,Initiated,2025-01-05 10:00:00,240,completed,Quick personal loan,8000
+LOAN-002,EMP-103,Document Verification,Completed,2025-01-05 10:30:00,900,completed,Documents verified,8000
+LOAN-002,EMP-103,Credit Check,Completed,2025-01-05 11:00:00,600,completed,Credit score: 680,8000
+LOAN-002,EMP-103,Final Approval,Approved,2025-01-05 11:20:00,120,completed,Small loan - fast tracked,8000
+LOAN-002,EMP-103,Disbursement,Completed,2025-01-05 12:00:00,300,completed,Disbursed,8000
+LOAN-003,EMP-101,Application Received,Initiated,2025-01-06 09:00:00,300,completed,Large business loan application,75000
+LOAN-003,EMP-101,Income Verification,Completed,2025-01-06 09:15:00,600,completed,Business income verified,75000
+LOAN-003,EMP-101,Credit Check,Completed,2025-01-06 09:30:00,480,completed,Credit score: 590 - Below threshold,75000
+LOAN-003,EMP-101,Risk Assessment,Completed,2025-01-06 09:45:00,300,completed,High risk due to low credit score,75000
+LOAN-003,EMP-101,Final Approval,Approved,2025-01-06 10:00:00,180,completed,Approved despite low score - needs review,75000
+LOAN-003,EMP-101,Disbursement,Completed,2025-01-06 10:30:00,420,completed,Rushed disbursement,75000
+LOAN-004,EMP-104,Application Received,Initiated,2025-01-06 14:00:00,180,completed,Auto loan application,35000
+LOAN-004,EMP-104,Document Verification,Completed,2025-01-06 14:30:00,1200,completed,All docs verified,35000
+LOAN-004,EMP-104,Income Verification,Completed,2025-01-06 15:00:00,900,completed,Stable income,35000
+LOAN-004,EMP-104,Credit Check,Completed,2025-01-06 15:30:00,600,completed,Credit score: 705,35000
+LOAN-004,EMP-104,Risk Assessment,Completed,2025-01-06 16:00:00,480,completed,Moderate risk,35000
+LOAN-004,EMP-104,Final Approval,Approved,2025-01-06 16:30:00,240,completed,Self-approved by same officer who processed,35000
+LOAN-004,EMP-104,Disbursement,Completed,2025-01-07 09:00:00,360,completed,Disbursed,35000
+LOAN-005,EMP-105,Application Received,Initiated,2025-01-07 10:00:00,300,completed,Emergency personal loan,15000
+LOAN-005,EMP-105,Document Verification,Completed,2025-01-07 10:20:00,600,completed,Quick verification,15000
+LOAN-005,EMP-105,Credit Check,Completed,2025-01-07 10:35:00,480,completed,Credit score: 640,15000
+LOAN-005,EMP-105,Final Approval,Approved,2025-01-07 10:50:00,180,completed,Approved without manager sign-off,15000
+LOAN-005,EMP-105,Disbursement,Completed,2025-01-07 11:00:00,240,completed,Quick disbursement,15000
+LOAN-006,EMP-103,Application Received,Initiated,2025-01-07 15:00:00,240,completed,Small personal loan,9500
+LOAN-006,EMP-103,Credit Check,Completed,2025-01-07 15:20:00,540,completed,Credit score: 695,9500
+LOAN-006,EMP-103,Risk Assessment,Completed,2025-01-07 15:35:00,360,completed,Low risk,9500
+LOAN-006,EMP-103,Final Approval,Approved,2025-01-07 15:50:00,180,completed,Approved,9500
+LOAN-006,EMP-103,Disbursement,Completed,2025-01-07 16:30:00,300,completed,Documents not fully verified - need to check,9500
+LOAN-007,EMP-106,Application Received,Initiated,2025-01-08 09:00:00,300,completed,Mortgage application,120000
+LOAN-007,EMP-106,Document Verification,Completed,2025-01-08 10:00:00,2400,completed,Extensive doc check,120000
+LOAN-007,EMP-106,Income Verification,Completed,2025-01-08 12:00:00,1800,completed,Income verified,120000
+LOAN-007,EMP-106,Credit Check,Completed,2025-01-08 14:00:00,1200,completed,Credit score: 750 - Excellent,120000
+LOAN-007,EMP-106,Risk Assessment,Completed,2025-01-08 15:00:00,900,completed,Low risk high value loan,120000
+LOAN-007,EMP-102,Manager Approval,Approved,2025-01-08 16:00:00,600,completed,Manager approved,120000
+LOAN-007,EMP-106,Disbursement,Completed,2025-01-09 10:00:00,1200,completed,Missing senior manager approval for amount > $50k,120000

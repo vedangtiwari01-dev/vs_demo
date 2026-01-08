@@ -525,6 +525,12 @@ CRITICAL JSON FORMATTING RULES - READ CAREFULLY:
 6. Do NOT create objects inside the recommendations array
 7. WRONG: {{"recommendation": "text", "timeline": "2 months"}}
 8. CORRECT: "Do this within 2 months"
+9. CRITICAL: Ensure ALL commas are present between array/object elements
+10. CRITICAL: Do NOT include any text, explanations, or comments outside the JSON object
+11. CRITICAL: Ensure all string values have properly escaped quotes
+12. CRITICAL: The response must be ONLY valid JSON - no markdown, no explanations, just the JSON object
+13. CRITICAL: Do not add // comments or /* */ comments in the JSON
+14. CRITICAL: Every opening bracket {{ or [ must have a matching closing bracket }} or ]
 
 Focus on finding PATTERNS across multiple deviations, not analyzing individual cases."""
 

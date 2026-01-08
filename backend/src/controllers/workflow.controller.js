@@ -216,8 +216,8 @@ const analyzeWorkflow = async (req, res, next) => {
     // Format rules for AI service
     const formattedRules = rules.map(rule => ({
       id: rule.id,
-      type: rule.rule_type,
-      description: rule.rule_description,
+      rule_type: rule.rule_type,
+      rule_description: rule.rule_description,
       step_number: rule.step_number,
       severity: rule.severity,
     }));
@@ -544,12 +544,34 @@ const analyzePatterns = async (req, res, next) => {
       created_at: dev.created_at
     }));
 
+    // Query workflow logs for deviation cases (enables temporal analysis)
+    const deviationCaseIds = [...new Set(deviations.map(d => d.case_id))];
+    console.log(`[analyzePatterns] Querying workflow logs for ${deviationCaseIds.length} cases with deviations`);
+
+    const workflowLogs = await WorkflowLog.findAll({
+      where: { case_id: deviationCaseIds },
+      order: [['case_id', 'ASC'], ['timestamp', 'ASC']],
+    });
+
+    // Format workflow logs for AI service (same format as deviation detection)
+    const formattedLogs = workflowLogs.map(log => ({
+      case_id: log.case_id,
+      officer_id: log.officer_id,
+      step_name: log.step_name,
+      action: log.action,
+      timestamp: log.timestamp.toISOString(),
+      duration_seconds: log.duration_seconds,
+      status: log.status,
+    }));
+
+    console.log(`[analyzePatterns] Sending ${deviations.length} deviations and ${workflowLogs.length} workflow logs for pattern analysis`);
+
     // Call AI service for layered pattern analysis
     // Layer 1: Data Cleaning (duplicates, validation, normalization)
-    // Layer 2: Statistical Analysis (distributions, correlations, temporal patterns)
+    // Layer 2: Statistical Analysis (distributions, correlations, temporal patterns WITH WORKFLOW LOGS)
     // Layer 3: AI Pattern Analysis (behavioral patterns, hidden rules, recommendations)
-    console.log('[analyzePatterns] Sending to AI service for layered analysis...');
-    const patternAnalysis = await aiService.analyzeDeviationPatterns(deviationsWithNotes);
+    console.log('[analyzePatterns] Sending to AI service for layered analysis with temporal data...');
+    const patternAnalysis = await aiService.analyzeDeviationPatterns(deviationsWithNotes, formattedLogs);
     console.log('[analyzePatterns] Layered analysis complete');
 
     return successResponse(
@@ -559,8 +581,17 @@ const analyzePatterns = async (req, res, next) => {
         deviations_analyzed: patternAnalysis.deviations_analyzed || deviations.length,
         api_calls_made: patternAnalysis.api_calls_made || 1,
         data_quality: patternAnalysis.data_quality || null,
+        cleaning_report: patternAnalysis.cleaning_report || null,
         statistical_summary: patternAnalysis.statistical_summary || null,
-        patterns: patternAnalysis
+        ml_summary: patternAnalysis.ml_summary || null,
+        overall_summary: patternAnalysis.overall_summary || '',
+        behavioral_patterns: patternAnalysis.behavioral_patterns || [],
+        hidden_rules: patternAnalysis.hidden_rules || [],
+        systemic_issues: patternAnalysis.systemic_issues || [],
+        time_patterns: patternAnalysis.time_patterns || [],
+        justification_analysis: patternAnalysis.justification_analysis || {},
+        risk_insights: patternAnalysis.risk_insights || [],
+        recommendations: patternAnalysis.recommendations || []
       },
       'Layered pattern analysis completed successfully'
     );

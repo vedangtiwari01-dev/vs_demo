@@ -3,7 +3,7 @@ from docx import Document
 from typing import Dict, Any
 
 class SOPExtractor:
-    """Extracts text from SOP documents (PDF and DOCX)"""
+    """Extracts text from SOP documents (PDF, DOCX, and TXT)"""
 
     @staticmethod
     def extract_from_pdf(file_path: str) -> Dict[str, Any]:
@@ -50,11 +50,32 @@ class SOPExtractor:
             raise Exception(f"Error extracting DOCX: {str(e)}")
 
     @staticmethod
+    def extract_from_txt(file_path: str) -> Dict[str, Any]:
+        """Extract text from TXT file"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                text = file.read()
+
+            metadata = {
+                'file_type': 'txt',
+                'lines': len(text.split('\n'))
+            }
+
+            return {
+                'text': text.strip(),
+                'metadata': metadata
+            }
+        except Exception as e:
+            raise Exception(f"Error extracting TXT: {str(e)}")
+
+    @staticmethod
     def extract(file_path: str, file_type: str) -> Dict[str, Any]:
         """Extract text based on file type"""
         if file_type.lower() == 'pdf':
             return SOPExtractor.extract_from_pdf(file_path)
         elif file_type.lower() in ['docx', 'doc']:
             return SOPExtractor.extract_from_docx(file_path)
+        elif file_type.lower() == 'txt':
+            return SOPExtractor.extract_from_txt(file_path)
         else:
             raise ValueError(f"Unsupported file type: {file_type}")

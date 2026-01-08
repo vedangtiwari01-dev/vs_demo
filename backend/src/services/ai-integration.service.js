@@ -55,14 +55,21 @@ class AIIntegrationService {
     }
   }
 
-  async analyzeDeviationPatterns(deviationsWithNotes) {
+  async analyzeDeviationPatterns(deviationsWithNotes, workflowLogs = null) {
     try {
       console.log(`[AI Service] Analyzing ${deviationsWithNotes.length} deviations for patterns...`);
+
+      // Build request payload with optional workflow logs
+      const payload = { deviations: deviationsWithNotes };
+      if (workflowLogs && workflowLogs.length > 0) {
+        payload.workflow_logs = workflowLogs;
+        console.log(`[AI Service] Including ${workflowLogs.length} workflow logs for temporal analysis`);
+      }
 
       // Use extended timeout for pattern analysis (10 minutes)
       const response = await this.client.post(
         '/ai/deviation/analyze-patterns',
-        { deviations: deviationsWithNotes },
+        payload,
         { timeout: 600000 } // 10 minutes
       );
 

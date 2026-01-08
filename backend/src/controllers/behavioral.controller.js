@@ -118,7 +118,9 @@ const buildOfficerProfile = async (req, res, next) => {
       case_id: log.case_id,
       officer_id: log.officer_id,
       step_name: log.step_name,
+      action: log.action,
       timestamp: log.timestamp.toISOString(),
+      duration_seconds: log.duration_seconds,
     }));
 
     const formattedDeviations = deviations.map(dev => ({
@@ -212,7 +214,9 @@ const analyzePatterns = async (req, res, next) => {
       case_id: log.case_id,
       officer_id: log.officer_id,
       step_name: log.step_name,
+      action: log.action,
       timestamp: log.timestamp.toISOString(),
+      duration_seconds: log.duration_seconds,
     }));
 
     const formattedDeviations = deviations.map(dev => ({
