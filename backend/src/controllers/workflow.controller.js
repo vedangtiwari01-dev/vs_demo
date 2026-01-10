@@ -3,6 +3,10 @@ const aiService = require('../services/ai-integration.service');
 const { successResponse, errorResponse } = require('../utils/response');
 const Papa = require('papaparse');
 const fs = require('fs').promises;
+const crypto = require('crypto');
+
+// Store the current analysis session ID (for filtering in analyzePatterns)
+let currentAnalysisSessionId = null;
 
 const uploadWorkflowLogs = async (req, res, next) => {
   try {
@@ -233,6 +237,16 @@ const analyzeWorkflow = async (req, res, next) => {
     console.log('[analyzeWorkflow] Notes retrieved for cases:', Object.keys(notesByCase));
     console.log('[analyzeWorkflow] Sample notes:', Object.values(notesByCase)[0] || 'No notes found');
 
+    // Generate unique session ID for this analysis run
+    const sessionId = crypto.randomUUID();
+    currentAnalysisSessionId = sessionId;
+    console.log(`[analyzeWorkflow] Generated new analysis session ID: ${sessionId}`);
+
+    // CRITICAL FIX: Delete all previous deviations to prevent accumulation
+    // This ensures pattern analysis only uses current analysis results
+    const deletedCount = await Deviation.destroy({ where: {}, truncate: true });
+    console.log(`[analyzeWorkflow] Deleted ${deletedCount} old deviations to prevent accumulation`);
+
     // Save deviations to database with notes attached
     const savedDeviations = [];
     for (const dev of deviationResult.deviations) {
@@ -247,6 +261,7 @@ const analyzeWorkflow = async (req, res, next) => {
         actual_behavior: dev.actual_behavior,
         context: dev.context || {},
         notes: notesByCase[dev.case_id] || null,  // ✅ Attach notes from WorkflowLog
+        analysis_session_id: sessionId,  // ✅ Track which analysis run created this deviation
       });
       savedDeviations.push(deviation);
     }
@@ -534,14 +549,20 @@ const uploadWithMapping = async (req, res, next) => {
 
 const analyzePatterns = async (req, res, next) => {
   try {
-    // Get ALL deviations (no limit) - now using layered approach with data cleaning & statistical analysis
+    // CRITICAL FIX: Filter by current session ID to prevent analyzing accumulated deviations
+    // This ensures we only analyze deviations from the most recent workflow analysis
+    const whereClause = currentAnalysisSessionId
+      ? { analysis_session_id: currentAnalysisSessionId }
+      : {}; // Fallback to all deviations if no session ID (shouldn't happen in normal flow)
+
+    // Get deviations for current analysis session - now using layered approach with data cleaning & statistical analysis
     // The AI service will:
     // 1. Clean the data (remove duplicates, validate, normalize)
-    // 2. Perform statistical analysis on ALL deviations
+    // 2. Perform statistical analysis on session deviations
     // 3. Use statistical context to enhance AI pattern analysis
     const deviations = await Deviation.findAll({
+      where: whereClause,
       order: [['detected_at', 'DESC']],
-      // No limit - send ALL deviations for comprehensive analysis
     });
 
     if (deviations.length === 0) {
@@ -550,7 +571,7 @@ const analyzePatterns = async (req, res, next) => {
       });
     }
 
-    console.log(`[analyzePatterns] Analyzing ${deviations.length} deviations with layered approach (cleaning + stats + AI)`);
+    console.log(`[analyzePatterns] Analyzing ${deviations.length} deviations from session ${currentAnalysisSessionId || 'unknown'} with layered approach (cleaning + stats + AI)`);
 
     // Format deviations for AI analysis (include timestamp for temporal analysis)
     const deviationsWithNotes = deviations.map(dev => ({
@@ -598,7 +619,8 @@ const analyzePatterns = async (req, res, next) => {
 
     // Log the full AI service response for debugging
     console.log('[analyzePatterns] AI service response keys:', Object.keys(patternAnalysis));
-    console.log('[analyzePatterns] cleaning_report:', patternAnalysis.cleaning_report);
+    console.log('[analyzePatterns] log_cleaning_report:', patternAnalysis.log_cleaning_report);
+    console.log('[analyzePatterns] log_quality:', patternAnalysis.log_quality);
     console.log('[analyzePatterns] ml_summary:', patternAnalysis.ml_summary);
     console.log('[analyzePatterns] ml_metadata:', patternAnalysis.ml_metadata);
     console.log('[analyzePatterns] statistical_summary keys:', patternAnalysis.statistical_summary ? Object.keys(patternAnalysis.statistical_summary) : 'null');
@@ -613,7 +635,8 @@ const analyzePatterns = async (req, res, next) => {
         deviations_analyzed: patternAnalysis.deviations_analyzed || deviations.length,
         api_calls_made: patternAnalysis.api_calls_made || 1,
         data_quality: patternAnalysis.data_quality || null,
-        cleaning_report: patternAnalysis.cleaning_report || null,
+        log_cleaning_report: patternAnalysis.log_cleaning_report || null,
+        log_quality: patternAnalysis.log_quality || null,
         statistical_summary: patternAnalysis.statistical_summary || null,
         ml_summary: patternAnalysis.ml_summary || null,
         ml_metadata: patternAnalysis.ml_metadata || null, // Add ml_metadata
@@ -721,6 +744,17 @@ const deleteWorkflowFile = async (req, res, next) => {
     const { id } = req.params;
     const { sequelize } = require('../config/database');
 
+    // Get case IDs from workflow logs to be deleted
+    const logsToDelete = await WorkflowLog.findAll({
+      where: sequelize.where(
+        sequelize.fn('strftime', '%Y-%m-%d %H:%M:%S', sequelize.col('uploaded_at')),
+        id
+      ),
+      attributes: ['case_id'],
+    });
+
+    const caseIds = [...new Set(logsToDelete.map(log => log.case_id))];
+
     // The ID is the upload_timestamp in format 'YYYY-MM-DD HH:MM:SS'
     // Delete all logs with this upload timestamp
     const deleted = await WorkflowLog.destroy({
@@ -732,6 +766,17 @@ const deleteWorkflowFile = async (req, res, next) => {
 
     if (deleted === 0) {
       return errorResponse(res, 'Workflow file not found', 404);
+    }
+
+    // CASCADE DELETE: Remove deviations associated with deleted workflow logs
+    // This prevents orphaned deviations from accumulating when workflow files are deleted
+    if (caseIds.length > 0) {
+      const deviationsDeleted = await Deviation.destroy({
+        where: {
+          case_id: caseIds
+        }
+      });
+      console.log(`[deleteWorkflowFile] Cascade deleted ${deviationsDeleted} deviations for ${caseIds.length} cases`);
     }
 
     return successResponse(res, { deleted_count: deleted }, 'Workflow file deleted successfully');

@@ -252,49 +252,61 @@ const OverviewTab = ({ data, patterns, deviations, analysisResult }) => {
         </div>
       </div>
 
-      {/* 3. Data Cleaning Report */}
-      {(patterns?.cleaning_report || patterns?.data_quality) && (
+      {/* 3. Workflow Log Quality Report */}
+      {(patterns?.log_cleaning_report || patterns?.log_quality) && (
         <div className="widget-transparent rounded-xl shadow-xl p-4 border border-primary-300">
-          <h3 className="text-base font-semibold text-primary-600 mb-3">Data Cleaning Report</h3>
+          <h3 className="text-base font-semibold text-primary-600 mb-3">Workflow Log Quality Report</h3>
 
-          {patterns.cleaning_report && (
-            <div className="mb-6">
-              <h4 className="text-xs font-medium text-gray-700 mb-3 flex items-center">
-                <svg className="w-4 h-4 mr-2 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                Preprocessing Steps
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {Object.entries(patterns.cleaning_report).map(([step, value]) => (
-                  <div key={step} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-3 border border-gray-200 hover:shadow-md transition-shadow">
-                    <p className="text-xs font-medium text-gray-500 uppercase mb-1">{step.replace(/_/g, ' ')}</p>
-                    <p className="text-sm font-semibold text-primary-600">
-                      {typeof value === 'object' ? JSON.stringify(value) : value}
-                    </p>
-                  </div>
-                ))}
+          {/* Data Quality Score */}
+          {patterns.log_quality && (
+            <div className="mb-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border border-green-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Data Quality Score</p>
+                  <p className="text-2xl font-bold text-primary-600">{patterns.log_quality.score}/100</p>
+                  <p className="text-xs text-gray-600">Grade: {patterns.log_quality.grade} - {patterns.log_quality.assessment}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-600">Retention Rate</p>
+                  <p className="text-lg font-semibold text-green-600">{patterns.log_quality.details?.retention_rate || 0}%</p>
+                </div>
               </div>
             </div>
           )}
 
-          {patterns.data_quality && (
-            <div>
-              <h4 className="text-xs font-medium text-gray-700 mb-3 flex items-center">
-                <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Data Quality Metrics
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {Object.entries(patterns.data_quality).map(([metric, value]) => (
-                  <div key={metric} className="bg-gradient-to-br from-green-50 to-blue-50 rounded-lg p-3 border border-green-200 hover:shadow-md transition-shadow">
-                    <p className="text-xs font-medium text-gray-600 uppercase mb-1">{metric.replace(/_/g, ' ')}</p>
-                    <p className="text-lg font-semibold text-gray-800">
-                      {typeof value === 'number' ? value.toFixed(2) : value}
-                    </p>
-                  </div>
-                ))}
+          {/* Cleaning Statistics */}
+          {patterns.log_cleaning_report && (
+            <div className="mb-6">
+              <h4 className="text-xs font-medium text-gray-700 mb-3">Cleaning Operations</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Original Logs</p>
+                  <p className="text-lg font-semibold text-primary-600">{patterns.log_cleaning_report.original_count || 0}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Final Logs</p>
+                  <p className="text-lg font-semibold text-green-600">{patterns.log_cleaning_report.final_count || patterns.log_cleaning_report.original_count || 0}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Duplicates Removed</p>
+                  <p className="text-lg font-semibold text-orange-600">{patterns.log_cleaning_report.duplicates_removed || 0}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Invalid Removed</p>
+                  <p className="text-lg font-semibold text-red-600">{patterns.log_cleaning_report.invalid_logs_removed || 0}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Types Fixed</p>
+                  <p className="text-lg font-semibold text-blue-600">{patterns.log_cleaning_report.invalid_types_fixed || 0}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Missing Handled</p>
+                  <p className="text-lg font-semibold text-purple-600">{patterns.log_cleaning_report.missing_values_handled || 0}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Text Normalized</p>
+                  <p className="text-lg font-semibold text-cyan-600">{patterns.log_cleaning_report.text_normalized || 0}</p>
+                </div>
               </div>
             </div>
           )}
@@ -834,35 +846,39 @@ const MLStatisticsTab = ({ patterns, deviations }) => {
             </div>
           )}
 
-          {/* Chart 4: Pie Chart - Officer Deviation Percentage */}
+          {/* Chart 4: Bar Chart - Officer Deviation Rate */}
           {topOfficers.length > 0 && (() => {
-            const totalDevs = topOfficers.reduce((sum, o) => sum + o.total_deviations, 0);
-            const pieData = topOfficers.slice(0, 8).map(officer => ({
-              name: officer.officer_id,
-              value: officer.total_deviations,
-              percentage: ((officer.total_deviations / totalDevs) * 100).toFixed(1)
-            }));
-            const COLORS = ['#0891b2', '#2563eb', '#7c3aed', '#db2777', '#dc2626', '#ea580c', '#ca8a04', '#059669'];
+            const barData = topOfficers.slice(0, 10).map(officer => {
+              // Calculate deviation rate: (total deviations / unique cases handled)
+              const deviationRate = officer.unique_cases
+                ? ((officer.total_deviations / officer.unique_cases) * 100).toFixed(1)
+                : 0;
+
+              return {
+                officer: officer.officer_id,
+                rate: parseFloat(deviationRate),
+                deviations: officer.total_deviations,
+                cases: officer.unique_cases || 0
+              };
+            });
 
             return (
               <div className="widget-transparent rounded-lg shadow-xl p-3 border border-primary-300">
-                <h4 className="text-sm font-semibold text-primary-600 mb-2">Officer Deviation Distribution</h4>
+                <h4 className="text-sm font-semibold text-primary-600 mb-2">Officer Deviation Rate (%)</h4>
                 <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percentage }) => `${name}: ${percentage}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
+                  <BarChart data={barData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(6, 182, 212, 0.2)" />
+                    <XAxis
+                      dataKey="officer"
+                      tick={{ fontSize: 9, fill: '#1f2937' }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: '#1f2937' }}
+                      label={{ value: 'Rate (%)', angle: -90, position: 'insideLeft', style: { fontSize: 10 } }}
+                    />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -870,9 +886,13 @@ const MLStatisticsTab = ({ patterns, deviations }) => {
                         borderRadius: '8px',
                         fontSize: '11px'
                       }}
-                      formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, name]}
+                      formatter={(value, name, props) => [
+                        `${value}% (${props.payload.deviations} deviations / ${props.payload.cases} cases)`,
+                        'Deviation Rate'
+                      ]}
                     />
-                  </PieChart>
+                    <Bar dataKey="rate" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             );

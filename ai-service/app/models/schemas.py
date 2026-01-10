@@ -75,6 +75,8 @@ class Deviation(BaseModel):
 
 class DeviationDetectionResponse(BaseModel):
     deviations: List[Deviation]
+    log_cleaning_report: Optional[Dict[str, Any]] = None  # Workflow log cleaning report
+    log_quality: Optional[Dict[str, Any]] = None          # Workflow log quality score
 
 # Behavioral Profiling Schemas
 class BehavioralProfileRequest(BaseModel):
@@ -145,7 +147,8 @@ class PatternAnalysisResponse(BaseModel):
 
     # Phase 1: Data Processing metadata
     data_quality: Optional[Dict[str, Any]] = None
-    cleaning_report: Optional[Dict[str, Any]] = None
+    log_cleaning_report: Optional[Dict[str, Any]] = None  # Workflow log cleaning report
+    log_quality: Optional[Dict[str, Any]] = None          # Workflow log quality score
     statistical_summary: Optional[Dict[str, Any]] = None
 
     # Phase 2: ML metadata

@@ -143,7 +143,11 @@ async def detect_deviations(request: DeviationDetectionRequest):
 
         logger.info(f"Total deviations detected across 10 checkers: {len(all_deviations)}")
 
-        return DeviationDetectionResponse(deviations=all_deviations)
+        return DeviationDetectionResponse(
+            deviations=all_deviations,
+            log_cleaning_report=log_cleaning_report,
+            log_quality=log_quality
+        )
     except Exception as e:
         logger.error(f"Deviation detection failed: {str(e)}")
         logger.error(traceback.format_exc())
@@ -232,14 +236,37 @@ async def analyze_patterns(request: PatternAnalysisRequest):
             )
 
         # ===================================================================
-        # LAYER 1: SKIP DEVIATION CLEANING (Logs already cleaned at Step 0)
+        # STEP 0: CALCULATE WORKFLOW LOG QUALITY (if logs provided)
         # ===================================================================
-        # NOTE: We don't clean deviations because:
-        # 1. Workflow logs are already cleaned (Step 0)
-        # 2. Multiple occurrences of same deviation are valid (not duplicates)
-        # 3. Cleaning deviations can hide important patterns
-        logger.info("--- Layer 1: Using raw deviations (no cleaning) ---")
-        cleaned_deviations = request.deviations
+        log_cleaning_report = None
+        log_quality = None
+        if request.workflow_logs:
+            logger.info("--- Step 0: Analyzing Workflow Log Quality ---")
+            from app.services.data import WorkflowLogCleaner
+
+            # Calculate what cleaning would have done (read-only analysis)
+            _, log_cleaning_report = WorkflowLogCleaner.clean_logs(
+                request.workflow_logs,
+                remove_duplicates=True,
+                validate_types=True,
+                handle_missing=True,
+                normalize_text=True
+            )
+            log_quality = WorkflowLogCleaner.get_data_quality_score(log_cleaning_report)
+
+            logger.info(f"Workflow log quality: {log_quality['score']}/100 (Grade: {log_quality['grade']})")
+        else:
+            logger.warning("No workflow logs provided - log quality assessment unavailable")
+
+        # ===================================================================
+        # LAYER 1: USE ALL DEVIATIONS (NO CLEANING)
+        # ===================================================================
+        # NOTE: We do NOT clean deviations because:
+        # 1. Multiple occurrences of same deviation type are VALID (not duplicates)
+        # 2. Repeated violations are important for pattern analysis
+        # 3. Data quality is ensured by cleaning workflow logs BEFORE deviation detection
+        logger.info("--- Layer 1: Using all deviations (no cleaning) ---")
+        cleaned_deviations = request.deviations  # Use all deviations
         logger.info(f"Total deviations to analyze: {len(cleaned_deviations)}")
 
         # ===================================================================
@@ -335,7 +362,14 @@ async def analyze_patterns(request: PatternAnalysisRequest):
             ml_context=ml_context_text
         )
 
-        # Enhance the response with statistical and ML metadata
+        # Enhance the response with workflow log quality, statistical and ML metadata
+        if log_cleaning_report:
+            pattern_result['log_cleaning_report'] = log_cleaning_report  # Workflow log cleaning
+            pattern_result['log_quality'] = log_quality
+        else:
+            pattern_result['log_cleaning_report'] = None
+            pattern_result['log_quality'] = None
+
         pattern_result['statistical_summary'] = {
             'total_analyzed': statistical_analysis['overview']['total_deviations'],
             'severity_score': statistical_analysis['severity_distribution']['severity_score'],
@@ -376,9 +410,17 @@ async def analyze_patterns(request: PatternAnalysisRequest):
             pattern_result['ml_metadata'] = None
 
         logger.info("=== LAYERED PATTERN ANALYSIS COMPLETED (4 LAYERS) ===")
-        logger.info(f"Response includes: temporal_patterns={bool(pattern_result.get('statistical_summary', {}).get('temporal_patterns'))}, "
-                   f"officer_statistics={bool(pattern_result.get('statistical_summary', {}).get('officer_statistics'))}, "
-                   f"ml_metadata={bool(pattern_result.get('ml_metadata'))}")
+        logger.info(f"Response includes:")
+        logger.info(f"  - log_cleaning_report: {bool(pattern_result.get('log_cleaning_report'))}")
+        logger.info(f"  - log_quality: {bool(pattern_result.get('log_quality'))}")
+        if pattern_result.get('log_quality'):
+            logger.info(f"    - quality score: {pattern_result['log_quality']['score']}/100 (Grade: {pattern_result['log_quality']['grade']})")
+        logger.info(f"  - temporal_patterns: {bool(pattern_result.get('statistical_summary', {}).get('temporal_patterns'))}")
+        logger.info(f"  - officer_statistics: {bool(pattern_result.get('statistical_summary', {}).get('officer_statistics'))}")
+        logger.info(f"  - ml_metadata: {bool(pattern_result.get('ml_metadata'))}")
+        if pattern_result.get('ml_metadata'):
+            features = pattern_result['ml_metadata'].get('feature_engineering', {}).get('n_features')
+            logger.info(f"  - features created: {features}")
         return PatternAnalysisResponse(**pattern_result)
 
     except Exception as e:

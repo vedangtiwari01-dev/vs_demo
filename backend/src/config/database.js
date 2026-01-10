@@ -20,9 +20,9 @@ const initializeDatabase = async () => {
     // Disable foreign key constraints temporarily
     await sequelize.query('PRAGMA foreign_keys = OFF;');
 
-    // Sync all models without altering existing tables
-    // This prevents the foreign key constraint errors
-    await sequelize.sync({ alter: false });
+    // Sync all models with alter to add new analysis_session_id column
+    // Using alter: true to add the new column to existing deviations table
+    await sequelize.sync({ alter: true });
     console.log('✓ Database models synchronized');
 
     // Re-enable foreign key constraints

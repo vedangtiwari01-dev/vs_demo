@@ -57,6 +57,11 @@ const Deviation = sequelize.define('Deviation', {
     allowNull: true,
     comment: 'Claude AI reasoning and explanation for this deviation',
   },
+  analysis_session_id: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    comment: 'UUID linking deviations to a specific analysis run - enables session-based filtering and historical tracking',
+  },
   detected_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
@@ -74,6 +79,7 @@ const Deviation = sequelize.define('Deviation', {
     { fields: ['officer_id'] },
     { fields: ['deviation_type'] },
     { fields: ['detected_at'] },
+    { fields: ['analysis_session_id'] },
   ],
 });
 
