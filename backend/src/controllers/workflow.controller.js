@@ -255,6 +255,23 @@ const analyzeWorkflow = async (req, res, next) => {
     const uniqueCases = new Set(logs.map(l => l.case_id));
     const uniqueOfficers = new Set(logs.map(l => l.officer_id));
 
+    // Get first log to extract column names (workflow fields)
+    const firstLog = logs.length > 0 ? logs[0] : null;
+    const internalFields = ['id', 'uploaded_at', 'metadata', 'is_synthetic', 'created_at', 'updated_at'];
+    const workflowFields = firstLog ? Object.keys(firstLog.toJSON()).filter(f => !internalFields.includes(f)) : [];
+
+    // Format SOP rules for frontend
+    const sopRulesFormatted = rules.map(rule => ({
+      id: rule.id,
+      rule_type: rule.rule_type,
+      name: `${rule.rule_type} Rule`,
+      description: rule.rule_description,
+      rule_description: rule.rule_description, // For compatibility
+      condition: rule.rule_description,
+      severity: rule.severity,
+      step_number: rule.step_number,
+    }));
+
     return successResponse(
       res,
       {
@@ -270,6 +287,11 @@ const analyzeWorkflow = async (req, res, next) => {
           medium: savedDeviations.filter(d => d.severity === 'medium').length,
           low: savedDeviations.filter(d => d.severity === 'low').length,
         },
+        workflow_metadata: {
+          fields: workflowFields,
+          total_logs: logs.length,
+        },
+        sop_rules: sopRulesFormatted,
       },
       'Workflow analysis completed'
     );
@@ -574,6 +596,16 @@ const analyzePatterns = async (req, res, next) => {
     const patternAnalysis = await aiService.analyzeDeviationPatterns(deviationsWithNotes, formattedLogs);
     console.log('[analyzePatterns] Layered analysis complete');
 
+    // Log the full AI service response for debugging
+    console.log('[analyzePatterns] AI service response keys:', Object.keys(patternAnalysis));
+    console.log('[analyzePatterns] cleaning_report:', patternAnalysis.cleaning_report);
+    console.log('[analyzePatterns] ml_summary:', patternAnalysis.ml_summary);
+    console.log('[analyzePatterns] ml_metadata:', patternAnalysis.ml_metadata);
+    console.log('[analyzePatterns] statistical_summary keys:', patternAnalysis.statistical_summary ? Object.keys(patternAnalysis.statistical_summary) : 'null');
+    if (patternAnalysis.statistical_summary?.temporal_patterns) {
+      console.log('[analyzePatterns] temporal_patterns:', patternAnalysis.statistical_summary.temporal_patterns);
+    }
+
     return successResponse(
       res,
       {
@@ -584,6 +616,7 @@ const analyzePatterns = async (req, res, next) => {
         cleaning_report: patternAnalysis.cleaning_report || null,
         statistical_summary: patternAnalysis.statistical_summary || null,
         ml_summary: patternAnalysis.ml_summary || null,
+        ml_metadata: patternAnalysis.ml_metadata || null, // Add ml_metadata
         overall_summary: patternAnalysis.overall_summary || '',
         behavioral_patterns: patternAnalysis.behavioral_patterns || [],
         hidden_rules: patternAnalysis.hidden_rules || [],
@@ -621,23 +654,24 @@ const listWorkflowFiles = async (req, res, next) => {
     });
 
     // Transform to frontend-expected format
-    const files = uploadSessions.map((session, index) => {
+    const files = await Promise.all(uploadSessions.map(async (session, index) => {
       const uploadDate = new Date(session.uploaded_at);
       const dateStr = uploadDate.toISOString().replace(/[-:]/g, '').replace('T', '_').substring(0, 15);
 
       // Try to get original filename from metadata
       let filename;
+      let parsedMetadata = null;
       if (session.metadata) {
         try {
-          const metadata = typeof session.metadata === 'string'
+          parsedMetadata = typeof session.metadata === 'string'
             ? JSON.parse(session.metadata)
             : session.metadata;
 
           // Use original filename if available
-          if (metadata.original_filename) {
-            filename = metadata.original_filename;
-          } else if (session.is_generated && metadata.scenario_type) {
-            filename = `synthetic_${metadata.scenario_type}_${dateStr}.csv`;
+          if (parsedMetadata.original_filename) {
+            filename = parsedMetadata.original_filename;
+          } else if (session.is_generated && parsedMetadata.scenario_type) {
+            filename = `synthetic_${parsedMetadata.scenario_type}_${dateStr}.csv`;
           }
         } catch (e) {
           // If parsing fails, use default
@@ -651,6 +685,19 @@ const listWorkflowFiles = async (req, res, next) => {
           : `workflow_${dateStr}.csv`;
       }
 
+      // Get column names from first log in this session
+      const firstLog = await WorkflowLog.findOne({
+        where: sequelize.where(
+          sequelize.fn('strftime', '%Y-%m-%d %H:%M:%S', sequelize.col('uploaded_at')),
+          session.upload_timestamp
+        ),
+        limit: 1
+      });
+
+      // Extract column names (exclude internal fields)
+      const internalFields = ['id', 'uploaded_at', 'metadata', 'is_synthetic', 'created_at', 'updated_at'];
+      const fields = firstLog ? Object.keys(firstLog.toJSON()).filter(f => !internalFields.includes(f)) : [];
+
       return {
         id: session.upload_timestamp, // Use timestamp as unique ID
         filename: filename,
@@ -658,8 +705,10 @@ const listWorkflowFiles = async (req, res, next) => {
         total_logs: parseInt(session.total_logs),
         unique_cases: parseInt(session.unique_cases),
         is_generated: Boolean(session.is_generated),
+        fields: fields, // Add fields here
+        columns: fields, // Alias for compatibility
       };
-    });
+    }));
 
     return successResponse(res, { files }, 'Workflow files retrieved successfully');
   } catch (error) {

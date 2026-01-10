@@ -26,15 +26,25 @@ export default {
           300: '#93c5fd',
           400: '#60a5fa',
           500: '#3b82f6',
-          600: '#1e40af',
+          600: '#2563eb',
           700: '#1e3a8a',
           800: '#1e293b',
           900: '#0f172a',
         }
       },
-      backgroundImage: {
-        'gradient-premium': 'linear-gradient(135deg, #0891b2 0%, #1e40af 100%)',
-        'gradient-card': 'linear-gradient(135deg, #ecfeff 0%, #dbeafe 100%)',
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif']
+      },
+      animation: {
+        'spin-slow': 'spin 3s linear infinite',
+        'spin-reverse': 'spin-reverse 2s linear infinite',
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+      keyframes: {
+        'spin-reverse': {
+          'from': { transform: 'rotate(360deg)' },
+          'to': { transform: 'rotate(0deg)' },
+        }
       }
     },
   },

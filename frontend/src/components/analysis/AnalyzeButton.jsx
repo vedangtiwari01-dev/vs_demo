@@ -33,8 +33,15 @@ const AnalyzeButton = forwardRef(({ selectedSop, selectedWorkflow, onAnalyze, is
         deviations: deviationData.deviations || [],
         summary: deviationData.summary || {},
         patterns: patternData.patterns || patternData,
-        sop: selectedSop,
-        workflow: selectedWorkflow,
+        sop: {
+          ...selectedSop,
+          rules: deviationData.sop_rules || selectedSop.rules || []
+        },
+        workflow: {
+          ...selectedWorkflow,
+          fields: deviationData.workflow_metadata?.fields || selectedWorkflow.fields || selectedWorkflow.columns || [],
+          total_logs: deviationData.workflow_metadata?.total_logs || selectedWorkflow.total_logs || deviationData.summary?.total_logs
+        },
         timestamp: new Date().toISOString()
       };
 
@@ -57,8 +64,7 @@ const AnalyzeButton = forwardRef(({ selectedSop, selectedWorkflow, onAnalyze, is
 
   if (!selectedSop || !selectedWorkflow) {
     return (
-      <div className="bg-gradient-to-br from-secondary-800 to-secondary-700 border border-orange-500/30 rounded-lg p-4 shadow-lg relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl"></div>
+      <div className="bg-gradient-to-br from-secondary-800 to-secondary-700 border border-primary-500/30 rounded-lg p-4 shadow-lg relative overflow-hidden">
         <div className="relative z-10">
           <h3 className="font-semibold text-orange-300 mb-3">Analysis Requirements</h3>
           <p className="text-sm text-primary-200 mb-3">Please select:</p>
@@ -86,7 +92,7 @@ const AnalyzeButton = forwardRef(({ selectedSop, selectedWorkflow, onAnalyze, is
           </ul>
           <button
             disabled
-            className="mt-4 w-full py-3 px-4 bg-secondary-700/50 text-primary-400 rounded-lg cursor-not-allowed border border-secondary-600"
+            className="mt-4 w-full py-3 px-4 bg-secondary-700/50 text-primary-400 rounded-lg cursor-not-allowed border border-primary-500/30"
           >
             Analyze (Disabled)
           </button>
@@ -98,7 +104,6 @@ const AnalyzeButton = forwardRef(({ selectedSop, selectedWorkflow, onAnalyze, is
 
   return (
     <div className="bg-gradient-to-br from-secondary-800 to-secondary-700 border border-primary-500/30 rounded-lg p-4 shadow-lg relative overflow-hidden">
-      <div className="absolute bottom-0 right-0 w-32 h-32 bg-primary-500/10 rounded-full blur-2xl"></div>
       <div className="relative z-10">
         <h3 className="font-semibold text-cyan-300 mb-3">Ready to Analyze</h3>
         <div className="space-y-2 mb-4">
@@ -107,11 +112,11 @@ const AnalyzeButton = forwardRef(({ selectedSop, selectedWorkflow, onAnalyze, is
           </div>
           <div className="text-sm pl-2 space-y-1">
             <div className="flex items-center space-x-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary-400"></div>
+              <div className="w-1.5 h-1.5 rounded-full bg-primary-500"></div>
               <span className="text-cyan-100">SOP: {selectedSop.title}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary-400"></div>
+              <div className="w-1.5 h-1.5 rounded-full bg-primary-500"></div>
               <span className="text-cyan-100">Logs: {selectedWorkflow.filename}</span>
             </div>
           </div>
@@ -120,11 +125,11 @@ const AnalyzeButton = forwardRef(({ selectedSop, selectedWorkflow, onAnalyze, is
         <button
           onClick={handleAnalyze}
           disabled={isAnalyzing}
-          className={`w-full py-3 px-4 rounded-lg font-semibold flex items-center justify-center space-x-2 transition-all ${
+          className={`w-full py-3 px-4 rounded-lg font-medium flex items-center justify-center space-x-2 transition-all ${
             isAnalyzing
-              ? 'bg-primary-600/50 cursor-not-allowed'
-              : 'bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-500 hover:to-secondary-500 shadow-lg hover:shadow-primary-500/50'
-          } text-white`}
+              ? 'bg-gray-200 cursor-not-allowed text-gray-500'
+              : 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:from-primary-500 hover:to-secondary-500 shadow-lg'
+          }`}
         >
           {isAnalyzing ? (
             <>
@@ -138,13 +143,6 @@ const AnalyzeButton = forwardRef(({ selectedSop, selectedWorkflow, onAnalyze, is
             </>
           )}
         </button>
-
-        {!isAnalyzing && (
-          <div className="mt-3 pt-3 border-t border-primary-500/20 text-xs text-primary-300 space-y-1">
-            <div>⏱️ ~5 seconds</div>
-            <div>💰 ~$0.11</div>
-          </div>
-        )}
       </div>
     </div>
   );

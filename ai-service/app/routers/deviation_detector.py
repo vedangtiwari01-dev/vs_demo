@@ -343,6 +343,9 @@ async def analyze_patterns(request: PatternAnalysisRequest):
             'top_deviation_types': statistical_analysis['deviation_type_distribution']['top_10_types'][:5],
             'critical_mass_score': statistical_analysis['risk_indicators']['critical_mass_score'],
             'risk_assessment': statistical_analysis['risk_indicators']['critical_mass_assessment'],
+            # Add temporal patterns and officer statistics (IMPORTANT FOR FRONTEND CHARTS)
+            'temporal_patterns': statistical_analysis.get('temporal_patterns', {}),
+            'officer_statistics': statistical_analysis.get('officer_statistics', {}),
             # Add advanced statistics
             'advanced_correlations': statistical_analysis.get('advanced_correlations'),
             'lift_and_odds': statistical_analysis.get('lift_and_odds'),
@@ -363,13 +366,19 @@ async def analyze_patterns(request: PatternAnalysisRequest):
                 'clustering_method': ml_metadata['clustering']['method'],
                 'sampling_composition': ml_metadata['sampling']['composition']
             }
+            # Add full ML metadata for detailed frontend display (includes feature engineering info)
+            pattern_result['ml_metadata'] = ml_metadata
         else:
             pattern_result['ml_summary'] = {
                 'ml_applied': False,
                 'reason': ml_metadata.get('reason', 'unknown')
             }
+            pattern_result['ml_metadata'] = None
 
         logger.info("=== LAYERED PATTERN ANALYSIS COMPLETED (4 LAYERS) ===")
+        logger.info(f"Response includes: temporal_patterns={bool(pattern_result.get('statistical_summary', {}).get('temporal_patterns'))}, "
+                   f"officer_statistics={bool(pattern_result.get('statistical_summary', {}).get('officer_statistics'))}, "
+                   f"ml_metadata={bool(pattern_result.get('ml_metadata'))}")
         return PatternAnalysisResponse(**pattern_result)
 
     except Exception as e:

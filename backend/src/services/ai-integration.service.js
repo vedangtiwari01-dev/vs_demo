@@ -74,6 +74,23 @@ class AIIntegrationService {
       );
 
       console.log('[AI Service] Pattern analysis complete');
+      console.log('[AI Service] Response data keys:', Object.keys(response.data));
+      console.log('[AI Service] Has cleaning_report:', !!response.data.cleaning_report);
+      console.log('[AI Service] Has ml_summary:', !!response.data.ml_summary);
+      console.log('[AI Service] Has ml_metadata:', !!response.data.ml_metadata);
+      console.log('[AI Service] Has statistical_summary:', !!response.data.statistical_summary);
+      if (response.data.ml_summary) {
+        console.log('[AI Service] ml_summary keys:', Object.keys(response.data.ml_summary));
+      }
+      if (response.data.ml_metadata) {
+        console.log('[AI Service] ml_metadata keys:', Object.keys(response.data.ml_metadata));
+      }
+      if (response.data.statistical_summary) {
+        console.log('[AI Service] statistical_summary keys:', Object.keys(response.data.statistical_summary));
+        if (response.data.statistical_summary.temporal_patterns) {
+          console.log('[AI Service] temporal_patterns keys:', Object.keys(response.data.statistical_summary.temporal_patterns));
+        }
+      }
       return response.data;
     } catch (error) {
       if (error.code === 'ECONNABORTED') {
