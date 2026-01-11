@@ -94,6 +94,25 @@ const uploadWorkflowLogs = async (req, res, next) => {
           continue;
         }
 
+        // CRITICAL FIX: Extract ALL extended fields to metadata
+        const coreFields = ['case_id', 'officer_id', 'step_name', 'action', 'timestamp', 'duration_seconds', 'status'];
+        const metadata = {};
+
+        // Add all non-core fields to metadata
+        for (const [key, value] of Object.entries(log)) {
+          const lowerKey = key.toLowerCase();
+          // Skip core fields and empty values
+          if (!coreFields.includes(lowerKey) && value !== null && value !== undefined && value !== '') {
+            // Convert numeric strings to numbers where appropriate
+            if (key.includes('amount') || key.includes('value') || key.includes('score') || key.includes('ratio')) {
+              const numValue = parseFloat(value);
+              metadata[key] = isNaN(numValue) ? value : numValue;
+            } else {
+              metadata[key] = value;
+            }
+          }
+        }
+
         const workflowLog = await WorkflowLog.create({
           case_id: caseId,
           officer_id: officerId,
@@ -102,7 +121,7 @@ const uploadWorkflowLogs = async (req, res, next) => {
           timestamp: new Date(timestamp),
           duration_seconds: duration ? parseInt(duration) : null,
           status: status,
-          metadata: {},
+          metadata: metadata,  // Now contains all extended fields!
           is_synthetic: false,
         });
 
@@ -207,23 +226,60 @@ const analyzeWorkflow = async (req, res, next) => {
     }
 
     // Format logs for AI service
-    const formattedLogs = logs.map(log => ({
-      case_id: log.case_id,
-      officer_id: log.officer_id,
-      step_name: log.step_name,
-      action: log.action,
-      timestamp: log.timestamp.toISOString(),
-      duration_seconds: log.duration_seconds,
-      status: log.status,
-    }));
+    // CRITICAL FIX: Merge metadata fields so AI service has access to extended fields
+    const formattedLogs = logs.map((log, index) => {
+      const baseLog = {
+        case_id: log.case_id,
+        officer_id: log.officer_id,
+        step_name: log.step_name,
+        action: log.action,
+        timestamp: log.timestamp.toISOString(),
+        duration_seconds: log.duration_seconds,
+        status: log.status,
+      };
+
+      // DEBUG: Check first log's metadata
+      if (index === 0) {
+        console.log('[analyzeWorkflow] First log metadata check:');
+        console.log('  - case_id:', log.case_id);
+        console.log('  - metadata exists:', !!log.metadata);
+        console.log('  - metadata type:', typeof log.metadata);
+        console.log('  - metadata value:', log.metadata);
+        if (log.metadata) {
+          console.log('  - metadata keys:', Object.keys(log.metadata));
+        }
+      }
+
+      // Extract and merge metadata fields (for conditional/temporal/regulatory evaluators)
+      if (log.metadata && typeof log.metadata === 'object') {
+        Object.assign(baseLog, log.metadata);
+      }
+
+      return baseLog;
+    });
 
     // Format rules for AI service
+    // CRITICAL FIX: Include ALL rule fields (condition_logic, temporal_constraint, etc.)
     const formattedRules = rules.map(rule => ({
       id: rule.id,
       rule_type: rule.rule_type,
       rule_description: rule.rule_description,
       step_number: rule.step_number,
       severity: rule.severity,
+      // Include extended fields for new evaluators
+      condition_logic: rule.condition_logic,
+      temporal_constraint: rule.temporal_constraint,
+      required_fields: rule.required_fields,
+      timing_constraint: rule.timing_constraint,
+      product_types: rule.product_types,
+      customer_segments: rule.customer_segments,
+      channels: rule.channels,
+      geography: rule.geography,
+      exceptions: rule.exceptions,
+      calculation_formula: rule.calculation_formula,
+      threshold_value: rule.threshold_value,
+      field_dependencies: rule.field_dependencies,
+      regulatory_reference: rule.regulatory_reference,
     }));
 
     // Detect deviations using AI service
@@ -452,6 +508,28 @@ const uploadWithMapping = async (req, res, next) => {
           continue;
         }
 
+        // CRITICAL FIX: Separate core fields from extended fields
+        // Core fields are stored as columns, extended fields go in metadata JSON
+        const coreFields = ['case_id', 'officer_id', 'step_name', 'action', 'timestamp', 'duration_seconds', 'status'];
+
+        // Build metadata object with ALL extended fields
+        const metadata = {
+          original_filename: file.originalname
+        };
+
+        // Add all non-core fields to metadata
+        for (const [key, value] of Object.entries(row)) {
+          if (!coreFields.includes(key) && value !== null && value !== undefined && value !== '') {
+            // Convert numeric strings to numbers where appropriate
+            if (key.includes('amount') || key.includes('value') || key.includes('score') || key.includes('ratio')) {
+              const numValue = parseFloat(value);
+              metadata[key] = isNaN(numValue) ? value : numValue;
+            } else {
+              metadata[key] = value;
+            }
+          }
+        }
+
         const workflowLog = await WorkflowLog.create({
           case_id: row.case_id,
           officer_id: row.officer_id,
@@ -460,9 +538,7 @@ const uploadWithMapping = async (req, res, next) => {
           timestamp: new Date(row.timestamp),
           duration_seconds: row.duration_seconds ? parseInt(row.duration_seconds) : null,
           status: row.status || 'completed',
-          metadata: {
-            original_filename: file.originalname
-          },
+          metadata: metadata,  // Now contains all extended fields!
           is_synthetic: false,
         });
 

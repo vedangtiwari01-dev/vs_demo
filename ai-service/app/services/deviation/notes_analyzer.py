@@ -283,6 +283,15 @@ class NotesAnalyzer:
                 logger.info("Claude didn't return 'risk_insights' - adding empty array")
                 pattern_analysis['risk_insights'] = []
 
+            if 'justification_analysis' not in pattern_analysis:
+                logger.info("Claude didn't return 'justification_analysis' - adding default structure")
+                pattern_analysis['justification_analysis'] = {
+                    'most_common_reasons': [],
+                    'justified_count': 0,
+                    'not_justified_count': 0,
+                    'unclear_count': 0
+                }
+
             # Fix recommendations if Claude returned objects instead of strings
             if isinstance(pattern_analysis.get('recommendations'), list):
                 pattern_analysis['recommendations'] = [

@@ -1,0 +1,40 @@
+case_id,customer_id,officer_id,step_name,action,timestamp,loan_amount_sanctioned,collateral_value,collateral_type,product_type,sector,branch_code,channel,customer_segment,emi_amount,monthly_income,credit_score_bureau,notes
+CASE-001,CUST-001,OFF-101,Application Received,completed,2025-01-01T09:00:00,1000000,1200000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,750,Large commercial property loan
+CASE-001,CUST-001,OFF-101,Document Verification,completed,2025-01-01T10:30:00,1000000,1200000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,750,All documents verified
+CASE-001,CUST-001,OFF-101,Credit Check,completed,2025-01-01T11:00:00,1000000,1200000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,750,Credit score: 750 - Good
+CASE-001,CUST-001,OFF-101,Risk Assessment,completed,2025-01-01T14:00:00,1000000,1200000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,750,Risk grade: Medium
+CASE-001,CUST-001,OFF-101,Collateral Valuation,completed,2025-01-02T10:00:00,1000000,1200000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,750,Property valued at $1.2M
+CASE-001,CUST-001,OFF-101,Final Approval,approved,2025-01-02T15:00:00,1000000,1200000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,750,VIOLATION: No Manager Approval for $1M loan!
+CASE-001,CUST-001,OFF-101,Disbursement,completed,2025-01-03T09:00:00,1000000,1200000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,750,Disbursed $1M
+CASE-002,CUST-001,OFF-102,Application Received,completed,2025-01-05T09:00:00,900000,1000000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,720,Second loan for same customer - exposure building up
+CASE-002,CUST-001,OFF-102,Document Verification,completed,2025-01-05T11:00:00,900000,1000000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,720,Documents verified
+CASE-002,CUST-001,OFF-102,Credit Check,completed,2025-01-05T13:00:00,900000,1000000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,720,Credit score: 720
+CASE-002,CUST-001,OFF-102,Risk Assessment,completed,2025-01-05T15:00:00,900000,1000000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,720,Risk grade: Medium
+CASE-002,CUST-001,OFF-102,Collateral Valuation,completed,2025-01-06T10:00:00,900000,1000000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,720,Property valued at $1M - LTV is 90%!
+CASE-002,CUST-001,OFF-102,Manager Approval,approved,2025-01-06T14:00:00,900000,1000000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,720,Manager approved despite high LTV
+CASE-002,CUST-001,OFF-102,Final Approval,approved,2025-01-06T15:00:00,900000,1000000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,720,VIOLATION: LTV = 90% exceeds 80% limit!
+CASE-002,CUST-001,OFF-102,Disbursement,completed,2025-01-07T09:00:00,900000,1000000,Property,Business Loan,Real Estate,BR-001,Branch,Regular,,,720,Disbursed $900K
+CASE-003,CUST-001,OFF-103,Application Received,completed,2025-01-10T09:00:00,800000,1100000,Property,Business Loan,Real Estate,BR-002,Branch,Regular,,,740,Third loan for CUST-001 - total exposure $2.7M
+CASE-003,CUST-001,OFF-103,Document Verification,completed,2025-01-10T11:00:00,800000,1100000,Property,Business Loan,Real Estate,BR-002,Branch,Regular,,,740,Documents verified
+CASE-003,CUST-001,OFF-103,Credit Check,completed,2025-01-10T13:00:00,800000,1100000,Property,Business Loan,Real Estate,BR-002,Branch,Regular,,,740,Credit score: 740
+CASE-003,CUST-001,OFF-103,Risk Assessment,completed,2025-01-10T15:00:00,800000,1100000,Property,Business Loan,Real Estate,BR-002,Branch,Regular,,,740,Risk grade: Medium-Low
+CASE-003,CUST-001,OFF-103,Collateral Valuation,completed,2025-01-11T10:00:00,800000,1100000,Property,Business Loan,Real Estate,BR-002,Branch,Regular,,,740,Property valued at $1.1M
+CASE-003,CUST-001,OFF-103,Manager Approval,approved,2025-01-14T15:00:00,800000,1100000,Property,Business Loan,Real Estate,BR-002,Branch,Regular,,,740,VIOLATION: Approved 76 hours after Risk Assessment (limit: 48h)
+CASE-003,CUST-001,OFF-103,Final Approval,approved,2025-01-14T16:00:00,800000,1100000,Property,Business Loan,Real Estate,BR-002,Branch,Regular,,,740,Final approval granted
+CASE-003,CUST-001,OFF-103,Disbursement,completed,2025-01-15T09:00:00,800000,1100000,Property,Business Loan,Real Estate,BR-002,Branch,Regular,,,740,Disbursed $800K
+CASE-004,CUST-002,OFF-104,Application Received,completed,2025-01-12T09:00:00,500000,600000,Property,Home Loan,Retail,BR-003,Digital,Priority,4500,10000,780,Home loan for priority customer
+CASE-004,CUST-002,OFF-104,Document Verification,completed,2025-01-12T11:00:00,500000,600000,Property,Home Loan,Retail,BR-003,Digital,Priority,4500,10000,780,All documents verified
+CASE-004,CUST-002,OFF-104,Credit Check,completed,2025-01-12T13:00:00,500000,600000,Property,Home Loan,Retail,BR-003,Digital,Priority,4500,10000,780,Credit score: 780 - Excellent
+CASE-004,CUST-002,OFF-104,Income Verification,completed,2025-01-12T14:00:00,500000,600000,Property,Home Loan,Retail,BR-003,Digital,Priority,4500,10000,780,Monthly income: $10K verified
+CASE-004,CUST-002,OFF-104,Risk Assessment,completed,2025-01-12T15:00:00,500000,600000,Property,Home Loan,Retail,BR-003,Digital,Priority,4500,10000,780,Risk grade: Low
+CASE-004,CUST-002,OFF-104,Manager Approval,approved,2025-01-13T10:00:00,500000,600000,Property,Home Loan,Retail,BR-003,Digital,Priority,4500,10000,780,Manager approved
+CASE-004,CUST-002,OFF-104,Final Approval,approved,2025-01-13T11:00:00,500000,600000,Property,Home Loan,Retail,BR-003,Digital,Priority,4500,10000,780,VIOLATION: No Property Valuation step for Home Loan!
+CASE-004,CUST-002,OFF-104,Disbursement,completed,2025-01-14T09:00:00,500000,600000,Property,Home Loan,Retail,BR-003,Digital,Priority,4500,10000,780,Disbursed $500K
+CASE-005,CUST-003,OFF-105,Application Received,completed,2025-01-15T09:00:00,400000,500000,Machinery,Business Loan,Manufacturing,BR-004,Branch,Regular,,,700,Manufacturing equipment loan - COMPLIANT
+CASE-005,CUST-003,OFF-105,Document Verification,completed,2025-01-15T11:00:00,400000,500000,Machinery,Business Loan,Manufacturing,BR-004,Branch,Regular,,,700,Documents verified
+CASE-005,CUST-003,OFF-105,Credit Check,completed,2025-01-15T13:00:00,400000,500000,Machinery,Business Loan,Manufacturing,BR-004,Branch,Regular,,,700,Credit score: 700
+CASE-005,CUST-003,OFF-105,Risk Assessment,completed,2025-01-15T15:00:00,400000,500000,Machinery,Business Loan,Manufacturing,BR-004,Branch,Regular,,,700,Risk grade: Medium
+CASE-005,CUST-003,OFF-105,Collateral Valuation,completed,2025-01-16T10:00:00,400000,500000,Machinery,Business Loan,Manufacturing,BR-004,Branch,Regular,,,700,Machinery valued at $500K
+CASE-005,CUST-003,OFF-105,Manager Approval,approved,2025-01-16T14:00:00,400000,500000,Machinery,Business Loan,Manufacturing,BR-004,Branch,Regular,,,700,Manager approved within 48h
+CASE-005,CUST-003,OFF-105,Final Approval,approved,2025-01-16T15:00:00,400000,500000,Machinery,Business Loan,Manufacturing,BR-004,Branch,Regular,,,700,Final approval - All compliant!
+CASE-005,CUST-003,OFF-105,Disbursement,completed,2025-01-17T09:00:00,400000,500000,Machinery,Business Loan,Manufacturing,BR-004,Branch,Regular,,,700,Disbursed $400K

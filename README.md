@@ -1,20 +1,24 @@
 # ZenWolf - SOP Compliance Analysis System
 
+> **🎉 NEW (2025 Q1):** Major enhancements shipped! Dynamic conditional rules, cross-field calculations (LTV, EMI), temporal constraints, and portfolio-level regulatory monitoring. See [Recent Enhancements](#-recent-enhancements-2025-q1) for details.
+
 ## 📑 Table of Contents
 
 1. [Overview](#overview)
 2. [What This System Does](#what-this-system-does)
 3. [Key Concepts & Definitions](#key-concepts--definitions)
 4. [System Architecture](#system-architecture)
-5. [The 4-Layer Processing Pipeline](#the-4-layer-processing-pipeline)
-6. [Statistical Methods Reference](#statistical-methods-reference)
-7. [Machine Learning Models](#machine-learning-models)
-8. [AI Integration](#ai-integration)
-9. [API Reference](#api-reference)
-10. [Data Flow Example](#data-flow-example)
-11. [Calculation Reference](#calculation-reference)
-12. [Installation & Setup](#installation--setup)
-13. [Configuration & Troubleshooting](#configuration--troubleshooting)
+5. [Recent Enhancements (2025 Q1)](#-recent-enhancements-2025-q1)
+6. [The 4-Layer Processing Pipeline](#the-4-layer-processing-pipeline)
+7. [Frontend Architecture](#-frontend-architecture)
+8. [Statistical Methods Reference](#statistical-methods-reference)
+9. [Machine Learning Models](#machine-learning-models)
+10. [AI Integration](#ai-integration)
+11. [API Reference](#api-reference)
+12. [Data Flow Example](#data-flow-example)
+13. [Calculation Reference](#calculation-reference)
+14. [Installation & Setup](#installation--setup)
+15. [Configuration & Troubleshooting](#configuration--troubleshooting)
 
 ---
 
@@ -25,7 +29,7 @@ ZenWolf is an AI-powered compliance monitoring system that analyzes loan process
 ## What This System Does
 
 **In 3 Sentences:**
-ZenWolf takes your SOP documents and workflow logs, runs them through a 4-layer analysis pipeline (data cleaning → rule-based detection [43+ types] → statistical analysis [16 methods] → ML clustering → AI pattern discovery), and produces comprehensive compliance reports with hidden pattern insights. The system uses machine learning to intelligently sample deviations and Claude AI to discover behavioral patterns that traditional rule-based systems miss. It achieves 1000x cost reduction through smart sampling while maintaining 100% anomaly detection.
+ZenWolf takes your SOP documents and workflow logs, runs them through a 4-layer analysis pipeline (data cleaning → rule-based detection [60+ types via 13 checkers] → statistical analysis [16 methods] → ML clustering → AI pattern discovery), and produces comprehensive compliance reports with hidden pattern insights. The system features **dynamic conditional rules** (IF-THEN logic), **cross-field calculations** (LTV, EMI), **temporal constraints** (step-to-step timing), and **portfolio-level regulatory monitoring** (exposure limits, concentration risk). It achieves 1000x cost reduction through smart sampling while maintaining 100% anomaly detection.
 
 **Who This Is For:**
 - **Compliance Officers**: Monitor loan processing adherence to SOPs
@@ -34,7 +38,9 @@ ZenWolf takes your SOP documents and workflow logs, runs them through a 4-layer 
 
 **Key Capabilities:**
 - ✅ **Multi-Format SOP Processing**: DOCX, PDF, TXT with AI-powered rule extraction
-- ✅ **Intelligent Deviation Detection**: 43+ deviation types (10 Python checkers) across 16 rule categories
+- ✅ **Intelligent Deviation Detection**: 60+ deviation types (13 Python checkers) across 16 rule categories
+- ✅ **Dynamic Conditional Rules**: IF-THEN logic with calculations, product/segment filtering, temporal constraints
+- ✅ **Portfolio-Level Compliance**: Customer exposure limits, sector concentration, branch monitoring
 - ✅ **Advanced Analytics**: 16 statistical methods + 3 ML algorithms + 44-feature engineering
 - ✅ **Pattern Discovery**: Claude AI finds hidden rules, systemic issues, officer behaviors
 - ✅ **Cost Optimized**: Intelligent sampling reduces AI costs by 1000x
@@ -94,9 +100,9 @@ Average Deviations per Log: 149/76 = 1.96
 
 This means on average, each workflow step violates ~2 rules. This is **normal** in compliance analysis!
 
-### Types of Deviations (43+ Types Detected via 10 Checkers)
+### Types of Deviations (60+ Types Detected via 13 Checkers)
 
-**Implementation:** All deviation types are detected using Python rule-based logic across 10 specialized checker modules.
+**Implementation:** All deviation types are detected using Python rule-based logic across 13 specialized checker modules.
 
 | Category | Deviation Types | Checker Module | Severity Range |
 |----------|----------------|----------------|----------------|
@@ -111,8 +117,13 @@ This means on average, each workflow step violates ~2 rules. This is **normal** 
 | **Collections & Restructuring (3)** | collection_escalation_delay, unauthorized_restructure, unauthorized_writeoff | CollectionChecker | High - Critical |
 | **Regulatory & Reporting (3)** | classification_mismatch, provisioning_shortfall, regulatory_report_missing_or_late | RegulatoryChecker | High |
 | **Data Quality & Logging (5)** | missing_core_field, invalid_format, inconsistent_value_across_steps, duplicate_active_case, audit_trail_missing | DataQualityChecker | Medium - Critical |
+| **🆕 Conditional Rules (2)** | conditional_approval_missing, missing_core_field (for rule evaluation) | ConditionalRuleEvaluator | High - Critical |
+| **🆕 Temporal Constraints (5)** | temporal_sla_breach, prerequisite_timing_violation, validity_period_expired, refresh_cycle_missed, same_day_requirement_missed | TemporalRuleEvaluator | Medium - High |
+| **🆕 Regulatory Portfolio (5)** | customer_exposure_limit_exceeded, group_exposure_breach, sector_concentration_risk, branch_concentration_risk, single_borrower_limit | RegulatoryAggregator | High - Critical |
+| **🆕 Calculation-Based (6)** | ltv_calculation_breach, emi_calculation_mismatch, disbursement_amount_mismatch, interest_rate_mismatch, tenor_limit_breach, exposure_limit_breach | ConditionalRuleEvaluator | High - Critical |
+| **🆕 Product/Segment (4)** | product_specific_requirement_missing, segment_exception_misapplied, channel_compliance_breach, geography_limit_exceeded | ConditionalRuleEvaluator | Medium - Critical |
 
-**Total:** 43+ deviation types across 16 rule categories
+**Total:** 60+ deviation types across 21 rule categories
 **Note:** All checkers include defensive coding - gracefully handle missing rules/fields without failing the analysis.
 
 ---
@@ -185,6 +196,379 @@ This means on average, each workflow step violates ~2 rules. This is **normal** 
 
 ---
 
+## 🚀 Recent Enhancements (2025 Q1)
+
+### 🎯 Overview: 5 Major Enhancements
+
+ZenWolf now includes 5 critical enhancements that transform static rule-based detection into **dynamic, context-aware compliance monitoring**:
+
+1. **Conditional Rule Logic** - Dynamic IF-THEN rules extracted from SOPs
+2. **Cross-Field Calculations** - Mathematical validations (LTV, EMI, ratios)
+3. **Product/Segment Filtering** - Context-aware rules for different products/segments
+4. **Temporal Constraints** - Step-to-step timing SLAs
+5. **Regulatory Aggregation** - Portfolio-level compliance monitoring
+
+---
+
+### Enhancement 1: Conditional Rule Logic ✅
+
+**Problem Solved:** Previous system couldn't detect "$20,000 loan without manager approval" because rules were hardcoded.
+
+**Solution:** Dynamic IF-THEN rule evaluation extracted from SOPs by Claude AI.
+
+**Example:**
+```
+SOP Text: "Loans of $10,000 or more require manager approval"
+
+Claude Extracts:
+{
+  "rule_type": "approval",
+  "condition_logic": {
+    "condition": {
+      "field": "loan_amount_sanctioned",
+      "operator": ">=",
+      "value": 10000
+    },
+    "then": {
+      "require_step": "Manager Approval",
+      "severity": "critical"
+    }
+  }
+}
+
+Python Evaluates:
+- Loan amount: $20,000
+- Condition: $20,000 >= $10,000 ✓ (TRUE)
+- Required step: "Manager Approval"
+- Step present: ✗ (MISSING)
+- Result: DEVIATION DETECTED
+```
+
+**Key Features:**
+- Supports AND/OR/NOT logical operators
+- Nested conditions (credit_score < 600 AND loan_amount > 5000)
+- Multi-tier approvals (require_steps: ["Manager", "Senior Manager"])
+- Missing field detection as data quality issue
+
+**New Deviation Types:**
+- `conditional_approval_missing` - Required approval/step missing due to condition
+- `missing_core_field` - Field required for rule evaluation not present
+
+**Module:** `ConditionalRuleEvaluator` (ai-service/app/services/deviation/conditional_rule_evaluator.py)
+
+---
+
+### Enhancement 2: Cross-Field Calculations ✅
+
+**Problem Solved:** System couldn't validate mathematical relationships between fields (LTV, EMI calculations).
+
+**Solution:** 11 calculation functions for cross-field validations.
+
+**Supported Functions:**
+- `DIVIDE`, `MULTIPLY`, `ADD`, `SUBTRACT`
+- `PERCENT` - Calculate percentage
+- `EMI` - Standard EMI formula: P × r × (1+r)^n / ((1+r)^n - 1)
+- `MAX`, `MIN`, `SUM` - Aggregation
+- `ABS`, `ROUND` - Utilities
+
+**Example 1: LTV Validation**
+```
+SOP Text: "Loan-to-Value (LTV) must not exceed 80%"
+
+Claude Extracts:
+{
+  "calculation_formula": "LTV = loan_amount / collateral_value",
+  "condition_logic": {
+    "condition": {
+      "calculation": {
+        "function": "DIVIDE",
+        "args": [
+          {"field": "loan_amount_sanctioned"},
+          {"field": "collateral_value"}
+        ]
+      },
+      "operator": ">",
+      "value": 0.8
+    },
+    "then": {
+      "require_step": "Collateral Re-evaluation",
+      "severity": "high"
+    }
+  }
+}
+
+Log Data:
+- loan_amount_sanctioned: $90,000
+- collateral_value: $100,000
+
+Calculation: $90,000 / $100,000 = 0.9 (90%)
+Evaluation: 0.9 > 0.8 ✓ (BREACH)
+Result: DEVIATION DETECTED - LTV exceeds limit
+```
+
+**Example 2: EMI Validation**
+```python
+# Rule: Verify EMI calculation
+{
+  "calculation": {
+    "function": "EMI",
+    "args": [
+      {"field": "loan_amount"},
+      {"field": "interest_rate"},
+      {"field": "tenor_months"}
+    ]
+  },
+  "operator": "!=",
+  "value": {"field": "emi_charged"}
+}
+
+# Detects EMI calculation mismatches
+```
+
+**New Deviation Types:**
+- `ltv_calculation_breach` - LTV exceeds regulatory/policy limit
+- `emi_calculation_mismatch` - EMI doesn't match formula
+- `disbursement_amount_mismatch` - Disbursed ≠ sanctioned
+- `interest_rate_mismatch` - Applied ≠ approved rate
+- `tenor_limit_breach` - Tenor exceeds product limit
+- `exposure_limit_breach` - Total exposure exceeds limit
+
+**Module:** `ConditionalRuleEvaluator._evaluate_calculation()` (~150 lines added)
+
+---
+
+### Enhancement 3: Product/Segment-Specific Rules ✅
+
+**Problem Solved:** All rules applied uniformly regardless of product type, customer segment, channel, or geography.
+
+**Solution:** Rules now filter by context before evaluation.
+
+**New Rule Fields:**
+```python
+{
+  "product_types": ["Home Loan", "Gold Loan"],  # Only these products
+  "customer_segments": ["Priority", "VIP"],     # Only these segments
+  "channels": ["Digital", "Mobile"],            # Only these channels
+  "geography": ["Urban", "Metro"],              # Only these regions
+  "exceptions": [                               # Exception cases
+    {
+      "condition": "customer_segment == Priority",
+      "override": "EMI ratio can be 60% (instead of 50%)"
+    }
+  ]
+}
+```
+
+**Example 1: Home Loan Specific**
+```
+SOP Text: "Home loans require property valuation"
+
+Claude Extracts:
+{
+  "product_types": ["Home Loan"],
+  "condition_logic": {
+    "then": {"require_step": "Property Valuation"}
+  }
+}
+
+Evaluation:
+- Case product_type: "Home Loan" → Rule APPLIES
+- Case product_type: "Personal Loan" → Rule SKIPPED (filtered out)
+```
+
+**Example 2: Priority Customer Exception**
+```
+SOP Text: "Priority customers can have EMI ratio up to 60% (normal: 50%)"
+
+Claude Extracts:
+Rule 1 (Regular customers):
+{
+  "customer_segments": ["Regular", "Standard"],
+  "condition": {"field": "emi_ratio", "operator": ">", "value": 0.5}
+}
+
+Rule 2 (Priority customers):
+{
+  "customer_segments": ["Priority", "VIP"],
+  "condition": {"field": "emi_ratio", "operator": ">", "value": 0.6}
+}
+
+Evaluation:
+- Regular customer with 55% EMI → VIOLATION (exceeds 50%)
+- Priority customer with 55% EMI → OK (within 60%)
+```
+
+**New Deviation Types:**
+- `product_specific_requirement_missing` - Product-specific step missing
+- `segment_exception_misapplied` - Exception used without proper segment
+- `channel_compliance_breach` - Channel-specific requirement not met
+- `geography_limit_exceeded` - Regional limit violated
+
+**Module:** `ConditionalRuleEvaluator._rule_applies_to_case()` (~60 lines added)
+
+---
+
+### Enhancement 4: Temporal Constraints ✅
+
+**Problem Solved:** System could only detect overall process timing, not step-to-step timing requirements.
+
+**Solution:** New TemporalRuleEvaluator for step-to-step timing SLAs.
+
+**Example 1: Manager Approval SLA**
+```
+SOP Text: "Manager Approval must complete within 48 hours of Risk Assessment"
+
+Claude Extracts:
+{
+  "temporal_constraint": {
+    "step_a": "Risk Assessment",
+    "step_b": "Manager Approval",
+    "max_hours": 48,
+    "business_days_only": false
+  }
+}
+
+Log Data:
+- Risk Assessment: 2024-01-01 10:00 AM
+- Manager Approval: 2024-01-04 2:00 PM (76 hours later)
+
+Evaluation:
+Actual gap: 76 hours
+Limit: 48 hours
+Result: BREACH (76 - 48 = 28 hours late)
+```
+
+**Example 2: Business Hours Only**
+```
+temporal_constraint: {
+  "step_a": "Credit Check",
+  "step_b": "Approval",
+  "max_hours": 8,
+  "business_days_only": true,  // Exclude weekends/nights
+  "exclude_weekends": true
+}
+
+Calculation:
+- Credit Check: Friday 5:00 PM
+- Approval: Monday 9:00 AM
+- Calendar time: 64 hours
+- Business hours: 0 hours (weekend excluded)
+- Result: OK
+```
+
+**Key Features:**
+- Business hours calculation (9 AM - 6 PM, Mon-Fri)
+- Case-insensitive step matching
+- Invalid timestamp handling
+- Per-case evaluation
+
+**New Deviation Types:**
+- `temporal_sla_breach` - Step B not done within X time of Step A
+- `prerequisite_timing_violation` - Step done before cooldown period
+- `validity_period_expired` - Action after document/approval expiry
+- `refresh_cycle_missed` - Periodic action (KYC) not refreshed
+- `same_day_requirement_missed` - Steps not on same business day
+
+**Module:** `TemporalRuleEvaluator` (ai-service/app/services/deviation/temporal_rule_evaluator.py, ~200 lines)
+
+---
+
+### Enhancement 5: Regulatory Aggregation ✅
+
+**Problem Solved:** Individual case checks couldn't detect portfolio-level regulatory violations.
+
+**Solution:** Cross-case aggregation for regulatory compliance monitoring.
+
+**3 Regulatory Checks:**
+
+**1. Customer Exposure Limits**
+```
+Regulatory Rule: Single customer exposure < 25% of capital
+
+Configuration:
+REGULATORY_LIMITS = {
+  'total_capital': $10M,
+  'customer_exposure_percent': 25  // Max 25%
+}
+
+Aggregation:
+Customer CUST-001: 10 loans × $300k = $3M total
+Limit: $10M × 25% = $2.5M
+Result: BREACH ($3M > $2.5M)
+```
+
+**2. Sector Concentration Risk**
+```
+Regulatory Rule: Single sector < 15% of portfolio
+
+Aggregation:
+Real Estate sector: $2M out of $10M portfolio = 20%
+Limit: 15%
+Result: BREACH (20% > 15%)
+```
+
+**3. Branch Concentration**
+```
+Operational Rule: Single branch < 30% of total volume
+
+Aggregation:
+Branch BR-001: 40 cases out of 100 = 40%
+Limit: 30%
+Result: BREACH (40% > 30%)
+```
+
+**Key Features:**
+- Aggregate across all cases in dataset
+- Configurable regulatory limits
+- Tracks affected cases for drill-down
+- Portfolio-level severity (always critical)
+
+**New Deviation Types:**
+- `customer_exposure_limit_exceeded` - Total exposure to customer > limit
+- `group_exposure_breach` - Related party exposure > limit
+- `sector_concentration_risk` - Sector exposure > limit
+- `branch_concentration_risk` - Branch handling too much volume
+- `single_borrower_limit` - Individual loan > regulatory limit
+
+**Module:** `RegulatoryAggregator` (ai-service/app/services/deviation/regulatory_aggregator.py, ~280 lines)
+
+**Configuration:** `deviation_detector.py` line 23-30
+
+---
+
+### Integration Summary
+
+**System Flow Update:**
+```
+1. SOP Upload → Claude extracts rules with 10 NEW fields:
+   - product_types, customer_segments, channels, geography
+   - exceptions, calculation_formula, temporal_constraint
+   - threshold_value, field_dependencies, regulatory_reference
+
+2. Deviation Detection → 13 checkers (was 10):
+   Checker 1-10: Original (Sequence, Rule, Eligibility, KYC, ...)
+   Checker 11: ConditionalRuleEvaluator (IF-THEN logic + calculations)
+   Checker 12: TemporalRuleEvaluator (step-to-step timing)
+   Checker 13: RegulatoryAggregator (portfolio-level)
+
+3. Results → 60+ deviation types (was 43)
+```
+
+**Files Modified:**
+1. `prompts.py` - Enhanced rule extraction (+150 lines)
+2. `schemas.py` - Added 10 new Rule fields (+30 lines)
+3. `conditional_rule_evaluator.py` - Added calculations & filtering (+260 lines)
+4. `temporal_rule_evaluator.py` - NEW module (~200 lines)
+5. `regulatory_aggregator.py` - NEW module (~280 lines)
+6. `deviation_detector.py` - Integrated new evaluators (+20 lines)
+
+**Testing:**
+- 3 comprehensive test files created
+- All 4 enhancements validated ✅
+- Test results: 4/4 passing
+
+---
+
 ## 🔬 The 4-Layer Processing Pipeline
 
 **Overview:** ZenWolf uses a 4-layer pipeline to transform raw workflow logs into actionable compliance insights. Each layer builds on the previous, progressively extracting deeper patterns.
@@ -236,8 +620,23 @@ Quality: 85/100 (Good - 5% duplicates, 2% missing, 98% valid format)
 
 ### Layer 1: Rule-Based Deviation Detection
 
-**Modules:** `sequence_checker.py`, `rule_validator.py` (ai-service/app/services/deviation/)
-**Purpose:** Fast, deterministic detection of 40+ deviation types using Python logic
+**Modules:** 13 checker modules (ai-service/app/services/deviation/)
+**Purpose:** Fast, deterministic detection of 60+ deviation types using Python logic
+
+**Checker Modules:**
+1. `sequence_checker.py` - Process sequence violations
+2. `rule_validator.py` - Approval and timing rules
+3. `eligibility_checker.py` - Credit and eligibility rules
+4. `kyc_checker.py` - KYC/AML/Sanctions compliance
+5. `documentation_checker.py` - Document requirements
+6. `collateral_checker.py` - Collateral and security
+7. `disbursement_checker.py` - Disbursement compliance
+8. `collection_checker.py` - Collections and restructuring
+9. `regulatory_checker.py` - Regulatory reporting
+10. `data_quality_checker.py` - Data quality and logging
+11. **🆕 `conditional_rule_evaluator.py`** - Dynamic IF-THEN rules with calculations
+12. **🆕 `temporal_rule_evaluator.py`** - Step-to-step timing constraints
+13. **🆕 `regulatory_aggregator.py`** - Portfolio-level regulatory compliance
 
 **Detection Methods:**
 
@@ -750,6 +1149,250 @@ Dashboard displays:
 - **Statistical Insights**: Peak times, officer stats, risk scores
 - **ML Summary**: Clusters, anomalies, compression ratio
 - **AI Patterns**: Behavioral patterns, hidden rules, systemic issues, recommendations
+
+---
+
+## 🎨 Frontend Architecture
+
+### Technology Stack
+- **Framework**: React 18 with Vite
+- **Styling**: TailwindCSS with custom theme
+- **Charts**: Recharts for data visualization
+- **Icons**: Lucide React
+- **HTTP**: Axios for API calls
+- **State**: React Context API for analysis state management
+- **Routing**: React Router v6
+
+### Directory Structure
+```
+frontend/src/
+├── components/
+│   ├── common/
+│   │   ├── Button.jsx              # Reusable button component
+│   │   ├── Card.jsx                # Card container component
+│   │   ├── FileUpload.jsx          # Generic file upload component
+│   │   ├── Loading.jsx             # Loading spinner
+│   │   ├── ModernLoading.jsx       # Enhanced loading animation
+│   │   └── CircuitBackground.jsx   # Animated circuit background
+│   ├── layout/
+│   │   ├── Layout.jsx              # Main app layout wrapper
+│   │   └── Navbar.jsx              # Top navigation bar
+│   └── analysis/
+│       ├── SOPUploadWidget.jsx     # SOP document upload
+│       ├── WorkflowUploadWidget.jsx # Workflow log CSV upload
+│       ├── AnalyzeButton.jsx       # Trigger analysis
+│       └── ResultsViewer.jsx       # Display analysis results
+├── pages/
+│   ├── Dashboard.jsx               # Main dashboard (deprecated)
+│   ├── AnalysisHub.jsx             # NEW: Central analysis hub (active)
+│   ├── WorkflowAnalysis.jsx        # Workflow analysis page
+│   ├── DeviationDetection.jsx      # Deviation detection page
+│   ├── BehavioralProfiling.jsx     # Behavioral profiling page
+│   └── SOPManagement.jsx           # SOP management page
+├── context/
+│   └── AnalysisContext.jsx         # Global analysis state
+├── App.jsx                         # Root component with routes
+└── main.jsx                        # Entry point
+```
+
+### Page Components
+
+#### 1. AnalysisHub (Primary Page)
+**Route:** `/analysis-hub`
+**Purpose:** Centralized hub for SOP upload, workflow upload, and analysis
+
+**Features:**
+- 4-widget layout:
+  - SOP Documents widget (upload & select)
+  - Workflow Logs widget (upload & select)
+  - Analyze button widget (trigger analysis)
+  - Recent activity widget
+- Real-time selection state
+- File management (view, delete, select)
+- Analysis results viewer with:
+  - Overview metrics cards
+  - Deviation charts (type, severity)
+  - Statistical insights
+  - ML summary
+  - AI pattern analysis
+  - Recommendations
+
+**Key Components Used:**
+- `SOPUploadWidget` - SOP document management
+- `WorkflowUploadWidget` - Workflow log management
+- `AnalyzeButton` - Analysis trigger with loading state
+- `ResultsViewer` - Comprehensive results display with Recharts
+
+#### 2. WorkflowAnalysis
+**Route:** `/workflow`
+**Purpose:** Workflow-specific analysis and visualization
+
+#### 3. DeviationDetection
+**Route:** `/deviations`
+**Purpose:** Deviation-focused analysis and filtering
+
+#### 4. BehavioralProfiling
+**Route:** `/behavioral`
+**Purpose:** Officer behavioral pattern analysis
+
+#### 5. SOPManagement
+**Route:** `/sop`
+**Purpose:** SOP document management and editing
+
+### State Management
+
+**AnalysisContext:**
+```javascript
+{
+  selectedSOP: null,           // Currently selected SOP
+  selectedWorkflow: null,      // Currently selected workflow log
+  analysisResults: null,       // Latest analysis results
+  isAnalyzing: false,          // Analysis in progress flag
+  error: null,                 // Error state
+
+  // Methods
+  setSelectedSOP,
+  setSelectedWorkflow,
+  setAnalysisResults,
+  setIsAnalyzing,
+  clearAnalysisResults
+}
+```
+
+### API Integration
+
+**Base URL:** `http://localhost:3000`
+
+**Key Endpoints:**
+```javascript
+// SOP Management
+GET    /api/sops                 // List all SOPs
+POST   /api/sops/upload          // Upload SOP document
+DELETE /api/sops/:id             // Delete SOP
+
+// Workflow Management
+GET    /api/workflow-logs        // List all workflows
+POST   /api/workflow-logs/upload // Upload CSV
+DELETE /api/workflow-logs/:id    // Delete workflow
+
+// Analysis
+POST   /api/analysis/:sopId/:workflowId // Run full analysis
+```
+
+**Analysis Response Structure:**
+```javascript
+{
+  overview: {
+    totalCases: 27,
+    totalLogs: 76,
+    totalDeviations: 149,
+    uniqueOfficers: 8,
+    complianceRate: 0,
+    dataQuality: {
+      score: 85,
+      grade: "Good"
+    }
+  },
+  deviations: [...],           // Full deviation list
+  deviationsByType: {...},     // Type distribution
+  deviationsBySeverity: {...}, // Severity distribution
+  statisticalInsights: {
+    severityScore: 55,
+    criticalMassScore: 35,
+    concentrationRisk: 70,
+    peakHours: [...],
+    peakDays: [...]
+  },
+  mlSummary: {
+    clusters: 3,
+    anomalies: 12,
+    compressionRatio: 13.3
+  },
+  aiPatterns: {
+    overall_summary: "...",
+    behavioral_patterns: [...],
+    hidden_rules: [...],
+    systemic_issues: [...],
+    recommendations: [...]
+  }
+}
+```
+
+### UI/UX Features
+
+**1. File Upload Flow:**
+- Drag & drop support
+- File type validation (DOCX, PDF, TXT for SOPs; CSV for logs)
+- Progress indication
+- Success/error feedback
+- Automatic list refresh
+
+**2. Analysis Flow:**
+- Validation (both SOP & workflow selected)
+- Loading states with progress messages
+- Real-time status updates
+- Error handling with retry option
+- Results persistence in context
+
+**3. Results Visualization:**
+- **Overview Cards:**
+  - Total cases, logs, deviations
+  - Compliance rate
+  - Data quality score
+- **Charts:**
+  - Bar chart: Deviations by type (Recharts)
+  - Pie chart: Deviations by severity
+  - Line chart: Temporal patterns (if available)
+- **Insights Panels:**
+  - Statistical risk indicators
+  - ML clustering summary
+  - AI-discovered patterns
+  - Actionable recommendations
+
+**4. Design System:**
+- **Colors:**
+  - Primary: Blue (#3B82F6)
+  - Success: Green (#10B981)
+  - Warning: Yellow (#F59E0B)
+  - Error: Red (#EF4444)
+  - Dark theme: Slate backgrounds
+- **Typography:**
+  - Font: Inter (system font stack)
+  - Headings: Bold, larger sizes
+  - Body: Regular weight
+- **Components:**
+  - Consistent spacing (p-4, p-6, etc.)
+  - Rounded corners (rounded-lg)
+  - Shadow elevation (shadow-md, shadow-lg)
+  - Hover states for interactivity
+
+### Performance Optimizations
+
+1. **Lazy Loading:** Components loaded on-demand
+2. **Memoization:** Heavy computations cached
+3. **Debouncing:** Search/filter inputs debounced
+4. **Virtual Scrolling:** Large lists virtualized (if implemented)
+5. **Code Splitting:** Route-based splitting with React.lazy()
+
+### Development Workflow
+
+**Start Development Server:**
+```bash
+cd frontend
+npm run dev
+# Access at http://localhost:5174
+```
+
+**Build for Production:**
+```bash
+npm run build
+# Output: dist/ directory
+```
+
+**Environment Variables:**
+```
+VITE_API_BASE_URL=http://localhost:3000
+```
 
 ---
 

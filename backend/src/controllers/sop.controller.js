@@ -142,7 +142,21 @@ const processSOP = async (req, res, next) => {
           rule_description: rule.rule_description,
           step_number: rule.step_number ? Math.floor(rule.step_number) : null,
           severity: rule.severity || 'medium',
+          required_fields: rule.required_fields,
           condition_logic: rule.condition_logic,
+
+          // NEW FIELDS FOR ENHANCED FEATURES (2025 Q1)
+          temporal_constraint: rule.temporal_constraint,
+          product_types: rule.product_types,
+          customer_segments: rule.customer_segments,
+          channels: rule.channels,
+          geography: rule.geography,
+          exceptions: rule.exceptions,
+          calculation_formula: rule.calculation_formula,
+          threshold_value: rule.threshold_value,
+          field_dependencies: rule.field_dependencies,
+          regulatory_reference: rule.regulatory_reference,
+          timing_constraint: rule.timing_constraint,
         })
       )
     );

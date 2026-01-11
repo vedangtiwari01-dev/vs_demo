@@ -36,35 +36,148 @@ Analyze the following SOP document text and extract ALL compliance rules. For ea
    - "medium": Uses "recommended", "advised", affects process quality
    - "low": Uses "may", "optional", best practices
 
-5. **Required Fields**: Any specific data fields that must be present (e.g., income_verification, credit_score)
+5. **Required Fields**: ANY data fields mentioned that must be present (e.g., income_verification, credit_score, loan_amount, collateral_value, emi_amount, product_type, customer_segment, etc.)
 
-6. **Timing Constraint**: If it's a timing rule, extract the specific time requirement (e.g., "3 days", "immediately")
+6. **Timing Constraint**: If it's a timing rule, extract the specific time requirement (e.g., "48 hours", "3 days", "immediately", "within 12 months")
+
+7. **Condition Logic**: For conditional rules (IF-THEN logic), extract in structured JSON format:
+
+   **Simple condition:**
+   {{
+     "condition": {{"field": "loan_amount_sanctioned", "operator": ">=", "value": 10000}},
+     "then": {{"require_step": "Manager Approval", "severity": "critical"}}
+   }}
+
+   **With calculation (NEW - for LTV, EMI, etc.):**
+   {{
+     "condition": {{
+       "calculation": {{"function": "DIVIDE", "args": [{{"field": "loan_amount"}}, {{"field": "collateral_value"}}]}},
+       "operator": ">",
+       "value": 0.8
+     }},
+     "then": {{"action": "flag_violation", "deviation_type": "ltv_breach", "severity": "high"}}
+   }}
+
+   **Complex AND/OR:**
+   {{
+     "condition": {{
+       "operator": "AND",
+       "conditions": [
+         {{"field": "credit_score_bureau", "operator": "<", "value": 600}},
+         {{"field": "loan_amount_sanctioned", "operator": ">", "value": 5000}}
+       ]
+     }},
+     "then": {{"require_step": "Risk Head Approval", "severity": "high"}}
+   }}
+
+   **Supported operators:** ==, !=, <, >, <=, >=, IN, NOT_IN, AND, OR, NOT
+   **Calculation functions:** DIVIDE, MULTIPLY, ADD, SUBTRACT, PERCENT, EMI, MAX, MIN, SUM
+
+8. **Product Types** (NEW): List of product types this rule applies to (e.g., ["Home Loan"], ["Gold Loan", "Personal Loan"], or ["All"] if applies to all products)
+
+9. **Customer Segments** (NEW): List of customer segments (e.g., ["Priority"], ["Retail"], ["All"])
+
+10. **Channels** (NEW): List of channels (e.g., ["Branch"], ["Digital"], ["All"])
+
+11. **Geography** (NEW): Geographic applicability (e.g., ["Urban"], ["Rural"], ["All"])
+
+12. **Exceptions** (NEW): Any exception cases mentioned (e.g., [{{"condition": "customer_segment == Priority", "override": "EMI ratio can be 60%"}}])
+
+13. **Calculation Formula** (NEW): For rules involving calculations, extract the formula as a string (e.g., "EMI = P * r * (1+r)^n / ((1+r)^n - 1)", "LTV = loan_amount / collateral_value")
+
+14. **Temporal Constraint** (NEW): For step-to-step timing rules:
+   {{
+     "step_a": "Risk Assessment",
+     "step_b": "Manager Approval",
+     "max_hours": 48,
+     "business_days_only": true
+   }}
+
+15. **Threshold Value** (NEW): Numeric threshold if rule involves a limit (e.g., 10000 for "$10,000+", 0.5 for "50%", 0.8 for "80%")
+
+16. **Field Dependencies** (NEW): List of ALL fields this rule depends on (e.g., ["loan_amount", "collateral_value"] for LTV rule, ["emi_to_income_ratio", "customer_segment"] for EMI rule)
+
+17. **Regulatory Reference** (NEW): Any legal/regulatory reference mentioned (e.g., "RBI Master Circular", "Basel III Norms", "Section 17(2)")
 
 SOP Document Text:
 {sop_text}
 
-Return your analysis as a JSON array with this EXACT structure. CRITICAL: You MUST use the exact field names shown below:
+Return your analysis as a JSON array with this EXACT structure:
 
-{{
+{{{{
   "rules": [
-    {{
-      "rule_type": "sequence|approval|timing|eligibility|credit_risk|kyc|aml|documentation|collateral|disbursement|post_disbursement_qc|collection|restructuring|regulatory|data_quality|operational",
-      "rule_description": "Clear description of the rule",
-      "step_number": 1,
-      "severity": "critical|high|medium|low",
-      "required_fields": ["field1", "field2"],
-      "timing_constraint": "X days" or null,
-      "condition_logic": "any special conditions"
-    }}
+    {{{{
+      "rule_type": "approval",
+      "rule_description": "Loans $10,000 or more require manager approval",
+      "step_number": 5,
+      "severity": "critical",
+      "required_fields": ["loan_amount_sanctioned", "approver_id"],
+      "timing_constraint": null,
+      "condition_logic": {{{{
+        "condition": {{"field": "loan_amount_sanctioned", "operator": ">=", "value": 10000}},
+        "then": {{"require_step": "Manager Approval", "severity": "critical"}}
+      }}}},
+      "product_types": ["All"],
+      "customer_segments": ["All"],
+      "channels": ["All"],
+      "geography": ["All"],
+      "exceptions": [],
+      "calculation_formula": null,
+      "temporal_constraint": null,
+      "threshold_value": 10000,
+      "field_dependencies": ["loan_amount_sanctioned"],
+      "regulatory_reference": null
+    }}}}
   ]
-}}
+}}}}
+
+CRITICAL INSTRUCTIONS:
+- Extract EVERY field mentioned, even if optional
+- For conditional rules, ALWAYS populate condition_logic
+- For timing rules, ALWAYS populate temporal_constraint
+- For calculation rules, ALWAYS populate calculation_formula
+- ALWAYS list ALL fields the rule depends on in field_dependencies
+- If a field is not applicable, use null (not empty string)
+- If a list field applies to everything, use ["All"]
+- Be thorough - extract every rule you can find
+- Use exact field names as they appear in the document
+
+EXAMPLE EXTRACTIONS:
+
+1. "Loans of $10,000 or more require manager approval" →
+   condition_logic: {{"condition": {{"field": "loan_amount_sanctioned", "operator": ">=", "value": 10000}}, "then": {{"require_step": "Manager Approval"}}}}
+   threshold_value: 10000
+   field_dependencies: ["loan_amount_sanctioned"]
+
+2. "LTV must not exceed 80%" →
+   condition_logic: {{"condition": {{"calculation": {{"function": "DIVIDE", "args": [{{"field": "loan_amount"}}, {{"field": "collateral_value"}}]}}, "operator": ">", "value": 0.8}}, "then": {{"action": "flag_violation"}}}}
+   calculation_formula: "LTV = loan_amount / collateral_value"
+   threshold_value: 0.8
+   field_dependencies: ["loan_amount", "collateral_value"]
+
+3. "Manager Approval must be completed within 48 hours of Risk Assessment" →
+   temporal_constraint: {{"step_a": "Risk Assessment", "step_b": "Manager Approval", "max_hours": 48}}
+   timing_constraint: "48 hours"
+   field_dependencies: ["step_name", "timestamp"]
+
+4. "Home loans require property valuation" →
+   condition_logic: {{"condition": {{"field": "product_type", "operator": "==", "value": "Home Loan"}}, "then": {{"require_step": "Property Valuation"}}}}
+   product_types: ["Home Loan"]
+   field_dependencies: ["product_type"]
+
+5. "Priority customers can have EMI ratio up to 60% (normal customers: 50%)" →
+   condition_logic: {{"condition": {{"operator": "AND", "conditions": [{{"field": "emi_to_income_ratio", "operator": ">", "value": 0.6}}, {{"field": "customer_segment", "operator": "!=", "value": "Priority"}}]}}, "then": {{"action": "flag_violation"}}}}
+   customer_segments: ["All"]
+   exceptions: [{{"condition": "customer_segment == Priority", "override": "EMI ratio can be 60%"}}]
+   threshold_value: 0.5
+   field_dependencies: ["emi_to_income_ratio", "customer_segment"]
 
 IMPORTANT:
 - Use "rule_type" NOT "type"
 - Use "rule_description" NOT "description"
 - Use "condition_logic" NOT "conditional_logic"
-
-Be thorough - extract every rule you can find, even if they seem minor."""
+- Be thorough - extract every rule you can find, even if they seem minor
+- ALWAYS fill in the new fields (product_types, customer_segments, etc.) even if ["All"]"""
 
 # Column Mapping Prompt
 COLUMN_MAPPING_PROMPT = """You are an expert at analyzing CSV column headers and mapping them to standardized system fields for loan processing workflow data.

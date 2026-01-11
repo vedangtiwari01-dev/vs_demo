@@ -15,8 +15,20 @@ from app.services.deviation.disbursement_checker import DisbursementChecker
 from app.services.deviation.collection_checker import CollectionChecker
 from app.services.deviation.regulatory_checker import RegulatoryChecker
 from app.services.deviation.data_quality_checker import DataQualityChecker
+from app.services.deviation.conditional_rule_evaluator import ConditionalRuleEvaluator
+from app.services.deviation.temporal_rule_evaluator import TemporalRuleEvaluator
+from app.services.deviation.regulatory_aggregator import RegulatoryAggregator
 
 router = APIRouter(prefix='/ai/deviation', tags=['Deviation Detection'])
+
+# Regulatory limits configuration for portfolio-level compliance checks
+REGULATORY_LIMITS = {
+    'total_capital': 10000000,  # $10M capital base
+    'customer_exposure_percent': 25,  # Max 25% to single customer
+    'group_exposure_percent': 40,  # Max 40% to related group
+    'sector_concentration_percent': 15,  # Max 15% to single sector
+    'branch_concentration_percent': 30,  # Max 30% handled by single branch
+}
 
 @router.post('/detect', response_model=DeviationDetectionResponse)
 async def detect_deviations(request: DeviationDetectionRequest):
@@ -61,7 +73,8 @@ async def detect_deviations(request: DeviationDetectionRequest):
         logs_dict = cleaned_logs
 
         # ===================================================================
-        # DEVIATION DETECTION: Run all 10 checkers (with defensive error handling)
+        # DEVIATION DETECTION: Run all 13 checkers (with defensive error handling)
+        # Enhanced with: ConditionalRuleEvaluator, TemporalRuleEvaluator, RegulatoryAggregator
         # ===================================================================
         all_deviations = []
 
@@ -141,7 +154,32 @@ async def detect_deviations(request: DeviationDetectionRequest):
         except Exception as e:
             logger.warning(f"RegulatoryChecker failed: {e}")
 
-        logger.info(f"Total deviations detected across 10 checkers: {len(all_deviations)}")
+        try:
+            conditional_deviations = ConditionalRuleEvaluator.evaluate(logs_dict, rules_dict)
+            logger.info(f"  - ConditionalRuleEvaluator: {len(conditional_deviations)} deviations")
+            all_deviations.extend(conditional_deviations)
+        except Exception as e:
+            logger.warning(f"ConditionalRuleEvaluator failed: {e}")
+
+        # NEW: Temporal Rule Evaluator (step-to-step timing constraints)
+        try:
+            temporal_deviations = TemporalRuleEvaluator.evaluate(logs_dict, rules_dict)
+            logger.info(f"  - TemporalRuleEvaluator: {len(temporal_deviations)} deviations")
+            all_deviations.extend(temporal_deviations)
+        except Exception as e:
+            logger.warning(f"TemporalRuleEvaluator failed: {e}")
+
+        # NEW: Regulatory Aggregator (portfolio-level compliance)
+        try:
+            regulatory_agg_deviations = RegulatoryAggregator.evaluate(
+                logs_dict, rules_dict, REGULATORY_LIMITS
+            )
+            logger.info(f"  - RegulatoryAggregator: {len(regulatory_agg_deviations)} deviations")
+            all_deviations.extend(regulatory_agg_deviations)
+        except Exception as e:
+            logger.warning(f"RegulatoryAggregator failed: {e}")
+
+        logger.info(f"Total deviations detected across 13 checkers: {len(all_deviations)}")
 
         return DeviationDetectionResponse(
             deviations=all_deviations,

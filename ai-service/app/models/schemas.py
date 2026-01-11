@@ -14,6 +14,36 @@ class SOPParseResponse(BaseModel):
 class RuleExtractionRequest(BaseModel):
     text: str
 
+# Conditional Logic Schemas
+class Condition(BaseModel):
+    """Represents a single condition in conditional logic"""
+    field: Optional[str] = None  # For simple conditions (e.g., "loan_amount_sanctioned")
+    operator: str  # ==, !=, <, >, <=, >=, AND, OR, NOT, IN, NOT_IN
+    value: Optional[Any] = None  # For simple conditions (e.g., 10000)
+    conditions: Optional[List['Condition']] = None  # For nested logical conditions (AND/OR/NOT)
+
+    model_config = {'extra': 'allow'}
+
+class ThenClause(BaseModel):
+    """Represents the 'then' clause of conditional logic"""
+    require_step: Optional[str] = None  # Single required step (e.g., "Manager Approval")
+    require_steps: Optional[List[str]] = None  # Multiple required steps
+    action: Optional[str] = None  # e.g., "reject", "flag_violation"
+    severity: Optional[str] = None  # Severity override for the deviation
+    reason: Optional[str] = None  # Reason for the requirement
+
+    model_config = {'extra': 'allow'}
+
+class ConditionalLogic(BaseModel):
+    """Structured conditional logic for rules"""
+    condition: Condition
+    then_clause: ThenClause = Field(alias='then')
+
+    model_config = {
+        'populate_by_name': True,
+        'extra': 'allow'
+    }
+
 class Rule(BaseModel):
     # Field names with aliases for flexibility
     # We ask Claude for 'rule_type' and 'rule_description' in the prompt,
@@ -22,9 +52,21 @@ class Rule(BaseModel):
     rule_description: str = Field(alias='description')
     step_number: Optional[float] = None
     severity: str = 'medium'
-    condition_logic: Optional[Union[str, Dict[str, Any]]] = None  # Accept both string and dict
+    condition_logic: Optional[Union[str, Dict[str, Any], ConditionalLogic]] = None  # Accepts string, dict, or structured ConditionalLogic
     required_fields: Optional[List[str]] = None
     timing_constraint: Optional[str] = None
+
+    # NEW FIELDS for Enhanced Rule Extraction (10 additional fields)
+    product_types: Optional[List[str]] = Field(default=["All"])  # Which products this rule applies to
+    customer_segments: Optional[List[str]] = Field(default=["All"])  # Which customer segments
+    channels: Optional[List[str]] = Field(default=["All"])  # Which channels (digital, branch, etc.)
+    geography: Optional[List[str]] = Field(default=["All"])  # Geographic restrictions
+    exceptions: Optional[List[Dict[str, Any]]] = None  # Exception cases
+    calculation_formula: Optional[str] = None  # For calculation rules (e.g., "LTV = loan_amount / collateral_value")
+    temporal_constraint: Optional[Dict[str, Any]] = None  # Step-to-step timing requirements
+    threshold_value: Optional[float] = None  # Numeric thresholds (e.g., 10000, 0.8)
+    field_dependencies: Optional[List[str]] = None  # Fields this rule depends on
+    regulatory_reference: Optional[str] = None  # Legal/regulatory reference
 
     model_config = {
         # Allow both field names and aliases during validation (input)
@@ -44,6 +86,12 @@ class WorkflowLog(BaseModel):
     action: str
     timestamp: str
     duration_seconds: Optional[int] = None
+    status: Optional[str] = None
+
+    # CRITICAL FIX: Allow extra fields from metadata (loan_amount, product_type, etc.)
+    model_config = {
+        'extra': 'allow',
+    }
 
 class SOPRule(BaseModel):
     id: int

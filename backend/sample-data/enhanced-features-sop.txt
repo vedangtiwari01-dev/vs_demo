@@ -1,0 +1,164 @@
+LOAN PROCESSING STANDARD OPERATING PROCEDURE (SOP)
+Enhanced Features Test Document
+Version: 2.0 | Date: January 2025
+
+========================================================================
+SECTION 1: CONDITIONAL APPROVAL RULES
+========================================================================
+
+1.1 LOAN AMOUNT BASED APPROVALS
+
+Rule 1.1.1: Loans of $10,000 or more MUST require manager approval before final disbursement.
+
+Rule 1.1.2: Loans of $50,000 or more MUST require both manager approval AND senior manager approval.
+
+Rule 1.1.3: Loans below $10,000 may be approved by loan officers directly without manager approval.
+
+========================================================================
+SECTION 2: COLLATERAL AND LTV REQUIREMENTS
+========================================================================
+
+2.1 LOAN-TO-VALUE (LTV) RATIO
+
+Rule 2.1.1: The Loan-to-Value (LTV) ratio MUST NOT exceed 80% for all secured loans.
+Calculation: LTV = Loan Amount Sanctioned / Collateral Value
+If LTV > 80%, the loan MUST be rejected OR additional collateral MUST be obtained.
+
+Rule 2.1.2: For gold loans specifically, LTV MUST NOT exceed 75%.
+
+Rule 2.1.3: Collateral value MUST be verified through an independent valuation within the last 6 months.
+
+========================================================================
+SECTION 3: PRODUCT-SPECIFIC REQUIREMENTS
+========================================================================
+
+3.1 HOME LOANS
+
+Rule 3.1.1: ALL home loans MUST include a property valuation step completed by a certified valuer.
+
+Rule 3.1.2: Home loans MUST include legal clearance verification for the property title.
+
+Rule 3.1.3: Home loans above $200,000 MUST include property insurance verification.
+
+3.2 GOLD LOANS
+
+Rule 3.2.1: Gold loans MUST include gold purity verification (hallmark check).
+
+Rule 3.2.2: Gold loans do NOT require income verification if loan amount is below $5,000.
+
+3.3 PERSONAL LOANS
+
+Rule 3.3.1: Personal loans MUST include income verification for all amounts.
+
+Rule 3.3.2: Personal loans above $25,000 MUST include credit bureau check.
+
+========================================================================
+SECTION 4: CUSTOMER SEGMENT RULES
+========================================================================
+
+4.1 PRIORITY CUSTOMERS
+
+Rule 4.1.1: Priority and VIP customers may have EMI-to-Income ratio up to 60% (regular customers: 50% maximum).
+
+Rule 4.1.2: Priority customers may receive expedited processing (24-hour turnaround instead of 72 hours).
+
+4.2 REGULAR CUSTOMERS
+
+Rule 4.2.1: Regular customers MUST maintain EMI-to-Income ratio below 50%.
+
+Rule 4.2.2: Regular customers MUST complete standard 72-hour processing cycle.
+
+========================================================================
+SECTION 5: TEMPORAL CONSTRAINTS (TIMING RULES)
+========================================================================
+
+5.1 STEP-TO-STEP TIMING REQUIREMENTS
+
+Rule 5.1.1: Manager Approval MUST be completed within 48 hours of Risk Assessment completion.
+
+Rule 5.1.2: Property Valuation (for home loans) MUST be completed within 72 hours of application received.
+
+Rule 5.1.3: Final Disbursement MUST occur within 24 hours of Final Approval.
+
+Rule 5.1.4: Credit Check MUST be completed within 24 hours of Application Received.
+
+5.2 DOCUMENT VALIDITY
+
+Rule 5.2.1: KYC documents MUST be renewed every 12 months. Documents older than 12 months are invalid.
+
+Rule 5.2.2: Salary slips MUST be from the last 3 months. Older salary slips are not acceptable.
+
+========================================================================
+SECTION 6: REGULATORY AND PORTFOLIO LIMITS
+========================================================================
+
+6.1 CUSTOMER EXPOSURE LIMITS
+
+Rule 6.1.1: Total exposure to a single customer MUST NOT exceed 25% of the bank's total capital.
+
+Rule 6.1.2: Total exposure to a group (related entities) MUST NOT exceed 40% of total capital.
+
+6.2 SECTOR CONCENTRATION
+
+Rule 6.2.1: Total loans to any single sector (Real Estate, Manufacturing, Services, etc.) MUST NOT exceed 15% of the total loan portfolio.
+
+6.3 BRANCH CONCENTRATION
+
+Rule 6.3.1: No single branch should handle more than 30% of the total loan volume to ensure risk distribution.
+
+6.4 SINGLE BORROWER LIMITS
+
+Rule 6.4.1: Individual loan amount MUST NOT exceed 10% of bank's capital for unsecured loans.
+
+========================================================================
+SECTION 7: MANDATORY WORKFLOW SEQUENCE
+========================================================================
+
+7.1 STANDARD LOAN PROCESSING SEQUENCE
+
+All loans MUST follow this sequence:
+
+1. Application Received
+2. Document Verification
+3. Credit Check (if applicable per product rules)
+4. Income Verification (if applicable per product rules)
+5. Risk Assessment
+6. Collateral Valuation (for secured loans)
+7. Product-Specific Verifications (Property Valuation for Home Loans, Gold Purity for Gold Loans)
+8. Manager Approval (if loan amount >= $10,000)
+9. Senior Manager Approval (if loan amount >= $50,000)
+10. Final Approval
+11. Disbursement
+
+========================================================================
+SECTION 8: DATA QUALITY REQUIREMENTS
+========================================================================
+
+8.1 MANDATORY FIELDS
+
+Rule 8.1.1: The following fields MUST be present in ALL workflow logs:
+- case_id (unique loan application identifier)
+- officer_id (processing officer)
+- step_name (workflow step name)
+- action (action taken)
+- timestamp (date and time)
+
+Rule 8.1.2: For secured loans, the following additional fields are MANDATORY:
+- loan_amount_sanctioned
+- collateral_value
+- collateral_type
+
+Rule 8.1.3: For home loans, the following fields are MANDATORY:
+- product_type = "Home Loan"
+- property_value (same as collateral_value)
+
+========================================================================
+END OF SOP DOCUMENT
+========================================================================
+
+Note: This SOP is designed to test all 5 enhanced features:
+1. Conditional Rules (Section 1)
+2. Cross-Field Calculations (Section 2)
+3. Product/Segment-Specific Rules (Sections 3, 4)
+4. Temporal Constraints (Section 5)
+5. Regulatory Aggregation (Section 6)

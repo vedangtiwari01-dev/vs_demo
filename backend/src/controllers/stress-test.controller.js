@@ -107,13 +107,24 @@ const generateSyntheticLogs = async (req, res, next) => {
     const rules = await SOPRule.findAll();
 
     if (rules.length > 0) {
-      const formattedLogs = savedLogs.map(log => ({
-        case_id: log.case_id,
-        officer_id: log.officer_id,
-        step_name: log.step_name,
-        action: log.action,
-        timestamp: log.timestamp.toISOString(),
-      }));
+      const formattedLogs = savedLogs.map(log => {
+        const baseLog = {
+          case_id: log.case_id,
+          officer_id: log.officer_id,
+          step_name: log.step_name,
+          action: log.action,
+          timestamp: log.timestamp.toISOString(),
+          duration_seconds: log.duration_seconds,
+          status: log.status,
+        };
+
+        // Extract and merge metadata fields (for conditional/temporal/regulatory evaluators)
+        if (log.metadata && typeof log.metadata === 'object') {
+          Object.assign(baseLog, log.metadata);
+        }
+
+        return baseLog;
+      });
 
       const formattedRules = rules.map(rule => ({
         id: rule.id,
@@ -121,6 +132,20 @@ const generateSyntheticLogs = async (req, res, next) => {
         description: rule.rule_description,
         step_number: rule.step_number,
         severity: rule.severity,
+        // Include extended fields for new evaluators
+        condition_logic: rule.condition_logic,
+        temporal_constraint: rule.temporal_constraint,
+        required_fields: rule.required_fields,
+        timing_constraint: rule.timing_constraint,
+        product_types: rule.product_types,
+        customer_segments: rule.customer_segments,
+        channels: rule.channels,
+        geography: rule.geography,
+        exceptions: rule.exceptions,
+        calculation_formula: rule.calculation_formula,
+        threshold_value: rule.threshold_value,
+        field_dependencies: rule.field_dependencies,
+        regulatory_reference: rule.regulatory_reference,
       }));
 
       const deviationResult = await aiService.detectDeviations(formattedLogs, formattedRules);
