@@ -121,6 +121,16 @@ class Deviation(BaseModel):
     actual_behavior: Optional[str] = None
     context: Optional[Dict[str, Any]] = None
 
+    # Rule Context - Added for LLM pattern analysis
+    rule_description: Optional[str] = None
+    rule_type: Optional[str] = None  # sequence, approval, timing, calculation, etc.
+    rule_severity: Optional[str] = None
+
+    # Case Context - Added for business insights
+    loan_amount: Optional[float] = None
+    customer_segment: Optional[str] = None
+    product_type: Optional[str] = None
+
 class DeviationDetectionResponse(BaseModel):
     deviations: List[Deviation]
     log_cleaning_report: Optional[Dict[str, Any]] = None  # Workflow log cleaning report

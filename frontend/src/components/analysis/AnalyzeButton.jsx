@@ -13,7 +13,7 @@ const AnalyzeButton = forwardRef(({ selectedSop, selectedWorkflow, onAnalyze, is
     try {
       // Step 1: Run deviation detection
       toast.loading('Detecting deviations...', { id: 'analysis' });
-      const deviationResponse = await workflowAPI.analyze();
+      const deviationResponse = await workflowAPI.analyze(selectedSop.id);
 
       console.log('Deviation response:', deviationResponse);
 
@@ -32,7 +32,12 @@ const AnalyzeButton = forwardRef(({ selectedSop, selectedWorkflow, onAnalyze, is
       const analysisResult = {
         deviations: deviationData.deviations || [],
         summary: deviationData.summary || {},
-        patterns: patternData.patterns || patternData,
+        patterns: {
+          ...(patternData.patterns || patternData),
+          // Include log cleaning report and quality from deviation detection
+          log_cleaning_report: deviationData.log_cleaning_report || null,
+          log_quality: deviationData.log_quality || null,
+        },
         sop: {
           ...selectedSop,
           rules: deviationData.sop_rules || selectedSop.rules || []

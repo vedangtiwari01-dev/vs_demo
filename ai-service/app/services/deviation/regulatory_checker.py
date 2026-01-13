@@ -1,5 +1,6 @@
 from typing import List, Dict, Any
 from collections import defaultdict
+from .rule_parser import RuleParser
 
 class RegulatoryChecker:
     """
@@ -10,8 +11,9 @@ class RegulatoryChecker:
     - provisioning_shortfall: Provisioning amount below regulatory requirement
     - regulatory_report_missing_or_late: Required regulatory report not submitted on time
 
-    DEFENSIVE: Gracefully handles missing fields/rules.
-    Only validates when regulatory fields are present in workflow logs.
+    STRICT MODE: Only validates if SOP explicitly defines regulatory thresholds.
+    If no regulatory rules exist, returns empty list (no validation, no false positives).
+    System is now globally applicable - not limited to Indian RBI regulations.
     """
 
     @staticmethod
@@ -19,25 +21,24 @@ class RegulatoryChecker:
         """
         Check regulatory compliance deviations.
 
+        STRICT MODE: Only validates based on explicit SOP requirements.
+        If no regulatory thresholds defined, skips validation entirely.
+
         Args:
             logs: Workflow logs with optional fields (risk_grade, npa_classification, provisioning_amount, overdue_days)
-            rules: SOP rules (regulatory type)
+            rules: SOP rules (regulatory type with threshold_value containing classification thresholds)
 
         Returns:
             List of regulatory deviations detected
         """
         deviations = []
 
-        # Extract regulatory rules
-        regulatory_rules = [r for r in rules if r.get('rule_type') == 'regulatory']
+        # Extract regulatory classification thresholds from SOP
+        classification_thresholds = RuleParser.extract_regulatory_thresholds(rules)
 
-        # Default classification thresholds (RBI norms)
-        classification_thresholds = {
-            'standard': {'min_dpd': 0, 'max_dpd': 29, 'provisioning': 0.0025},  # 0.25%
-            'sub_standard': {'min_dpd': 30, 'max_dpd': 89, 'provisioning': 0.15},  # 15%
-            'doubtful': {'min_dpd': 90, 'max_dpd': 365, 'provisioning': 0.25},  # 25%
-            'loss': {'min_dpd': 366, 'max_dpd': 999999, 'provisioning': 1.0}  # 100%
-        }
+        # STRICT MODE: If no regulatory thresholds defined in SOP, skip validation
+        if classification_thresholds is None:
+            return deviations
 
         # Group logs by case_id
         cases = defaultdict(list)

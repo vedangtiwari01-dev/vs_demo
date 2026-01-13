@@ -1,5 +1,6 @@
 from typing import List, Dict, Any
 from collections import defaultdict
+from .rule_parser import RuleParser
 
 class CollectionChecker:
     """
@@ -10,14 +11,17 @@ class CollectionChecker:
     - unauthorized_restructure: Loan restructured without proper approval
     - unauthorized_writeoff: Write-off without required authority approval
 
-    DEFENSIVE: Gracefully handles missing fields/rules.
-    Only validates when collection fields are present in workflow logs.
+    STRICT MODE: Only validates if SOP explicitly defines collection requirements.
+    If no collection rules exist, returns empty list (no validation, no false positives).
     """
 
     @staticmethod
     def check_collection(logs: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Check collection and restructuring compliance deviations.
+
+        STRICT MODE: Only validates based on explicit SOP requirements.
+        If no collection rules defined, skips validation entirely.
 
         Args:
             logs: Workflow logs with optional fields (overdue_days, bucket, collection_status, restructure_flag)
@@ -28,28 +32,15 @@ class CollectionChecker:
         """
         deviations = []
 
-        # Extract collection/restructuring rules
-        collection_rules = [r for r in rules if r.get('rule_type') in ['collection', 'restructuring']]
+        # Extract collection escalation schedule from SOP
+        escalation_thresholds = RuleParser.extract_collection_schedule(rules)
 
-        # Default thresholds (used if not in SOP)
-        escalation_thresholds = {
-            30: 'first_reminder',
-            60: 'legal_notice',
-            90: 'legal_action'
-        }
-
-        # Override with SOP rules if available
-        for rule in collection_rules:
-            desc = rule.get('rule_description', '').lower()
-            if 'dpd' in desc or 'days past due' in desc or 'overdue' in desc:
-                import re
-                match = re.search(r'(\d+)\s*day', desc)
-                if match:
-                    days = int(match.group(1))
-                    if 'legal' in desc:
-                        escalation_thresholds[days] = 'legal_action'
-                    elif 'notice' in desc:
-                        escalation_thresholds[days] = 'legal_notice'
+        # STRICT MODE: If no collection schedule defined in SOP, skip escalation validation
+        if not escalation_thresholds:
+            # Still check for unauthorized restructure/writeoff if those rules exist
+            collection_rules = [r for r in rules if r.get('rule_type') in ['collection', 'restructuring']]
+            if not collection_rules:
+                return deviations
 
         # Group logs by case_id
         cases = defaultdict(list)

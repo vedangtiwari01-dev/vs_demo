@@ -6,9 +6,10 @@ This ensures deviation detection works on clean, validated data.
 """
 
 import logging
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from datetime import datetime
 from collections import Counter
+from .missing_field_analyzer import MissingFieldAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,8 @@ class WorkflowLogCleaner:
         remove_duplicates: bool = True,
         validate_types: bool = True,
         handle_missing: bool = True,
-        normalize_text: bool = True
+        normalize_text: bool = True,
+        rules: Optional[List[Dict[str, Any]]] = None
     ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """
         Clean workflow logs with comprehensive quality checks.
@@ -35,6 +37,7 @@ class WorkflowLogCleaner:
             validate_types: Validate and fix data types
             handle_missing: Handle missing required fields
             normalize_text: Normalize text fields
+            rules: Optional SOP rules for missing field analysis
 
         Returns:
             Tuple of (cleaned_logs, cleaning_report)
@@ -112,6 +115,15 @@ class WorkflowLogCleaner:
 
         report['final_count'] = len(cleaned_logs)
         logger.info(f"Cleaning complete: {original_count} → {len(cleaned_logs)} logs")
+
+        # Run missing field analysis if rules are provided
+        if rules and len(rules) > 0:
+            logger.info(f"Running missing field analysis with {len(rules)} rules")
+            missing_field_analysis = MissingFieldAnalyzer.analyze_missing_fields(rules, cleaned_logs)
+            report['missing_field_analysis'] = missing_field_analysis
+            logger.info(f"Missing field analysis complete: {len(missing_field_analysis['missing_fields'])} missing fields identified")
+        else:
+            report['missing_field_analysis'] = None
 
         return cleaned_logs, report
 

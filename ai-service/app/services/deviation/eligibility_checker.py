@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 from collections import defaultdict
 import re
+from .rule_parser import RuleParser
 
 class EligibilityChecker:
     """
@@ -12,14 +13,17 @@ class EligibilityChecker:
     - emi_to_income_breach: EMI-to-Income ratio exceeds policy limit
     - low_score_approved_without_exception: Low credit score approved without documented exception
 
-    DEFENSIVE: Gracefully handles missing fields/rules.
-    Only validates when required fields are present in workflow logs.
+    STRICT MODE: Only validates if SOP explicitly defines eligibility requirements.
+    If no eligibility rules exist, returns empty list (no validation, no false positives).
     """
 
     @staticmethod
     def check_eligibility(logs: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Check eligibility deviations across workflow logs.
+
+        STRICT MODE: Only validates based on explicit SOP requirements.
+        If no eligibility thresholds defined, skips validation entirely.
 
         Args:
             logs: Workflow logs with optional fields (customer_age, tenor_months, emi_to_income_ratio, credit_score)
@@ -30,45 +34,20 @@ class EligibilityChecker:
         """
         deviations = []
 
-        # Extract eligibility rules (with defaults if not in SOP)
-        eligibility_rules = [r for r in rules if r.get('rule_type') == 'eligibility']
-        credit_rules = [r for r in rules if r.get('rule_type') == 'credit_risk']
+        # Extract eligibility thresholds from SOP
+        thresholds = RuleParser.extract_eligibility_thresholds(rules)
 
-        # Default thresholds (industry standard) - used if not extracted from SOP
-        min_age = 18
-        max_age = 65
-        max_tenor = 360  # 30 years
-        max_emi_to_income = 0.5  # 50%
-        min_credit_score = 650
+        # STRICT MODE: If no eligibility thresholds defined in SOP, skip validation
+        if not thresholds:
+            return deviations
 
-        # Override with SOP rules if available
-        for rule in eligibility_rules:
-            desc = rule.get('rule_description', '').lower()
-            if 'age' in desc and 'minimum' in desc:
-                # Try to extract min age
-                match = re.search(r'(\d+)\s*year', desc)
-                if match:
-                    min_age = int(match.group(1))
-            elif 'age' in desc and 'maximum' in desc:
-                match = re.search(r'(\d+)\s*year', desc)
-                if match:
-                    max_age = int(match.group(1))
-            elif 'tenor' in desc or 'loan term' in desc:
-                match = re.search(r'(\d+)\s*(month|year)', desc)
-                if match:
-                    value = int(match.group(1))
-                    max_tenor = value if 'month' in desc else value * 12
-
-        for rule in credit_rules:
-            desc = rule.get('rule_description', '').lower()
-            if 'emi' in desc and 'income' in desc:
-                match = re.search(r'(\d+)%', desc)
-                if match:
-                    max_emi_to_income = int(match.group(1)) / 100.0
-            elif 'credit score' in desc:
-                match = re.search(r'(\d+)', desc)
-                if match:
-                    min_credit_score = int(match.group(1))
+        # Extract thresholds (None if not defined)
+        min_age = thresholds.get('min_age')
+        max_age = thresholds.get('max_age')
+        max_tenor = thresholds.get('max_tenor')
+        max_emi_to_income = thresholds.get('max_emi_to_income')
+        min_credit_score = thresholds.get('min_credit_score')
+        max_ltv = thresholds.get('max_ltv')
 
         # Group logs by case_id
         cases = defaultdict(list)
@@ -100,19 +79,26 @@ class EligibilityChecker:
                 if 'approval_decision' in log and log['approval_decision'] == 'approved':
                     case_data['approved'] = True
 
-            # Check 1: Age eligibility (only if field present)
-            if 'customer_age' in case_data:
+            # Check 1: Age eligibility (only if field present AND SOP defines age limits)
+            if 'customer_age' in case_data and (min_age is not None or max_age is not None):
                 try:
                     age = int(case_data['customer_age'])
-                    if age < min_age or age > max_age:
+                    age_violated = False
+                    if min_age is not None and age < min_age:
+                        age_violated = True
+                    if max_age is not None and age > max_age:
+                        age_violated = True
+
+                    if age_violated:
+                        age_range = f'{min_age or "any"}-{max_age or "any"}'
                         deviations.append({
                             'case_id': case_id,
                             'officer_id': officer_id,
                             'timestamp': timestamp,
                             'deviation_type': 'ineligible_age',
                             'severity': 'critical',
-                            'description': f'Customer age {age} outside eligible range {min_age}-{max_age}',
-                            'expected_behavior': f'Customer age must be {min_age}-{max_age} years',
+                            'description': f'Customer age {age} outside eligible range {age_range} (per SOP)',
+                            'expected_behavior': f'Customer age must be {age_range} years (per SOP)',
                             'actual_behavior': f'Customer age is {age}',
                             'context': {'age': age, 'min_age': min_age, 'max_age': max_age}
                         })
@@ -120,8 +106,8 @@ class EligibilityChecker:
                     # Invalid age format - skip this check
                     pass
 
-            # Check 2: Tenor eligibility (only if field present)
-            if 'tenor_months' in case_data:
+            # Check 2: Tenor eligibility (only if field present AND SOP defines max tenor)
+            if 'tenor_months' in case_data and max_tenor is not None:
                 try:
                     tenor = int(case_data['tenor_months'])
                     if tenor > max_tenor:
@@ -139,8 +125,8 @@ class EligibilityChecker:
                 except (ValueError, TypeError):
                     pass
 
-            # Check 3: EMI-to-Income ratio (only if field present)
-            if 'emi_to_income_ratio' in case_data:
+            # Check 3: EMI-to-Income ratio (only if field present AND SOP defines limit)
+            if 'emi_to_income_ratio' in case_data and max_emi_to_income is not None:
                 try:
                     emi_ratio = float(case_data['emi_to_income_ratio'])
                     if emi_ratio > max_emi_to_income:
@@ -158,8 +144,8 @@ class EligibilityChecker:
                 except (ValueError, TypeError):
                     pass
 
-            # Check 4: Low credit score approved without exception
-            if 'credit_score' in case_data and case_data.get('approved', False):
+            # Check 4: Low credit score approved without exception (only if SOP defines min score)
+            if 'credit_score' in case_data and case_data.get('approved', False) and min_credit_score is not None:
                 try:
                     score = int(case_data['credit_score'])
                     has_exception = case_data.get('exception_flag', '').lower() in ['yes', 'true', '1']

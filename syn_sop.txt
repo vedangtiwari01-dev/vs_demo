@@ -1,0 +1,1204 @@
+================================================================================
+                    STANDARD OPERATING PROCEDURE
+                       SECURED PERSONAL LOAN
+================================================================================
+
+Document Reference: SOP-SPL-2025-001
+Version: 3.2
+Effective Date: January 1, 2025
+Last Reviewed: January 14, 2026
+Next Review Date: January 14, 2027
+Document Owner: Chief Credit Officer
+Approved By: Credit Policy Committee
+
+================================================================================
+SECTION 1: PURPOSE AND SCOPE
+================================================================================
+
+1.1 PURPOSE
+This Standard Operating Procedure (SOP) establishes the comprehensive guidelines
+and mandatory requirements for processing, approving, disbursing, and managing
+Secured Personal Loans. All loan officers, credit managers, operations staff,
+and collections personnel shall strictly adhere to the procedures outlined in
+this document.
+
+1.2 SCOPE AND APPLICABILITY
+This SOP applies to:
+- Product Type: Secured Personal Loans (collateral-backed)
+- Loan Amount Range: INR 100,000 to INR 10,000,000
+- Customer Segments: Salaried individuals, self-employed professionals
+- Distribution Channels: Branch banking, digital lending platform
+- Geographic Coverage: All operational branches and service centers
+
+1.3 REGULATORY FRAMEWORK
+This SOP is designed in compliance with applicable banking regulations,
+anti-money laundering laws, know-your-customer requirements, and prudential
+norms for asset classification and provisioning as prescribed by the regulatory
+authority.
+
+1.4 DEFINITIONS AND ACRONYMS
+- AML: Anti-Money Laundering
+- DPD: Days Past Due
+- EDD: Enhanced Due Diligence
+- EMI: Equated Monthly Installment
+- KYC: Know Your Customer
+- LTV: Loan-to-Value Ratio
+- NACH: National Automated Clearing House
+- NPA: Non-Performing Asset
+- PEP: Politically Exposed Person
+- QC: Quality Check
+- SLA: Service Level Agreement
+- TAT: Turn Around Time
+
+================================================================================
+SECTION 2: LOAN ORIGINATION WORKFLOW - MANDATORY SEQUENCE
+================================================================================
+
+2.1 STANDARD WORKFLOW SEQUENCE
+All Secured Personal Loan applications shall follow this mandatory sequence.
+Deviations from this sequence are not permitted unless explicitly approved as
+an exception.
+
+Step 1: Application Received and Registration
+Step 2: Initial Screening and Data Capture
+Step 3: Customer KYC and AML Verification
+Step 4: Document Collection and Verification
+Step 5: Credit Bureau Check
+Step 6: Income and Employment Verification
+Step 7: Collateral Valuation and Verification
+Step 8: Credit Risk Assessment and Scoring
+Step 9: Loan Structuring and Pricing
+Step 10: Credit Approval (Level 1 - Branch Manager)
+Step 11: Credit Approval (Level 2 - Regional Credit Manager) [if required]
+Step 12: Credit Committee Approval [if required based on amount/risk]
+Step 13: Legal Security Creation and Registration
+Step 14: EMI Mandate Setup (NACH/Standing Instruction)
+Step 15: Final Pre-Disbursement Quality Check
+Step 16: Loan Disbursement
+Step 17: Post-Disbursement Documentation
+Step 18: Post-Disbursement Quality Audit
+
+2.2 CRITICAL DEPENDENCIES
+- KYC Verification (Step 3) shall be completed and approved before proceeding
+  to Credit Approval (Steps 10-12)
+- Document Verification (Step 4) shall be completed before Credit Approval
+- Collateral Valuation (Step 7) shall be completed before Credit Risk
+  Assessment (Step 8)
+- All Credit Approvals (Steps 10-12) shall be obtained before Legal Security
+  Creation (Step 13)
+- Legal Security Creation (Step 13) and EMI Mandate Setup (Step 14) shall be
+  completed before Loan Disbursement (Step 16)
+- Post-Disbursement Quality Audit (Step 18) shall be completed within 48 hours
+  of disbursement
+
+2.3 PROHIBITED SEQUENCES
+The following sequences are strictly prohibited:
+- Disbursement before approval completion
+- Disbursement before security creation
+- Disbursement before mandate setup
+- Credit approval before KYC completion
+- Collateral valuation after credit decision
+- Duplicate processing of same step for single application
+
+================================================================================
+SECTION 3: CUSTOMER ELIGIBILITY CRITERIA
+================================================================================
+
+3.1 AGE ELIGIBILITY
+- Minimum Age: 21 years (completed) at the time of application
+- Maximum Age: 65 years at loan maturity
+- Age calculation shall be based on applicant's date of birth as per valid
+  government-issued identification document
+
+Exception: For existing premium banking customers with excellent repayment
+history (no defaults in last 5 years), maximum age may be extended to 68 years
+with Senior Credit Manager approval.
+
+3.2 LOAN TENOR ELIGIBILITY
+- Minimum Tenor: 12 months
+- Maximum Tenor: 84 months (7 years) for standard risk customers
+- Maximum Tenor: 60 months (5 years) for higher risk customers (credit score
+  between 650-700)
+- Tenor shall be structured such that customer's age at maturity does not
+  exceed maximum age limit
+
+3.3 INCOME AND EMI-TO-INCOME RATIO
+- Minimum Monthly Income:
+  * Salaried: INR 25,000 per month
+  * Self-Employed: INR 40,000 per month (average of last 12 months)
+
+- EMI-to-Income Ratio (including existing obligations):
+  * Maximum: 55% of net monthly income for salaried customers
+  * Maximum: 50% of net monthly income for self-employed customers
+  * For income above INR 100,000 per month: Maximum 60%
+
+3.4 CREDIT SCORE REQUIREMENTS
+- Minimum Credit Score: 650 (CIBIL or equivalent bureau score)
+- Preferred Credit Score: 700 and above
+- Credit Score Range 650-699: Additional scrutiny required, higher interest
+  rate applicable, enhanced documentation required
+- Credit Score below 650: Application shall be rejected unless:
+  * Customer has substantial collateral (LTV below 50%) AND
+  * Credit Committee approval obtained AND
+  * Exception documented with clear justification
+
+3.5 EMPLOYMENT AND STABILITY CRITERIA
+Salaried Customers:
+- Minimum Current Employment: 1 year with current employer
+- Total Work Experience: Minimum 2 years
+- Employer Type: Government, MNC, listed company, or established private firm
+
+Self-Employed Customers:
+- Business Vintage: Minimum 3 years in current business
+- ITR Filing: Last 2 years' Income Tax Returns mandatory
+- Business Continuity: Same line of business for minimum 3 years
+
+================================================================================
+SECTION 4: KNOW YOUR CUSTOMER (KYC) AND AML COMPLIANCE
+================================================================================
+
+4.1 KYC COMPLETION REQUIREMENTS
+KYC verification shall be completed and marked as "Verified" or "Approved"
+before the application proceeds to any of the following stages:
+- Credit approval stages (Branch Manager, Regional Credit Manager, Credit
+  Committee)
+- Loan disbursement
+- Legal documentation execution
+
+4.2 KYC DOCUMENTS - IDENTITY PROOF (One Mandatory)
+- Aadhaar Card (preferred)
+- Passport
+- Voter ID Card
+- Driving License
+- PAN Card with photograph
+
+4.3 KYC DOCUMENTS - ADDRESS PROOF (One Mandatory)
+- Aadhaar Card (preferred)
+- Passport
+- Utility Bills (electricity, water, gas) - not older than 3 months
+- Bank Account Statement - not older than 3 months
+- Rent Agreement (registered)
+
+4.4 SANCTIONS SCREENING
+All applicants shall be screened against:
+- National and international sanctions lists
+- Negative list databases
+- Adverse media screening
+
+Sanctions Screening Actions:
+- If Sanctions Hit = "Yes" or "Confirmed": Application shall be REJECTED
+  immediately, no exceptions permitted
+- If Sanctions Hit = "Potential" or "Needs Review": Compliance officer review
+  required within 24 hours
+- Sanctions screening shall be completed before KYC approval status is updated
+
+4.5 POLITICALLY EXPOSED PERSONS (PEP) HANDLING
+If applicant is identified as PEP or related to PEP:
+- Enhanced Due Diligence (EDD) shall be conducted
+- Senior Compliance Officer approval mandatory
+- Additional documentation required:
+  * Source of income verification (detailed)
+  * Source of wealth declaration
+  * Business relationships documentation
+- PEP applications without EDD completion and compliance approval shall not
+  proceed to credit approval
+
+4.6 AML CHECKS
+- Transaction monitoring for unusual patterns
+- Source of income verification for loan amounts above INR 5,000,000
+- High-risk customer identification (cash-intensive business, PEP, adverse
+  media)
+- Beneficial ownership identification for non-individual applicants
+
+================================================================================
+SECTION 5: DOCUMENTATION REQUIREMENTS
+================================================================================
+
+5.1 MANDATORY DOCUMENTS - ALL APPLICANTS
+The following documents are mandatory for all Secured Personal Loan applications:
+
+1. KYC Documents:
+   - Identity Proof (as per Section 4.2)
+   - Address Proof (as per Section 4.3)
+   - Photograph (recent, passport size)
+   - PAN Card (mandatory for loans above INR 50,000)
+
+2. Income Proof:
+   For Salaried:
+   - Last 3 months' salary slips
+   - Last 6 months' bank statements showing salary credits
+   - Form 16 or ITR for last 2 years (for loans above INR 500,000)
+
+   For Self-Employed:
+   - Last 2 years' Income Tax Returns with computation
+   - Last 12 months' bank statements (business and personal)
+   - Balance Sheet and P&L Statement for last 2 years
+   - GST Returns for last 12 months (if applicable)
+
+3. Employment/Business Proof:
+   For Salaried: Employment Letter or ID Card
+   For Self-Employed: Business Registration Certificate, GST Certificate
+
+4. Collateral Documents (detailed in Section 7)
+
+5.2 DOCUMENT VALIDITY REQUIREMENTS
+All documents shall be valid and current:
+- Identity/Address Proof: Must be valid (not expired)
+- Income Proof: Not older than 3 months at the time of application
+- Bank Statements: Not older than 1 month at the time of application
+- Property Documents: Title clear as per legal verification
+
+Applications with expired documents shall not proceed to approval stage until
+valid documents are obtained.
+
+5.3 DIGITAL DOCUMENT SUBMISSION
+For applications submitted through digital lending platform:
+- All documents shall be uploaded in PDF or image format (JPEG, PNG)
+- Document quality: Readable, complete, not tampered
+- Self-attested copies acceptable for initial submission
+- Original documents verification mandatory before disbursement
+
+5.4 DOCUMENT VERIFICATION CHECKLIST
+All documents shall be verified for:
+- Authenticity (not forged or altered)
+- Completeness (all pages present)
+- Validity (not expired)
+- Consistency (name, address matches across documents)
+- Legibility (readable, clear)
+
+5.5 COLLATERAL DOCUMENTATION (Secured Loans)
+Mandatory collateral documents are detailed in Section 7.3. These include:
+- Property title documents
+- Encumbrance certificate
+- Property valuation report
+- Property insurance (for property collateral)
+- Hypothecation documents (for vehicle/asset collateral)
+
+================================================================================
+SECTION 6: CREDIT RISK ASSESSMENT
+================================================================================
+
+6.1 CREDIT BUREAU CHECK
+Mandatory credit bureau checks:
+- CIBIL Report (mandatory)
+- Experian or Equifax (secondary check recommended)
+- Bureau report not older than 30 days
+
+6.2 CREDIT RISK GRADING
+All applications shall be assigned a risk grade based on comprehensive assessment:
+
+Risk Grade A (Low Risk):
+- Credit Score: 750 and above
+- Stable employment/business (3+ years)
+- No adverse credit history
+- LTV below 70%
+- EMI-to-Income ratio below 45%
+
+Risk Grade B (Medium Risk):
+- Credit Score: 700-749
+- Stable employment/business (2+ years)
+- Minor credit delays (1-2 instances of 30 DPD in last 2 years)
+- LTV 70-75%
+- EMI-to-Income ratio 45-55%
+
+Risk Grade C (Higher Risk):
+- Credit Score: 650-699
+- Acceptable employment/business stability
+- Credit delays within acceptable limits (up to 60 DPD, max 2 instances)
+- LTV 75-80%
+- EMI-to-Income ratio up to 55%
+
+Risk Grade D (Unacceptable Risk):
+- Credit Score: Below 650
+- Frequent credit delays (90+ DPD or 3+ instances of 60 DPD)
+- Multiple loan rejections
+- High existing obligations
+- Application shall be rejected (Exception: Credit Committee approval with
+  strong collateral)
+
+6.3 EXISTING OBLIGATIONS VERIFICATION
+- Verification of existing loans from bureau report
+- Calculation of total monthly obligations
+- Assessment of repayment capacity after accounting existing loans
+- Cross-verification with bank statements
+
+6.4 FRAUD CHECKS
+- Negative area list verification
+- Negative database check (internal defaulter list)
+- Employment/business verification through third-party agencies
+- Site visit for loan amounts above INR 2,000,000
+
+================================================================================
+SECTION 7: COLLATERAL AND SECURITY REQUIREMENTS
+================================================================================
+
+7.1 ACCEPTED COLLATERAL TYPES
+The following collateral types are accepted for Secured Personal Loans:
+
+Primary Collateral:
+1. Residential Property (self-occupied or rented)
+2. Commercial Property
+3. Fixed Deposits with the bank
+4. Gold (minimum 22 carat)
+5. Securities (stocks, bonds, mutual funds)
+
+Secondary Collateral (co-collateral):
+6. Vehicle (car, commercial vehicle)
+7. Machinery and Equipment
+
+7.2 LOAN-TO-VALUE (LTV) RATIO LIMITS
+Maximum LTV ratios for different collateral types:
+
+Residential Property:
+- Self-occupied: Maximum 75%
+- Rented property: Maximum 70%
+- Under-construction: Not accepted
+
+Commercial Property:
+- Office space: Maximum 70%
+- Shop/Retail: Maximum 65%
+
+Fixed Deposits:
+- Bank's own FD: Maximum 90%
+- Other bank FD: Maximum 80%
+
+Gold:
+- Maximum 75% of current market value
+
+Securities:
+- Equity shares: Maximum 50%
+- Mutual funds: Maximum 60%
+- Government securities: Maximum 80%
+
+Vehicle:
+- Car (own use): Maximum 60%
+- Commercial vehicle: Maximum 50%
+
+7.3 COLLATERAL VALUATION REQUIREMENTS
+Collateral valuation shall meet the following requirements:
+
+Property Valuation:
+- Valuation by bank-empaneled valuer (mandatory)
+- Valuation report not older than 90 days at the time of disbursement
+- Site visit mandatory
+- Valuation report shall include: Property description, location details,
+  market value assessment, distress sale value, legal status
+- For loan amounts above INR 5,000,000: Two independent valuations required
+
+Asset/Vehicle Valuation:
+- Current market value as per recognized valuation guides
+- Physical verification mandatory
+- Insurance valuation certificate
+
+Securities Valuation:
+- Current market price (last traded price)
+- Average of last 30 days for volatile securities
+- Haircut as per LTV limits
+
+7.4 VALUATION VALIDITY AND REFRESH
+- Property valuation: Valid for 90 days from valuation date
+- If disbursement delayed beyond 90 days: Fresh valuation required
+- Re-valuation mandatory for any modification in loan amount
+
+7.5 LEGAL SECURITY CREATION
+Legal security shall be created and registered before loan disbursement:
+
+For Property Collateral:
+- Mortgage deed execution
+- Registration with sub-registrar office
+- Original property documents deposited with bank
+- Encumbrance certificate obtained (post-mortgage)
+
+For Gold:
+- Physical possession taken by bank
+- Gold stored in bank locker/strong room
+- Insurance coverage obtained
+
+For Securities:
+- Pledge created in bank's favor
+- Demat account lien marked
+- Pledge confirmation obtained
+
+For Fixed Deposits:
+- Lien marked on FD
+- Duplicate FD receipt issued in bank's favor
+
+For Vehicles:
+- Hypothecation registered with RTO
+- RC book endorsed with bank's hypothecation
+- Original RC book deposited with bank
+
+7.6 COLLATERAL INSURANCE
+Collateral insurance is mandatory:
+- Property: Fire and special perils insurance
+- Vehicle: Comprehensive motor insurance
+- Coverage amount: Minimum equal to loan amount
+- Bank to be named as loss payee/beneficiary
+- Insurance policy validity to cover entire loan tenor
+
+================================================================================
+SECTION 8: APPROVAL AUTHORITY MATRIX
+================================================================================
+
+8.1 APPROVAL LEVELS BASED ON LOAN AMOUNT
+Loan approval authority is assigned based on loan amount and risk grade:
+
+BRANCH MANAGER (Level 1):
+- Loan Amount: Up to INR 1,000,000
+- Risk Grade: A or B only
+- Additional Conditions: LTV below 70%, Credit Score 700+
+
+REGIONAL CREDIT MANAGER (Level 2):
+- Loan Amount: INR 1,000,001 to INR 3,000,000
+- Risk Grade: A, B, or C
+- Mandatory for all Risk Grade C applications
+- Mandatory for LTV above 75%
+
+CREDIT COMMITTEE (Level 3):
+- Loan Amount: Above INR 3,000,000
+- Any loan amount with Risk Grade C
+- Any loan with LTV above 75%
+- Any loan requiring policy exception
+- Composition: Credit Head, Risk Head, Operations Head (minimum 3 members)
+
+8.2 RISK-BASED APPROVAL REQUIREMENTS
+Additional approval requirements based on risk factors:
+
+Credit Score 650-699:
+- Regional Credit Manager approval mandatory (regardless of amount)
+- Enhanced documentation and verification
+- Higher interest rate loading
+
+EMI-to-Income Ratio above 50%:
+- Regional Credit Manager approval mandatory
+- Detailed income stability assessment
+
+Negative Area/High-Risk Location:
+- Regional Credit Manager approval mandatory
+- Enhanced due diligence
+- Physical site visit mandatory
+
+8.3 EXCEPTION APPROVAL REQUIREMENTS
+Exceptions to this SOP require explicit approval:
+
+Minor Exceptions (Branch Manager may approve):
+- Age up to 66 years (instead of 65)
+- Employment tenure 11 months (instead of 12)
+- Document delay by 1-2 days
+
+Major Exceptions (Credit Committee approval mandatory):
+- Credit score below 650
+- LTV above 80%
+- Age above 66 years
+- Tenor beyond maximum limit
+- EMI-to-Income ratio above 60%
+
+All exceptions shall be documented with:
+- Reason for exception
+- Compensating factors
+- Approver name and designation
+- Date of approval
+
+8.4 APPROVAL DECISION VALIDITY
+Loan approval is valid for:
+- Standard cases: 90 days from approval date
+- If not disbursed within validity: Fresh approval required
+- Approver may extend validity by 30 days with documented reason
+
+================================================================================
+SECTION 9: DISBURSEMENT PROCEDURES
+================================================================================
+
+9.1 PRE-DISBURSEMENT CONDITIONS - MANDATORY CHECKLIST
+Loan disbursement shall occur ONLY after ALL of the following conditions are met:
+
+1. Credit approval obtained from appropriate authority (as per Section 8)
+2. KYC verification completed and approved
+3. All mandatory documents collected and verified
+4. Legal security created and registered (as per Section 7.5)
+5. EMI mandate/NACH set up and confirmed as "Active" or "Registered"
+6. Collateral valuation completed (not older than 90 days)
+7. Property insurance obtained (for property collateral)
+8. Loan agreement executed by customer
+9. Pre-disbursement quality check completed and signed off
+
+Any disbursement without meeting all pre-conditions is a critical deviation and
+subject to strict disciplinary action.
+
+9.2 EMI MANDATE SETUP REQUIREMENT
+EMI mandate setup is mandatory before disbursement:
+- NACH (National Automated Clearing House) mandate preferred
+- Standing instruction with customer's salary/business account
+- Mandate amount: Minimum equal to EMI amount + 10% buffer
+- Mandate status shall be "Registered", "Active", or "Set" before disbursement
+- Mandate confirmation from bank's clearing system
+
+Exception: For Fixed Deposit backed loans, EMI mandate may be set up as interest
+adjustment from FD (no external mandate required).
+
+9.3 DISBURSEMENT AMOUNT ACCURACY
+Disbursed amount shall match sanctioned amount:
+- Tolerance: ±0.5% of sanctioned amount permitted
+- Any variance beyond ±0.5% requires fresh approval
+- Disbursement amount cannot exceed sanctioned amount under any circumstances
+- If customer requests lower disbursement: Acceptable with written request
+
+9.4 DISBURSEMENT MODE
+Loan amount shall be disbursed through:
+- Direct credit to customer's bank account (preferred)
+- Pay order/Demand draft (for specific payment requirements)
+- RTGS/NEFT transfer
+
+Cash disbursement is strictly prohibited for amounts above INR 50,000.
+
+9.5 DISBURSEMENT ACCOUNT VERIFICATION
+Before disbursement:
+- Customer's account details verified
+- Account holder name matches loan applicant name
+- Account active and operational
+- Penny drop test conducted (for digital channel disbursements)
+
+9.6 POST-DISBURSEMENT QUALITY CHECK
+Post-disbursement quality audit is mandatory:
+- Timeline: Within 48 hours of disbursement
+- Conducted by: Operations Quality Team (independent from origination team)
+- Checklist verification:
+  * All pre-disbursement conditions met
+  * Documents complete and properly filed
+  * Legal security registration confirmed
+  * Mandate setup verified
+  * Disbursement amount correctness
+  * System data entry accuracy
+
+- Quality check status shall be marked as "Completed" or "Passed"
+- Any adverse finding: Reported to Credit Manager within 24 hours
+
+9.7 POST-DISBURSEMENT DOCUMENTATION
+Within 7 days of disbursement:
+- Loan agreement copy provided to customer
+- Repayment schedule provided to customer
+- Welcome letter sent
+- Collateral documents filed properly
+- Digital loan file updated with all documents
+
+================================================================================
+SECTION 10: SERVICE LEVEL AGREEMENTS (SLA) AND TURNAROUND TIME
+================================================================================
+
+10.1 BUSINESS HOURS DEFINITION
+Standard business hours: Monday to Friday, 9:00 AM to 6:00 PM
+Weekends and public holidays: Non-working days (SLA calculation excludes these)
+
+10.2 STEP-WISE TAT REQUIREMENTS
+Each workflow step shall be completed within specified TAT:
+
+Application Registration: Same day (within 4 hours)
+Initial Screening: Same day (within 4 hours)
+KYC Verification: 1 working day
+Document Collection: 2 working days (dependent on customer)
+Credit Bureau Check: Same day (within 2 hours)
+Income Verification: 1 working day
+Collateral Valuation: 3-5 working days (external valuer dependent)
+Credit Risk Assessment: 1 working day
+Credit Approval (Branch Manager): Same day (within 4 hours of complete file)
+Credit Approval (Regional Manager): 1 working day
+Credit Committee Approval: 2 working days
+Legal Security Creation: 5-7 working days (registration dependent)
+Mandate Setup: 1-2 working days (NACH registration dependent)
+Pre-Disbursement QC: Same day (within 4 hours)
+Disbursement: Same day (within 2 hours of QC clearance)
+
+10.3 OVERALL TURNAROUND TIME (TAT)
+End-to-end loan processing TAT (from application to disbursement):
+- Standard cases: 10-12 working days
+- Complex cases (high value, multiple approvals): 15-18 working days
+- Express processing (for existing premium customers): 5-7 working days
+
+10.4 SLA BREACH HANDLING
+TAT breach consequences:
+- Minor breach (1-2 days delay): Escalation to supervisor
+- Major breach (3+ days delay): Escalation to Regional Manager
+- Chronic breaches: Performance review and corrective action
+
+10.5 TIMING RESTRICTIONS
+Certain critical activities have timing restrictions:
+- Credit approval shall not be given on the same day as application submission
+  (minimum 24 hours gap for due diligence)
+- Disbursement shall not occur on the same day as credit approval (minimum
+  12 hours gap for security creation)
+- Post-disbursement QC shall be completed within 48 hours (not later)
+
+Maximum gap between steps:
+- If any step pending for more than 15 days: Application marked as "stale"
+- Stale applications require customer re-confirmation and document refresh
+
+================================================================================
+SECTION 11: COLLECTIONS, RECOVERY, AND RESTRUCTURING
+================================================================================
+
+11.1 COLLECTION ESCALATION SCHEDULE
+Collection actions shall be initiated based on Days Past Due (DPD):
+
+0-15 DPD (Bucket 0):
+- Automated SMS/email reminders on due date and +3 days
+- Courtesy call by customer service (Day 7)
+- No adverse action
+
+16-30 DPD (Bucket 1):
+- Daily SMS/email reminders
+- Collection officer call (Day 16, 20, 25)
+- Payment arrangement discussion
+- Late payment charges applied
+
+31-60 DPD (Bucket 2):
+- First Reminder Notice sent (physical + email) on Day 31
+- Collection officer field visit (if amount > INR 500,000)
+- Escalation to Senior Collection Manager
+- Payment plan negotiation
+- Account status: "Special Mention Account"
+
+61-90 DPD (Bucket 3):
+- Final Reminder Notice sent on Day 61
+- Legal Notice issued on Day 75
+- Guarantor/co-borrower contacted
+- Field visit mandatory
+- Account status: "Special Mention Account - SMA 2"
+
+91-180 DPD (NPA - Substandard):
+- Account classified as Non-Performing Asset (NPA)
+- Legal action initiated (suit filing process started) on Day 100
+- SARFAESI notice issued (if applicable)
+- Asset recovery process initiated
+- Account status: "Substandard Asset"
+
+181-365 DPD (NPA - Doubtful):
+- Continued legal proceedings
+- Asset auction/sale proceedings
+- Settlement negotiations
+- Account status: "Doubtful Asset"
+
+366+ DPD (NPA - Loss):
+- Write-off consideration
+- Final settlement attempts
+- Account status: "Loss Asset"
+
+11.2 COLLECTION ESCALATION COMPLIANCE
+Failure to escalate as per schedule is a serious deviation:
+- Collection actions shall not be delayed beyond scheduled timelines
+- All escalation steps shall be documented in system
+- Physical proof of notice delivery required
+
+11.3 LOAN RESTRUCTURING REQUIREMENTS
+Loan restructuring is permitted under specific circumstances:
+
+Restructuring Eligibility:
+- Genuine financial hardship (job loss, business disruption, medical emergency)
+- No willful default
+- Restructuring request before account becomes NPA (before 90 DPD)
+- Customer demonstrates repayment intent
+
+Restructuring Approval Authority:
+- Loan Amount up to INR 1,000,000: Regional Credit Manager
+- Loan Amount above INR 1,000,000: Credit Committee
+- Any NPA account restructuring: Credit Committee + CEO approval
+
+Restructuring shall NOT be granted without proper approval authority.
+Unauthorized restructuring is a critical compliance violation.
+
+Restructuring Documentation:
+- Customer's restructuring request (written)
+- Financial hardship evidence
+- Revised repayment schedule
+- Approval from appropriate authority
+- Updated loan agreement
+
+11.4 WRITE-OFF REQUIREMENTS
+Loan write-off is permitted only under strict conditions:
+
+Write-off Eligibility:
+- Account in "Loss" category (365+ DPD)
+- All recovery efforts exhausted
+- Legal proceedings concluded or unviable
+- Write-off recommended by Collections Head
+
+Write-off Approval Authority:
+- All write-offs: Board of Directors approval mandatory
+- Write-off proposal preparation: Chief Credit Officer
+- Credit Committee recommendation required before Board approval
+
+Write-off shall NOT occur without Board approval. Any unauthorized write-off
+will result in strict disciplinary action and potential fraud investigation.
+
+Write-off Documentation:
+- Detailed write-off proposal
+- Recovery effort summary
+- Legal opinion
+- Board meeting minutes
+- Regulatory reporting compliance
+
+================================================================================
+SECTION 12: REGULATORY COMPLIANCE AND ASSET CLASSIFICATION
+================================================================================
+
+12.1 ASSET CLASSIFICATION FRAMEWORK
+All loan accounts shall be classified based on Days Past Due (DPD) as follows:
+
+STANDARD ASSET:
+- DPD Range: 0 to 29 days
+- Definition: Loan account with no overdue or overdue up to 29 days
+- Provisioning Requirement: 0.25% of outstanding amount
+- Reporting: Regular loan portfolio
+
+SPECIAL MENTION ACCOUNT - SMA 0:
+- DPD Range: 0 (current but showing signs of stress)
+- Early warning indicators tracked
+- Provisioning: 0.25%
+
+SPECIAL MENTION ACCOUNT - SMA 1:
+- DPD Range: 30-60 days
+- Provisioning: 0.25%
+- Enhanced monitoring required
+
+SPECIAL MENTION ACCOUNT - SMA 2:
+- DPD Range: 61-89 days
+- Provisioning: 0.50%
+- Pre-NPA status, intensive collection efforts
+
+SUBSTANDARD ASSET (NPA):
+- DPD Range: 90 to 365 days
+- Definition: Non-Performing Asset for less than or equal to 12 months
+- Provisioning Requirement: 15% of outstanding amount
+- NPA Classification: Mandatory upon crossing 90 days
+- Interest Accrual: Stopped (interest recognized on cash basis only)
+
+DOUBTFUL ASSET (NPA):
+- DPD Range: 366 to 730 days (12-24 months)
+- Definition: NPA for more than 12 months but less than 24 months
+- Provisioning Requirement: 25% of outstanding amount (unsecured portion)
+- Secured portion provisioning: 15% (if realizable value of security sufficient)
+
+LOSS ASSET (NPA):
+- DPD Range: 731+ days (24+ months)
+- Definition: NPA for more than 24 months
+- Provisioning Requirement: 100% of outstanding amount
+- Write-off recommendation mandatory
+
+12.2 ASSET CLASSIFICATION COMPLIANCE
+Asset classification shall be accurate and timely:
+- Classification review: Monthly (as on month-end date)
+- System update: Within 7 days of month-end
+- Classification based on actual DPD (not projected DPD)
+- Any misclassification (reporting lower DPD category than actual) is a serious
+  regulatory violation
+
+12.3 PROVISIONING REQUIREMENTS
+Provisioning shall be made as per classification:
+- Provisioning calculated on outstanding principal + accrued interest
+- Provisioning adequacy verified monthly
+- Any provisioning shortfall (actual provisioning less than required) shall be
+  immediately rectified
+
+Provisioning Shortfall Tolerance:
+- Acceptable tolerance: ±2% of required provisioning
+- Beyond 2% shortfall: Reported as regulatory deviation
+- Shortfall rectification: Within same month
+
+12.4 NPA IDENTIFICATION AND REPORTING
+NPA identification process:
+- Daily monitoring of accounts approaching 90 DPD
+- System alert at 85 DPD for pending accounts
+- Automatic NPA marking on 90th day
+- NPA classification cannot be delayed or suppressed
+
+NPA Reporting:
+- Monthly NPA report to senior management
+- Quarterly NPA report to Board of Directors
+- Regulatory reporting as per prescribed format and timeline
+- Any delay in NPA reporting or misclassification will be treated as serious
+  compliance failure
+
+12.5 REGULATORY REPORTING SCHEDULE
+- Monthly: Portfolio quality report, NPA movement, provisioning status
+- Quarterly: Detailed asset quality review, restructuring report
+- Annual: Asset classification audit, credit policy compliance report
+
+Missing or late regulatory reports for NPA accounts (90+ DPD) will be flagged
+as critical compliance deviation.
+
+================================================================================
+SECTION 13: PORTFOLIO LIMITS AND CONCENTRATION RISK
+================================================================================
+
+13.1 CUSTOMER EXPOSURE LIMITS
+Maximum exposure to single customer (including group entities):
+
+Individual Customer:
+- Single Secured Personal Loan: INR 10,000,000 (maximum)
+- Total Exposure (all loan products): INR 15,000,000 (maximum)
+- If customer requests additional loan exceeding limit: Credit Committee
+  approval with special justification
+
+Group Exposure (related parties):
+- Total Group Exposure: INR 25,000,000 (maximum)
+- Related party definition: Family members, business partners, common directors
+
+Any loan sanctioned exceeding customer exposure limit without proper approval
+is a serious deviation.
+
+13.2 SECTOR CONCENTRATION LIMITS
+Maximum portfolio concentration in specific sectors:
+
+Real Estate Sector:
+- Maximum: 20% of total Secured Personal Loan portfolio
+- Includes loans taken for real estate purchase, construction, or where
+  borrower's primary income is from real estate business
+
+NBFC/Financial Services Sector:
+- Maximum: 15% of total portfolio
+- Includes borrowers employed in or owning NBFC/financial services firms
+
+Hospitality and Tourism Sector:
+- Maximum: 10% of total portfolio
+
+Textile and Garment Sector:
+- Maximum: 8% of total portfolio
+
+Emerging/High-Risk Sectors:
+- Maximum: 5% of total portfolio per sector
+
+Sector concentration review: Monthly
+Exceeding sector limit: New loan sanctions in that sector require Credit
+Committee approval with concentration risk assessment.
+
+13.3 BRANCH CONCENTRATION LIMITS
+Maximum portfolio concentration at branch level:
+
+Single Branch Exposure:
+- Maximum: 15% of total Secured Personal Loan portfolio
+- Objective: Prevent geographic concentration risk
+
+High-Performing Branch:
+- May be permitted up to 20% with Regional Manager approval
+- Requires monthly monitoring
+
+New Branch:
+- First 12 months: Maximum 5% of portfolio
+- Ensures quality over quantity in new branches
+
+13.4 GEOGRAPHIC CONCENTRATION LIMITS
+State/Region Level Concentration:
+- Single State: Maximum 30% of total portfolio
+- Single Metro City: Maximum 25% of total portfolio
+- Single Tier-2 City: Maximum 10% of total portfolio
+
+Objective: Diversification to mitigate regional economic risks
+
+13.5 CONCENTRATION RISK MONITORING
+- Monthly portfolio concentration analysis
+- Alert triggers when concentration reaches 80% of limit
+- Sanctions restricted when limit reached (Credit Committee override possible)
+- Annual concentration risk stress testing
+
+================================================================================
+SECTION 14: DATA QUALITY AND AUDIT TRAIL STANDARDS
+================================================================================
+
+14.1 MANDATORY DATA FIELDS
+The following fields are mandatory for every loan application and shall not be
+left blank or null:
+
+Core Mandatory Fields:
+- case_id (unique application reference number)
+- officer_id (loan officer/processor ID)
+- step_name (current workflow step name)
+- action (action taken: approved, rejected, pending, etc.)
+- timestamp (date and time of action)
+
+Customer Information:
+- customer_name
+- customer_age
+- customer_mobile
+- customer_email
+- customer_address
+
+Loan Details:
+- loan_amount_requested
+- loan_amount_sanctioned (after approval)
+- tenor_months
+- interest_rate
+- emi_amount
+
+Any application with missing core fields shall not proceed to next stage.
+
+14.2 DATA FORMAT STANDARDS
+Data shall be entered in prescribed formats:
+
+Date Format: YYYY-MM-DD (e.g., 2025-01-14)
+Time Format: HH:MM:SS (24-hour format)
+Currency Format: Numeric only, no currency symbols (e.g., 500000, not INR 5 Lakhs)
+Phone Number Format: 10 digits (e.g., 9876543210)
+Email Format: Valid email with @ and domain
+PAN Format: 10 characters (AAAAA9999A)
+Aadhaar Format: 12 digits
+
+Invalid format entries shall be rejected by system validation.
+
+14.3 DATA CONSISTENCY REQUIREMENTS
+Data consistency across workflow steps:
+- Customer name shall remain consistent across all steps (no variation)
+- Loan amount shall not change without approval modification
+- Customer age, PAN, Aadhaar shall be immutable (cannot change once entered)
+- Any inconsistency in core data across steps is a data quality deviation
+
+14.4 DUPLICATE CASE DETECTION
+System shall prevent duplicate active applications:
+- Duplicate detection based on: PAN, Aadhaar, Mobile Number, Email
+- If duplicate active case found: New application shall be rejected or merged
+- Same customer can have multiple loans only if previous loan is closed or in
+  repayment with good track record
+
+14.5 AUDIT TRAIL REQUIREMENTS
+Complete audit trail mandatory for all applications:
+- Every action logged with timestamp, user ID, and action taken
+- No deletion of historical records permitted
+- Modification history tracked (what changed, when, by whom)
+- Audit log retention: Minimum 7 years
+
+Missing audit trail or log gaps will be flagged as serious compliance issue.
+
+14.6 DATA QUALITY AUDIT
+Monthly data quality audit:
+- Random sample of 5% of loans reviewed for data accuracy
+- Completeness check (no missing mandatory fields)
+- Consistency check (data matches across documents)
+- Format compliance check
+
+Data quality score maintained per branch and per loan officer.
+
+================================================================================
+SECTION 15: CONDITIONAL AND PRODUCT-SPECIFIC RULES
+================================================================================
+
+15.1 PRODUCT VARIANTS
+This SOP covers standard Secured Personal Loans. Product variants may have
+modified rules as specified:
+
+15.1.1 SECURED PERSONAL LOAN - SALARIED (Standard Product)
+All rules in this SOP apply as stated.
+
+15.1.2 SECURED PERSONAL LOAN - SELF-EMPLOYED (Product Variant)
+Modified rules:
+- Minimum income: INR 40,000/month (higher than salaried)
+- Business vintage: Minimum 3 years
+- ITR mandatory: Last 2 years
+- EMI-to-Income: Maximum 50% (lower than salaried)
+- Additional documents: GST returns, Business bank statements 12 months
+- Valuation: Mandatory for all loan amounts (no waiver)
+
+15.1.3 SECURED PERSONAL LOAN - GOLD BACKED (Product Variant)
+Modified rules:
+- Maximum loan amount: INR 5,000,000
+- Maximum LTV: 75% of gold value
+- Gold purity: Minimum 22 carat
+- Gold valuation: By certified gold assessor
+- Physical possession: Mandatory (gold stored in bank locker)
+- Maximum tenor: 48 months (shorter than standard)
+- Simplified documentation: Income proof may be waived for loans < INR 1,000,000
+
+15.1.4 SECURED PERSONAL LOAN - PROPERTY BACKED (Product Variant)
+Modified rules:
+- Property valuation: Mandatory (no waiver)
+- Legal opinion: Mandatory from bank's panel advocate
+- Property insurance: Mandatory throughout loan tenor
+- Mortgage registration: Mandatory before disbursement
+- Maximum LTV: 75% for residential, 70% for commercial
+- Property age: Maximum 30 years for residential, 20 years for commercial
+
+15.2 CUSTOMER SEGMENT-SPECIFIC RULES
+
+15.2.1 EXISTING CUSTOMERS (Premium Banking)
+Existing customers with excellent relationship (no defaults, premium banking
+relationship of 5+ years) may receive:
+- Expedited processing (5-7 days TAT)
+- Maximum age relaxation: 68 years (instead of 65)
+- Pre-approved loan offers (subject to refreshed credit check)
+- Documentation: Some income documents may be waived (bank statements sufficient)
+- Interest rate: Preferential rate (0.5% lower than standard)
+
+15.2.2 NEW CUSTOMERS
+Standard rules apply. No relaxations permitted for first-time customers.
+
+15.2.3 HIGH NET WORTH INDIVIDUALS (HNI)
+Customers with net worth > INR 10,000,000 and relationship value > INR 5,000,000:
+- Dedicated relationship manager
+- Customized loan structures permitted (with Credit Committee approval)
+- Higher loan amounts: Up to INR 15,000,000 (instead of INR 10,000,000)
+- EMI-to-Income: May be relaxed to 60% (with adequate collateral)
+
+15.3 CHANNEL-SPECIFIC RULES
+
+15.3.1 BRANCH CHANNEL (Traditional)
+- All documentation in physical form acceptable
+- Original document verification mandatory
+- Personal interaction with customer required
+- TAT: 10-12 working days (standard)
+
+15.3.2 DIGITAL LENDING PLATFORM (Online)
+- Digital documentation acceptable (PDF, scanned images)
+- eKYC permitted (Aadhaar-based)
+- Video KYC acceptable (for identity verification)
+- eSign for loan agreement
+- TAT: 5-7 working days (faster processing)
+- Loan amount limit: INR 3,000,000 (lower than branch channel)
+- Face-to-face verification waived for loans < INR 1,000,000 with eKYC
+
+15.4 LOAN AMOUNT-BASED RULES
+
+15.4.1 SMALL TICKET LOANS (INR 100,000 to INR 500,000)
+Simplified processing:
+- Branch Manager approval sufficient (no escalation)
+- Valuation: Simplified (desktop valuation acceptable)
+- Credit Committee: Not required
+- Income verification: Bank statements of 3 months sufficient
+- Processing time: 5-7 days
+
+15.4.2 MEDIUM TICKET LOANS (INR 500,001 to INR 3,000,000)
+Standard processing:
+- All rules as per this SOP apply
+- Regional Credit Manager approval required for amounts > INR 1,000,000
+- Full valuation mandatory
+- Processing time: 10-12 days
+
+15.4.3 LARGE TICKET LOANS (INR 3,000,001 to INR 10,000,000)
+Enhanced scrutiny:
+- Credit Committee approval mandatory
+- Two independent valuations required
+- Enhanced documentation: Wealth statement, source of income declaration
+- Field investigation mandatory
+- Senior management interview (loan amounts > INR 5,000,000)
+- Processing time: 15-18 days
+
+15.5 EXCEPTION SCENARIO RULES
+Certain scenarios require conditional approvals:
+
+Scenario: Credit Score 650-699 (Below preferred but above minimum)
+Condition: Regional Credit Manager approval + Enhanced documentation + Higher
+interest rate (+1% loading)
+
+Scenario: Customer Age 63-65 years
+Condition: Tenor restricted to ensure maturity before age 68 + Life insurance
+cover mandatory
+
+Scenario: Self-employed with business vintage 2-3 years (less than standard 3 years)
+Condition: Higher collateral (LTV max 65%) + Co-borrower with stable income +
+Credit Committee approval
+
+Scenario: LTV 75-80% (higher than standard 75%)
+Condition: Excellent credit score (750+) + Stable employment (5+ years) +
+Regional Credit Manager approval
+
+Scenario: EMI-to-Income 55-60% (higher than standard 55%)
+Condition: Very high income (>INR 100,000/month) + Stable employment + Additional
+collateral security
+
+================================================================================
+SECTION 16: POLICY REVIEW AND AMENDMENTS
+================================================================================
+
+16.1 POLICY REVIEW FREQUENCY
+This SOP shall be reviewed:
+- Annually: Comprehensive review by Credit Policy Committee
+- Quarterly: Performance review and minor amendments if required
+- As needed: In case of regulatory changes or significant market events
+
+16.2 AMENDMENT PROCESS
+Any amendment to this SOP requires:
+- Proposal by Credit Policy Team
+- Impact assessment
+- Credit Policy Committee approval
+- Board notification (for major changes)
+- Communication to all staff
+- Training on amendments
+
+16.3 COMPLIANCE AND AUDIT
+Internal Audit:
+- Quarterly audit of SOP compliance
+- Sample-based review of loan files
+- Deviation analysis and reporting
+- Corrective action recommendations
+
+External Audit:
+- Annual audit by external auditors
+- Regulatory audit/inspection compliance
+
+16.4 DEVIATION REPORTING
+Any deviation from this SOP shall be:
+- Reported to Regional Manager within 24 hours
+- Documented in deviation register
+- Root cause analyzed
+- Corrective action initiated
+- Repeated deviations: Escalated to Credit Head
+
+================================================================================
+SECTION 17: TRAINING AND AWARENESS
+================================================================================
+
+All staff involved in loan processing shall undergo:
+- Initial training: 3-day comprehensive SOP training for new joiners
+- Refresher training: Annual (1-day training on updates)
+- Compliance training: Quarterly (focus on regulatory requirements)
+- Assessment: Post-training assessment (minimum 80% score required)
+
+================================================================================
+SECTION 18: APPROVAL AND SIGN-OFF
+================================================================================
+
+This Standard Operating Procedure has been reviewed and approved by:
+
+Prepared by:
+Name: Rahul Sharma
+Designation: Senior Manager - Credit Policy
+Date: December 15, 2024
+
+Reviewed by:
+Name: Priya Mehta
+Designation: Chief Credit Officer
+Date: December 20, 2024
+
+Approved by:
+Name: Anil Kumar
+Designation: Chief Executive Officer
+Date: January 1, 2025
+
+Credit Policy Committee Approval:
+Meeting Date: December 28, 2024
+Resolution No: CPC/2024/12/045
+
+Board of Directors Notification:
+Meeting Date: January 5, 2025
+Agenda Item: 7.3
+
+================================================================================
+END OF DOCUMENT
+================================================================================
+
+Distribution List:
+- All Branch Managers
+- All Credit Managers
+- All Loan Officers
+- Operations Teams
+- Collections and Recovery Teams
+- Compliance Team
+- Internal Audit Team
+- Risk Management Team
+
+Document Classification: Internal - Confidential
+Document Storage: Corporate Policy Repository - Credit Policies Folder
+Version Control: Maintained by Credit Policy Team
+
+For queries or clarifications, contact:
+Credit Policy Team
+Email: credit.policy@bankabc.com
+Phone: +91-22-12345678 Ext: 3456
+
+================================================================================

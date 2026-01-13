@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 from datetime import datetime
 from collections import defaultdict
+from .rule_parser import RuleParser
 
 class SequenceChecker:
     """
@@ -32,16 +33,20 @@ class SequenceChecker:
 
     @staticmethod
     def check_sequence(logs: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Check if logs follow expected sequence"""
+        """
+        Check if logs follow expected sequence.
+
+        STRICT MODE: Only validates if SOP explicitly defines sequence rules.
+        If no sequence rules exist, returns empty list (no validation, no false positives).
+        """
         deviations = []
 
-        # Extract sequence rules
-        sequence_rules = [r for r in rules if r.get('rule_type') == 'sequence']
-        if not sequence_rules:
-            return deviations
+        # Extract expected sequence from SOP rules
+        expected_sequence = RuleParser.extract_sequence_steps(rules)
 
-        # Build expected sequence from rules
-        expected_sequence = SequenceChecker._build_expected_sequence(sequence_rules)
+        # STRICT MODE: If no explicit sequence defined in SOP, skip validation
+        if expected_sequence is None or len(expected_sequence) == 0:
+            return deviations
 
         # Group logs by case_id
         cases = defaultdict(list)
@@ -69,43 +74,6 @@ class SequenceChecker:
 
         return deviations
 
-    @staticmethod
-    def _build_expected_sequence(sequence_rules: List[Dict[str, Any]]) -> List[str]:
-        """Build expected sequence from rules"""
-        # Extract step names from rule descriptions
-        expected_steps = []
-
-        for rule in sorted(sequence_rules, key=lambda x: x.get('step_number') if x.get('step_number') is not None else 999):
-            desc = rule['rule_description']
-            # Extract step name (simple heuristic)
-            if 'income verification' in desc.lower():
-                expected_steps.append('Income Verification')
-            elif 'document verification' in desc.lower() or 'verify documents' in desc.lower():
-                expected_steps.append('Document Verification')
-            elif 'credit check' in desc.lower():
-                expected_steps.append('Credit Check')
-            elif 'risk assessment' in desc.lower():
-                expected_steps.append('Risk Assessment')
-            elif 'manager approval' in desc.lower():
-                expected_steps.append('Manager Approval')
-            elif 'final approval' in desc.lower():
-                expected_steps.append('Final Approval')
-            elif 'application received' in desc.lower():
-                expected_steps.append('Application Received')
-
-        # Default sequence if no specific steps extracted
-        if not expected_steps:
-            expected_steps = [
-                'Application Received',
-                'Document Verification',
-                'Income Verification',
-                'Credit Check',
-                'Risk Assessment',
-                'Manager Approval',
-                'Final Approval'
-            ]
-
-        return expected_steps
 
     @staticmethod
     def _compare_sequences(
@@ -121,9 +89,16 @@ class SequenceChecker:
         # Extract case start time (timestamp of first log entry)
         case_start_time = logs[0]['timestamp'] if logs else None
 
-        # Check for missing steps
+        # Check if case has reached disbursement (completion marker)
+        # Only check for missing steps if case is complete (has disbursement)
+        has_disbursement = any('disbursement' in log['step_name'].lower() for log in logs)
+
+        # Check for missing steps (only for completed cases)
         missing_steps = set(expected) - set(actual)
         for step in missing_steps:
+            # Skip missing-step detection if case hasn't reached disbursement yet
+            if not has_disbursement:
+                continue
             deviations.append({
                 'case_id': case_id,
                 'officer_id': officer_id,
@@ -163,21 +138,10 @@ class SequenceChecker:
                         }
                     })
 
-        # Check for unexpected steps
-        unexpected_steps = set(actual) - set(expected)
-        for step in unexpected_steps:
-            deviations.append({
-                'case_id': case_id,
-                'officer_id': officer_id,
-                'timestamp': case_start_time,
-                'deviation_type': 'unexpected_step',
-                'severity': 'medium',
-                'description': f'Unexpected step performed: {step}',
-                'expected_behavior': 'Only standard SOP steps should be performed',
-                'actual_behavior': f'Unexpected step "{step}" was performed',
-                'context': {
-                    'unexpected_step': step
-                }
-            })
+        # REMOVED: unexpected_step detection (STRICT MODE)
+        # In strict mode, we only validate the sequence defined in SOP.
+        # We do NOT flag steps that aren't in the sequence as "unexpected"
+        # because the sequence might be partial. The SOP might only define
+        # critical ordering constraints, not every possible step.
 
         return deviations

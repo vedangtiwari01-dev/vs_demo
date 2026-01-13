@@ -21,8 +21,8 @@ export const workflowAPI = {
     return response.data;
   },
 
-  analyze: async () => {
-    const response = await apiClient.post('/workflows/analyze');
+  analyze: async (sopId) => {
+    const response = await apiClient.post('/workflows/analyze', { sopId });
     return response.data;
   },
 

@@ -18,6 +18,8 @@ from app.services.deviation.data_quality_checker import DataQualityChecker
 from app.services.deviation.conditional_rule_evaluator import ConditionalRuleEvaluator
 from app.services.deviation.temporal_rule_evaluator import TemporalRuleEvaluator
 from app.services.deviation.regulatory_aggregator import RegulatoryAggregator
+from app.utils.clean_logger import clean_logger
+from collections import Counter
 
 router = APIRouter(prefix='/ai/deviation', tags=['Deviation Detection'])
 
@@ -33,24 +35,22 @@ REGULATORY_LIMITS = {
 @router.post('/detect', response_model=DeviationDetectionResponse)
 async def detect_deviations(request: DeviationDetectionRequest):
     """Detect all deviations in workflow logs"""
-    import logging
     import traceback
-    logger = logging.getLogger(__name__)
 
     try:
-        logger.info(f"Received {len(request.logs)} logs and {len(request.rules)} rules")
+        clean_logger.endpoint('POST', '/ai/deviation/detect', {
+            'Logs': len(request.logs),
+            'Rules': len(request.rules)
+        })
+        timer = clean_logger.start_timer()
 
         # Convert logs to dict format (Pydantic v2 uses model_dump())
         logs_dict = [log.model_dump() for log in request.logs]
         rules_dict = [rule.model_dump() for rule in request.rules]
 
-        logger.info(f"Sample rule after model_dump: {rules_dict[0] if rules_dict else 'No rules'}")
-        logger.info(f"Sample log after model_dump: {logs_dict[0] if logs_dict else 'No logs'}")
-
         # ===================================================================
         # STEP 0: CLEAN WORKFLOW LOGS (Before deviation detection)
         # ===================================================================
-        logger.info("--- Step 0: Cleaning Workflow Logs ---")
         from app.services.data import WorkflowLogCleaner
 
         cleaned_logs, log_cleaning_report = WorkflowLogCleaner.clean_logs(
@@ -58,15 +58,20 @@ async def detect_deviations(request: DeviationDetectionRequest):
             remove_duplicates=True,
             validate_types=True,
             handle_missing=True,
-            normalize_text=True
+            normalize_text=True,
+            rules=rules_dict  # Pass rules for missing field analysis
         )
 
         log_quality = WorkflowLogCleaner.get_data_quality_score(log_cleaning_report)
-        logger.info(f"Workflow log cleaning complete: {len(logs_dict)} → {len(cleaned_logs)} logs")
-        logger.info(f"Log Quality Score: {log_quality['score']}/100 (Grade: {log_quality['grade']})")
+
+        clean_logger.step('Data Cleaning', {
+            'Input logs': len(logs_dict),
+            'Cleaned logs': len(cleaned_logs),
+            'Quality': f"{log_quality['score']}/100 ({log_quality['grade']})"
+        })
 
         if len(cleaned_logs) == 0:
-            logger.error("No valid logs after cleaning")
+            clean_logger.error("No valid logs after cleaning")
             return DeviationDetectionResponse(deviations=[])
 
         # Use cleaned logs for deviation detection
@@ -74,112 +79,48 @@ async def detect_deviations(request: DeviationDetectionRequest):
 
         # ===================================================================
         # DEVIATION DETECTION: Run all 13 checkers (with defensive error handling)
-        # Enhanced with: ConditionalRuleEvaluator, TemporalRuleEvaluator, RegulatoryAggregator
         # ===================================================================
         all_deviations = []
+        checker_results = {}
 
-        # Core checkers (always run)
-        logger.info("Running core deviation checkers...")
+        checkers = [
+            ('SequenceChecker', lambda: SequenceChecker.check_sequence(logs_dict, rules_dict)),
+            ('RuleValidator', lambda: RuleValidator.validate_all(logs_dict, rules_dict)),
+            ('DataQualityChecker', lambda: DataQualityChecker.check_data_quality(logs_dict, rules_dict)),
+            ('EligibilityChecker', lambda: EligibilityChecker.check_eligibility(logs_dict, rules_dict)),
+            ('KYCChecker', lambda: KYCChecker.check_kyc(logs_dict, rules_dict)),
+            ('DocumentationChecker', lambda: DocumentationChecker.check_documentation(logs_dict, rules_dict)),
+            ('CollateralChecker', lambda: CollateralChecker.check_collateral(logs_dict, rules_dict)),
+            ('DisbursementChecker', lambda: DisbursementChecker.check_disbursement(logs_dict, rules_dict)),
+            ('CollectionChecker', lambda: CollectionChecker.check_collection(logs_dict, rules_dict)),
+            ('RegulatoryChecker', lambda: RegulatoryChecker.check_regulatory(logs_dict, rules_dict)),
+            ('ConditionalRuleEvaluator', lambda: ConditionalRuleEvaluator.evaluate(logs_dict, rules_dict)),
+            ('TemporalRuleEvaluator', lambda: TemporalRuleEvaluator.evaluate(logs_dict, rules_dict)),
+            ('RegulatoryAggregator', lambda: RegulatoryAggregator.evaluate(logs_dict, rules_dict, REGULATORY_LIMITS)),
+        ]
 
-        try:
-            sequence_deviations = SequenceChecker.check_sequence(logs_dict, rules_dict)
-            logger.info(f"  - SequenceChecker: {len(sequence_deviations)} deviations")
-            all_deviations.extend(sequence_deviations)
-        except Exception as e:
-            logger.warning(f"SequenceChecker failed: {e}")
+        for checker_name, checker_func in checkers:
+            try:
+                deviations = checker_func()
+                checker_results[checker_name] = len(deviations)
+                all_deviations.extend(deviations)
+            except Exception as e:
+                clean_logger.warn(f'{checker_name} failed', str(e))
+                checker_results[checker_name] = 0
 
-        try:
-            rule_deviations = RuleValidator.validate_all(logs_dict, rules_dict)
-            logger.info(f"  - RuleValidator: {len(rule_deviations)} deviations")
-            all_deviations.extend(rule_deviations)
-        except Exception as e:
-            logger.warning(f"RuleValidator failed: {e}")
+        # Show aggregated checker results
+        clean_logger.aggregated('Checker Results', checker_results)
 
-        try:
-            data_quality_deviations = DataQualityChecker.check_data_quality(logs_dict, rules_dict)
-            logger.info(f"  - DataQualityChecker: {len(data_quality_deviations)} deviations")
-            all_deviations.extend(data_quality_deviations)
-        except Exception as e:
-            logger.warning(f"DataQualityChecker failed: {e}")
+        # Show deviations by type
+        deviation_types = Counter(d['deviation_type'] for d in all_deviations)
+        clean_logger.aggregated('Deviations by Type', dict(deviation_types))
 
-        # Extended checkers (run if data/rules available - gracefully skip if not)
-        logger.info("Running extended deviation checkers...")
-
-        try:
-            eligibility_deviations = EligibilityChecker.check_eligibility(logs_dict, rules_dict)
-            logger.info(f"  - EligibilityChecker: {len(eligibility_deviations)} deviations")
-            all_deviations.extend(eligibility_deviations)
-        except Exception as e:
-            logger.warning(f"EligibilityChecker failed: {e}")
-
-        try:
-            kyc_deviations = KYCChecker.check_kyc(logs_dict, rules_dict)
-            logger.info(f"  - KYCChecker: {len(kyc_deviations)} deviations")
-            all_deviations.extend(kyc_deviations)
-        except Exception as e:
-            logger.warning(f"KYCChecker failed: {e}")
-
-        try:
-            doc_deviations = DocumentationChecker.check_documentation(logs_dict, rules_dict)
-            logger.info(f"  - DocumentationChecker: {len(doc_deviations)} deviations")
-            all_deviations.extend(doc_deviations)
-        except Exception as e:
-            logger.warning(f"DocumentationChecker failed: {e}")
-
-        try:
-            collateral_deviations = CollateralChecker.check_collateral(logs_dict, rules_dict)
-            logger.info(f"  - CollateralChecker: {len(collateral_deviations)} deviations")
-            all_deviations.extend(collateral_deviations)
-        except Exception as e:
-            logger.warning(f"CollateralChecker failed: {e}")
-
-        try:
-            disbursement_deviations = DisbursementChecker.check_disbursement(logs_dict, rules_dict)
-            logger.info(f"  - DisbursementChecker: {len(disbursement_deviations)} deviations")
-            all_deviations.extend(disbursement_deviations)
-        except Exception as e:
-            logger.warning(f"DisbursementChecker failed: {e}")
-
-        try:
-            collection_deviations = CollectionChecker.check_collection(logs_dict, rules_dict)
-            logger.info(f"  - CollectionChecker: {len(collection_deviations)} deviations")
-            all_deviations.extend(collection_deviations)
-        except Exception as e:
-            logger.warning(f"CollectionChecker failed: {e}")
-
-        try:
-            regulatory_deviations = RegulatoryChecker.check_regulatory(logs_dict, rules_dict)
-            logger.info(f"  - RegulatoryChecker: {len(regulatory_deviations)} deviations")
-            all_deviations.extend(regulatory_deviations)
-        except Exception as e:
-            logger.warning(f"RegulatoryChecker failed: {e}")
-
-        try:
-            conditional_deviations = ConditionalRuleEvaluator.evaluate(logs_dict, rules_dict)
-            logger.info(f"  - ConditionalRuleEvaluator: {len(conditional_deviations)} deviations")
-            all_deviations.extend(conditional_deviations)
-        except Exception as e:
-            logger.warning(f"ConditionalRuleEvaluator failed: {e}")
-
-        # NEW: Temporal Rule Evaluator (step-to-step timing constraints)
-        try:
-            temporal_deviations = TemporalRuleEvaluator.evaluate(logs_dict, rules_dict)
-            logger.info(f"  - TemporalRuleEvaluator: {len(temporal_deviations)} deviations")
-            all_deviations.extend(temporal_deviations)
-        except Exception as e:
-            logger.warning(f"TemporalRuleEvaluator failed: {e}")
-
-        # NEW: Regulatory Aggregator (portfolio-level compliance)
-        try:
-            regulatory_agg_deviations = RegulatoryAggregator.evaluate(
-                logs_dict, rules_dict, REGULATORY_LIMITS
-            )
-            logger.info(f"  - RegulatoryAggregator: {len(regulatory_agg_deviations)} deviations")
-            all_deviations.extend(regulatory_agg_deviations)
-        except Exception as e:
-            logger.warning(f"RegulatoryAggregator failed: {e}")
-
-        logger.info(f"Total deviations detected across 13 checkers: {len(all_deviations)}")
+        clean_logger.success('Deviation Detection Complete', {
+            'Total deviations': len(all_deviations),
+            'Checkers run': len(checker_results),
+            'Data quality': f"{log_quality['score']}/100",
+            'Time': clean_logger.get_elapsed(timer)
+        })
 
         return DeviationDetectionResponse(
             deviations=all_deviations,
@@ -187,8 +128,7 @@ async def detect_deviations(request: DeviationDetectionRequest):
             log_quality=log_quality
         )
     except Exception as e:
-        logger.error(f"Deviation detection failed: {str(e)}")
-        logger.error(traceback.format_exc())
+        clean_logger.error('Deviation detection failed', e)
         raise HTTPException(status_code=500, detail=f"Deviation detection error: {str(e)}")
 
 @router.post('/validate-sequence')
@@ -244,17 +184,18 @@ async def analyze_patterns(request: PatternAnalysisRequest):
     """
     try:
         from app.services.deviation.notes_analyzer import NotesAnalyzer
-        from app.services.data import DataCleaner, StatisticalAnalyzer
+        from app.services.data import StatisticalAnalyzer
         from app.models.schemas import PatternAnalysisResponse
-        import logging
 
-        logger = logging.getLogger(__name__)
-        logger.info(f"=== LAYERED PATTERN ANALYSIS STARTED ===")
-        logger.info(f"Pattern analysis requested for {len(request.deviations)} deviations")
+        clean_logger.endpoint('POST', '/ai/deviation/analyze-patterns', {
+            'Deviations': len(request.deviations),
+            'Workflow logs': len(request.workflow_logs) if request.workflow_logs else 0
+        })
+        timer = clean_logger.start_timer()
 
         # Check if we have any deviations at all
         if len(request.deviations) == 0:
-            logger.warning("No deviations provided for analysis")
+            clean_logger.warn("No deviations provided for analysis")
             return PatternAnalysisResponse(
                 overall_summary="No deviations provided for pattern analysis",
                 behavioral_patterns=[],
@@ -279,10 +220,8 @@ async def analyze_patterns(request: PatternAnalysisRequest):
         log_cleaning_report = None
         log_quality = None
         if request.workflow_logs:
-            logger.info("--- Step 0: Analyzing Workflow Log Quality ---")
             from app.services.data import WorkflowLogCleaner
 
-            # Calculate what cleaning would have done (read-only analysis)
             _, log_cleaning_report = WorkflowLogCleaner.clean_logs(
                 request.workflow_logs,
                 remove_duplicates=True,
@@ -292,29 +231,30 @@ async def analyze_patterns(request: PatternAnalysisRequest):
             )
             log_quality = WorkflowLogCleaner.get_data_quality_score(log_cleaning_report)
 
-            logger.info(f"Workflow log quality: {log_quality['score']}/100 (Grade: {log_quality['grade']})")
-        else:
-            logger.warning("No workflow logs provided - log quality assessment unavailable")
+            clean_logger.debug('Workflow log quality', {
+                'score': f"{log_quality['score']}/100",
+                'grade': log_quality['grade']
+            })
 
         # ===================================================================
         # LAYER 1: USE ALL DEVIATIONS (NO CLEANING)
         # ===================================================================
-        # NOTE: We do NOT clean deviations because:
-        # 1. Multiple occurrences of same deviation type are VALID (not duplicates)
-        # 2. Repeated violations are important for pattern analysis
-        # 3. Data quality is ensured by cleaning workflow logs BEFORE deviation detection
-        logger.info("--- Layer 1: Using all deviations (no cleaning) ---")
         cleaned_deviations = request.deviations  # Use all deviations
-        logger.info(f"Total deviations to analyze: {len(cleaned_deviations)}")
+
+        clean_logger.step('Layered Analysis Pipeline', {
+            'Layer 1': 'Data validation',
+            'Layer 2': 'Statistical analysis',
+            'Layer 3': 'ML clustering & anomaly detection',
+            'Layer 4': 'AI pattern recognition',
+            'Deviations': len(cleaned_deviations)
+        })
 
         # ===================================================================
         # LAYER 2: STATISTICAL ANALYSIS (Basic + Advanced)
         # ===================================================================
-        logger.info("--- Layer 2: Statistical Analysis ---")
         statistical_analysis = StatisticalAnalyzer.analyze(cleaned_deviations)
 
         # Add advanced statistical analysis
-        logger.info("--- Layer 2a: Advanced Statistical Analysis ---")
         from app.services.data import AdvancedStatistics
 
         # Correlations and lift/odds on deviations
@@ -322,37 +262,28 @@ async def analyze_patterns(request: PatternAnalysisRequest):
         statistical_analysis['lift_and_odds'] = AdvancedStatistics.calculate_lift_and_odds(cleaned_deviations)
 
         # Time-series, control charts, change-point detection on WORKFLOW LOGS (if provided)
-        # This shows workflow health trends, not just deviation trends
         if request.workflow_logs:
-            logger.info(f"Analyzing workflow logs for temporal patterns ({len(request.workflow_logs)} logs)")
             statistical_analysis['time_series'] = AdvancedStatistics.time_series_analysis_logs(request.workflow_logs)
             statistical_analysis['control_charts'] = AdvancedStatistics.control_charts_logs(request.workflow_logs)
             statistical_analysis['change_points'] = AdvancedStatistics.change_point_detection_logs(request.workflow_logs)
         else:
-            logger.warning("No workflow logs provided - temporal analysis will be limited")
             statistical_analysis['time_series'] = {'available': False, 'message': 'Workflow logs not provided'}
             statistical_analysis['control_charts'] = {'available': False, 'message': 'Workflow logs not provided'}
             statistical_analysis['change_points'] = {'available': False, 'message': 'Workflow logs not provided'}
 
-        logger.info("Advanced statistical analysis complete")
-
-        logger.info(f"Statistical analysis complete:")
-        logger.info(f"  - Total deviations: {statistical_analysis['overview']['total_deviations']}")
-        logger.info(f"  - Unique cases: {statistical_analysis['overview']['unique_cases']}")
-        logger.info(f"  - Unique officers: {statistical_analysis['overview']['unique_officers']}")
-        logger.info(f"  - Severity score: {statistical_analysis['severity_distribution']['severity_score']}/100")
-        logger.info(f"  - Top deviation type: {statistical_analysis['deviation_type_distribution']['top_10_types'][0]['type'] if statistical_analysis['deviation_type_distribution']['top_10_types'] else 'N/A'}")
-
-        # Count deviations with notes (for logging)
         deviations_with_notes = [d for d in cleaned_deviations if d.get('notes')]
-        logger.info(f"Found {len(deviations_with_notes)} deviations with notes, "
-                   f"{len(cleaned_deviations) - len(deviations_with_notes)} without notes")
+
+        clean_logger.step('Statistical Analysis', {
+            'Total deviations': statistical_analysis['overview']['total_deviations'],
+            'Unique cases': statistical_analysis['overview']['unique_cases'],
+            'Unique officers': statistical_analysis['overview']['unique_officers'],
+            'Severity score': f"{statistical_analysis['severity_distribution']['severity_score']}/100",
+            'With notes': len(deviations_with_notes)
+        })
 
         # ===================================================================
         # LAYER 3: ML ANALYSIS (clustering, anomaly detection, sampling)
         # ===================================================================
-        logger.info("--- Layer 3: ML Analysis ---")
-        logger.info("Running ML pipeline: feature engineering, clustering, anomaly detection, intelligent sampling...")
 
         # Import ML pipeline
         from app.services.ml.ml_pipeline import MLPipeline
@@ -370,21 +301,20 @@ async def analyze_patterns(request: PatternAnalysisRequest):
         ml_metadata = ml_results['ml_metadata']
 
         if ml_metadata.get('ml_applied'):
-            logger.info(f"ML analysis complete:")
-            logger.info(f"  - Original: {len(cleaned_deviations)} deviations")
-            logger.info(f"  - Selected: {len(ml_selected_deviations)} deviations")
-            logger.info(f"  - Compression: {ml_metadata['sampling']['compression_ratio']:.1f}x")
-            logger.info(f"  - Clusters: {ml_metadata['clustering']['n_clusters']}")
-            logger.info(f"  - Anomalies: {ml_metadata['anomaly_detection']['n_anomalies']}")
+            clean_logger.step('ML Analysis', {
+                'Original': len(cleaned_deviations),
+                'Selected': len(ml_selected_deviations),
+                'Compression': f"{ml_metadata['sampling']['compression_ratio']:.1f}x",
+                'Clusters': ml_metadata['clustering']['n_clusters'],
+                'Anomalies': ml_metadata['anomaly_detection']['n_anomalies']
+            })
         else:
-            logger.warning(f"ML analysis skipped: {ml_metadata.get('reason', 'unknown')}")
+            clean_logger.warn('ML analysis skipped', ml_metadata.get('reason', 'unknown'))
             ml_selected_deviations = cleaned_deviations  # Use all if ML not applied
 
         # ===================================================================
         # LAYER 4: AI PATTERN ANALYSIS (with statistical + ML context)
         # ===================================================================
-        logger.info("--- Layer 4: AI Pattern Analysis ---")
-        logger.info("Preparing context-enhanced analysis with statistical insights and ML labels...")
 
         # Initialize notes analyzer
         analyzer = NotesAnalyzer()
@@ -447,26 +377,20 @@ async def analyze_patterns(request: PatternAnalysisRequest):
             }
             pattern_result['ml_metadata'] = None
 
-        logger.info("=== LAYERED PATTERN ANALYSIS COMPLETED (4 LAYERS) ===")
-        logger.info(f"Response includes:")
-        logger.info(f"  - log_cleaning_report: {bool(pattern_result.get('log_cleaning_report'))}")
-        logger.info(f"  - log_quality: {bool(pattern_result.get('log_quality'))}")
-        if pattern_result.get('log_quality'):
-            logger.info(f"    - quality score: {pattern_result['log_quality']['score']}/100 (Grade: {pattern_result['log_quality']['grade']})")
-        logger.info(f"  - temporal_patterns: {bool(pattern_result.get('statistical_summary', {}).get('temporal_patterns'))}")
-        logger.info(f"  - officer_statistics: {bool(pattern_result.get('statistical_summary', {}).get('officer_statistics'))}")
-        logger.info(f"  - ml_metadata: {bool(pattern_result.get('ml_metadata'))}")
-        if pattern_result.get('ml_metadata'):
-            features = pattern_result['ml_metadata'].get('feature_engineering', {}).get('n_features')
-            logger.info(f"  - features created: {features}")
+        clean_logger.success('Pattern Analysis Complete', {
+            'Behavioral patterns': len(pattern_result.get('behavioral_patterns', [])),
+            'Hidden rules': len(pattern_result.get('hidden_rules', [])),
+            'Recommendations': len(pattern_result.get('recommendations', [])),
+            'Risk insights': len(pattern_result.get('risk_insights', [])),
+            'ML applied': ml_metadata.get('ml_applied', False),
+            'Time': clean_logger.get_elapsed(timer)
+        })
+
         return PatternAnalysisResponse(**pattern_result)
 
     except Exception as e:
-        import logging
         import traceback
-        logger = logging.getLogger(__name__)
-        logger.error(f"Pattern analysis failed: {str(e)}")
-        logger.error(traceback.format_exc())
+        clean_logger.error('Pattern analysis failed', e)
 
         raise HTTPException(
             status_code=500,

@@ -45,11 +45,8 @@ class TemporalRuleEvaluator:
         # Get temporal rules (rules with temporal_constraint field)
         temporal_rules = [r for r in rules if r.get('temporal_constraint')]
 
-        print(f"[TemporalRuleEvaluator] Total cases: {len(cases)}, Temporal rules: {len(temporal_rules)}")
-
         for case_id, case_logs in cases.items():
             # Sort by timestamp for sequential analysis
-            print(f"[TemporalRuleEvaluator] Processing case: {case_id}")
             try:
                 def parse_timestamp(log):
                     ts = log['timestamp']
@@ -61,9 +58,7 @@ class TemporalRuleEvaluator:
                     return datetime.fromisoformat(ts)
 
                 case_logs.sort(key=parse_timestamp)
-                print(f"[TemporalRuleEvaluator] Successfully sorted {len(case_logs)} logs for {case_id}")
             except (ValueError, KeyError) as e:
-                print(f"[TemporalRuleEvaluator] ERROR: Failed to sort timestamps for {case_id}: {e}")
                 continue  # Skip if timestamps are invalid
 
             for rule in temporal_rules:
@@ -103,14 +98,9 @@ class TemporalRuleEvaluator:
         Returns:
             Deviation dict if violated, None otherwise
         """
-        # DEBUG: Print for ALL cases to see what's being checked
-        print(f"[TemporalRuleEvaluator] _check_temporal_rule called for case: {case_id}, rule ID: {rule.get('id')}")
-
         constraint = rule.get('temporal_constraint')
-        print(f"[TemporalRuleEvaluator] constraint type: {type(constraint)}, is dict: {isinstance(constraint, dict)}")
 
         if not constraint or not isinstance(constraint, dict):
-            print(f"[TemporalRuleEvaluator] Returning None - constraint invalid")
             return None
 
         step_a_name = constraint.get('step_a')
@@ -118,10 +108,7 @@ class TemporalRuleEvaluator:
         max_hours = constraint.get('max_hours')
         business_days_only = constraint.get('business_days_only', False)
 
-        print(f"[TemporalRuleEvaluator] step_a: {step_a_name}, step_b: {step_b_name}, max_hours: {max_hours}")
-
         if not step_a_name or not step_b_name or max_hours is None:
-            print(f"[TemporalRuleEvaluator] Returning None - missing step names or max_hours")
             return None
 
         debug_case = case_id == "CASE-003"
@@ -192,6 +179,12 @@ class TemporalRuleEvaluator:
 
         # Check if violated
         if actual_hours > max_hours:
+            # Extract case context from logs (if available)
+            first_log = logs[0] if logs else {}
+            loan_amount = first_log.get('loan_amount') or first_log.get('loan_amount_sanctioned')
+            customer_segment = first_log.get('customer_segment')
+            product_type = first_log.get('product_type')
+
             return {
                 'case_id': case_id,
                 'officer_id': logs[0].get('officer_id', 'unknown'),
@@ -201,6 +194,18 @@ class TemporalRuleEvaluator:
                 'description': f'{step_b_name} completed {actual_hours:.1f} hours after {step_a_name} (limit: {max_hours} hours)',
                 'expected_behavior': f'{step_b_name} must complete within {max_hours} hours of {step_a_name}',
                 'actual_behavior': f'Actual time gap: {actual_hours:.1f} hours (breach: {actual_hours - max_hours:.1f} hours)',
+
+                # Rule Context (NEW)
+                'rule_id': rule.get('id'),
+                'rule_description': rule.get('rule_description'),
+                'rule_type': rule.get('rule_type'),
+                'rule_severity': rule.get('severity'),
+
+                # Case Context (NEW)
+                'loan_amount': loan_amount,
+                'customer_segment': customer_segment,
+                'product_type': product_type,
+
                 'context': {
                     'rule_id': rule.get('id'),
                     'rule_description': rule.get('rule_description'),

@@ -1,9 +1,10 @@
-const { WorkflowLog, Officer, Deviation, SOPRule } = require('../models');
+const { WorkflowLog, Officer, Deviation, SOPRule, SOP } = require('../models');
 const aiService = require('../services/ai-integration.service');
 const { successResponse, errorResponse } = require('../utils/response');
 const Papa = require('papaparse');
 const fs = require('fs').promises;
 const crypto = require('crypto');
+const logger = require('../utils/clean-logger');
 
 // Store the current analysis session ID (for filtering in analyzePatterns)
 let currentAnalysisSessionId = null;
@@ -15,6 +16,9 @@ const uploadWorkflowLogs = async (req, res, next) => {
     if (!file) {
       return errorResponse(res, 'No file uploaded', 400);
     }
+
+    // Generate single upload timestamp for entire batch
+    const uploadTimestamp = new Date();
 
     // Read and parse file
     const fileContent = await fs.readFile(file.path, 'utf8');
@@ -40,7 +44,7 @@ const uploadWorkflowLogs = async (req, res, next) => {
     // Check first row for column names
     const firstRow = logs[0];
     const columns = Object.keys(firstRow);
-    console.log('CSV columns found:', columns);
+    logger.debug('CSV columns found', columns);
 
     // Flexible column mapping
     const getColumnValue = (log, possibleNames) => {
@@ -123,6 +127,7 @@ const uploadWorkflowLogs = async (req, res, next) => {
           status: status,
           metadata: metadata,  // Now contains all extended fields!
           is_synthetic: false,
+          uploaded_at: uploadTimestamp,  // Use single timestamp for entire batch
         });
 
         savedLogs.push(workflowLog);
@@ -213,17 +218,46 @@ const getWorkflowByCase = async (req, res, next) => {
 
 const analyzeWorkflow = async (req, res, next) => {
   try {
+    logger.endpoint('POST', '/api/workflows/analyze');
+    const timer = logger.startTimer();
+
+    // Get SOP ID from request body
+    const sopId = req.body.sopId;
+
+    if (!sopId) {
+      logger.error('No SOP ID provided in analyze request');
+      return errorResponse(res, 'SOP ID is required. Please select an SOP before analyzing.', 400);
+    }
+
     // Get all logs (including synthetic logs for stress testing)
     const logs = await WorkflowLog.findAll({
       order: [['case_id', 'ASC'], ['timestamp', 'ASC']],
     });
 
-    // Get all rules
-    const rules = await SOPRule.findAll();
+    // Get rules filtered by SOP ID
+    const rules = await SOPRule.findAll({
+      where: { sop_id: sopId }
+    });
 
     if (rules.length === 0) {
-      return errorResponse(res, 'No SOP rules found. Please upload and process an SOP first.', 400);
+      logger.error(`No SOP rules found for SOP ID: ${sopId}`);
+      return errorResponse(res, `No SOP rules found for the selected SOP (ID: ${sopId}). Please upload and process an SOP first.`, 400);
     }
+
+    // Fetch SOP info for response
+    const sop = await SOP.findByPk(sopId);
+    if (!sop) {
+      logger.error(`SOP not found: ${sopId}`);
+      return errorResponse(res, `Selected SOP (ID: ${sopId}) not found.`, 404);
+    }
+
+    // Rules loaded - info logged in next step
+
+    logger.step('Loading Data', {
+      'Workflow logs': logs.length,
+      'SOP rules': rules.length,
+      'Unique cases': new Set(logs.map(l => l.case_id)).size
+    });
 
     // Format logs for AI service
     // CRITICAL FIX: Merge metadata fields so AI service has access to extended fields
@@ -239,15 +273,11 @@ const analyzeWorkflow = async (req, res, next) => {
       };
 
       // DEBUG: Check first log's metadata
-      if (index === 0) {
-        console.log('[analyzeWorkflow] First log metadata check:');
-        console.log('  - case_id:', log.case_id);
-        console.log('  - metadata exists:', !!log.metadata);
-        console.log('  - metadata type:', typeof log.metadata);
-        console.log('  - metadata value:', log.metadata);
-        if (log.metadata) {
-          console.log('  - metadata keys:', Object.keys(log.metadata));
-        }
+      if (index === 0 && log.metadata) {
+        logger.debug('First log metadata', {
+          case_id: log.case_id,
+          metadata_keys: Object.keys(log.metadata)
+        });
       }
 
       // Extract and merge metadata fields (for conditional/temporal/regulatory evaluators)
@@ -282,26 +312,31 @@ const analyzeWorkflow = async (req, res, next) => {
       regulatory_reference: rule.regulatory_reference,
     }));
 
+    logger.step('Detecting Deviations', {
+      'Logs to analyze': formattedLogs.length,
+      'Rules to check': formattedRules.length
+    });
+
     // Detect deviations using AI service
     const deviationResult = await aiService.detectDeviations(formattedLogs, formattedRules);
 
     // Extract notes for all cases with deviations
     const caseIds = [...new Set(deviationResult.deviations.map(d => d.case_id))];
-    console.log('[analyzeWorkflow] Detected deviations for cases:', caseIds);
-
     const notesByCase = await notesService.getNotesForAnalysis(caseIds);
-    console.log('[analyzeWorkflow] Notes retrieved for cases:', Object.keys(notesByCase));
-    console.log('[analyzeWorkflow] Sample notes:', Object.values(notesByCase)[0] || 'No notes found');
+
+    logger.debug('Notes extracted', {
+      cases_with_notes: Object.keys(notesByCase).length,
+      total_cases_with_deviations: caseIds.length
+    });
 
     // Generate unique session ID for this analysis run
     const sessionId = crypto.randomUUID();
     currentAnalysisSessionId = sessionId;
-    console.log(`[analyzeWorkflow] Generated new analysis session ID: ${sessionId}`);
 
     // CRITICAL FIX: Delete all previous deviations to prevent accumulation
     // This ensures pattern analysis only uses current analysis results
     const deletedCount = await Deviation.destroy({ where: {}, truncate: true });
-    console.log(`[analyzeWorkflow] Deleted ${deletedCount} old deviations to prevent accumulation`);
+    logger.debug('Cleared old deviations', { count: deletedCount });
 
     // Save deviations to database with notes attached
     const savedDeviations = [];
@@ -326,10 +361,40 @@ const analyzeWorkflow = async (req, res, next) => {
     const uniqueCases = new Set(logs.map(l => l.case_id));
     const uniqueOfficers = new Set(logs.map(l => l.officer_id));
 
+    // Aggregate deviations by type
+    const deviationsByType = {};
+    const deviationsBySeverity = {};
+    savedDeviations.forEach(d => {
+      deviationsByType[d.deviation_type] = (deviationsByType[d.deviation_type] || 0) + 1;
+      deviationsBySeverity[d.severity] = (deviationsBySeverity[d.severity] || 0) + 1;
+    });
+
+    // Show aggregated results
+    if (savedDeviations.length > 0) {
+      logger.aggregated('Deviations by Type', deviationsByType, { maxItems: 8 });
+      logger.aggregated('Deviations by Severity', deviationsBySeverity, { showTotal: false });
+    }
+
+    logger.success('Deviation Detection Complete', {
+      'Total deviations': savedDeviations.length,
+      'Cases analyzed': uniqueCases.size,
+      'Officers': uniqueOfficers.size,
+      'Time': logger.getElapsed(timer)
+    });
+
     // Get first log to extract column names (workflow fields)
     const firstLog = logs.length > 0 ? logs[0] : null;
     const internalFields = ['id', 'uploaded_at', 'metadata', 'is_synthetic', 'created_at', 'updated_at'];
-    const workflowFields = firstLog ? Object.keys(firstLog.toJSON()).filter(f => !internalFields.includes(f)) : [];
+
+    // Extract core fields + metadata fields
+    let workflowFields = [];
+    if (firstLog) {
+      const coreFields = Object.keys(firstLog.toJSON()).filter(f => !internalFields.includes(f));
+      const metadataFields = firstLog.metadata && typeof firstLog.metadata === 'object'
+        ? Object.keys(firstLog.metadata)
+        : [];
+      workflowFields = [...coreFields, ...metadataFields];
+    }
 
     // Format SOP rules for frontend
     const sopRulesFormatted = rules.map(rule => ({
@@ -363,6 +428,15 @@ const analyzeWorkflow = async (req, res, next) => {
           total_logs: logs.length,
         },
         sop_rules: sopRulesFormatted,
+        sop_info: {
+          id: sop.id,
+          title: sop.title,
+          description: sop.description,
+          rules_count: rules.length
+        },
+        // Include log cleaning report and quality score from AI service
+        log_cleaning_report: deviationResult.log_cleaning_report || null,
+        log_quality: deviationResult.log_quality || null,
       },
       'Workflow analysis completed'
     );
@@ -433,15 +507,21 @@ const uploadWithMapping = async (req, res, next) => {
     const file = req.file;
     const { mapping, sop_id } = req.body;
 
-    console.log('[uploadWithMapping] Received mapping field type:', typeof mapping);
-    console.log('[uploadWithMapping] Mapping value:', typeof mapping === 'string' ? mapping.substring(0, 200) : mapping);
+    // Generate single upload timestamp for entire batch
+    const uploadTimestamp = new Date();
+
+    logger.endpoint('POST', '/api/workflows/upload-with-mapping', {
+      'Filename': file?.originalname || 'none',
+      'Size': file ? `${Math.round(file.size / 1024)}KB` : 'N/A'
+    });
 
     if (!file) {
+      logger.error('No file uploaded');
       return errorResponse(res, 'No file uploaded', 400);
     }
 
     if (!mapping || mapping === 'undefined' || mapping === 'null') {
-      console.error('[uploadWithMapping] Invalid mapping received:', mapping);
+      logger.error('Invalid column mapping');
       return errorResponse(res, 'Column mapping not provided or invalid', 400);
     }
 
@@ -450,16 +530,18 @@ const uploadWithMapping = async (req, res, next) => {
     try {
       columnMapping = typeof mapping === 'string' ? JSON.parse(mapping) : mapping;
     } catch (parseError) {
-      console.error('[uploadWithMapping] JSON parse error:', parseError.message);
+      logger.error('JSON parse error in column mapping', parseError);
       return errorResponse(res, 'Invalid JSON in column mapping', 400);
     }
 
-    console.log('[uploadWithMapping] Parsed column mapping:', JSON.stringify(columnMapping).substring(0, 300));
+    logger.debug('Column mapping parsed', {
+      columns: Object.keys(columnMapping).length
+    });
 
     // Validate mapping format (should be simple strings: { "CSV_Col": "system_field" })
     for (const [csvColumn, mappingValue] of Object.entries(columnMapping)) {
       if (typeof mappingValue !== 'string') {
-        console.error(`[uploadWithMapping] Invalid mapping format for ${csvColumn}:`, mappingValue);
+        logger.error(`Invalid mapping format for column: ${csvColumn}`);
         return errorResponse(res, `Invalid mapping format: ${csvColumn} must map to a string value`, 400);
       }
     }
@@ -487,11 +569,12 @@ const uploadWithMapping = async (req, res, next) => {
     // Detect notes column
     const notesColumn = columnMappingService.detectNotesColumn(columnMapping);
 
-    // Debug logging
-    console.log('[uploadWithMapping] Column mapping used:', JSON.stringify(columnMapping, null, 2));
-    console.log('[uploadWithMapping] Detected notes column:', notesColumn);
-    console.log('[uploadWithMapping] CSV has', Object.keys(parsed.data[0] || {}).length, 'columns');
-    console.log('[uploadWithMapping] Transformed', transformedData.length, 'rows');
+    logger.step('Processing Upload', {
+      'CSV columns': Object.keys(parsed.data[0] || {}).length,
+      'Mapped fields': Object.keys(columnMapping).length,
+      'Total rows': transformedData.length,
+      'Notes column': notesColumn || 'none'
+    });
 
     // Create workflow logs
     const savedLogs = [];
@@ -540,6 +623,7 @@ const uploadWithMapping = async (req, res, next) => {
           status: row.status || 'completed',
           metadata: metadata,  // Now contains all extended fields!
           is_synthetic: false,
+          uploaded_at: uploadTimestamp,  // Use single timestamp for entire batch
         });
 
         savedLogs.push(workflowLog);
@@ -556,19 +640,12 @@ const uploadWithMapping = async (req, res, next) => {
     // Extract and store notes if notes column exists
     let notesCount = 0;
     if (notesColumn) {
-      console.log('[uploadWithMapping] Extracting notes from column:', notesColumn);
-      console.log('[uploadWithMapping] Sample CSV row:', JSON.stringify(parsed.data[0], null, 2));
-      console.log('[uploadWithMapping] Number of logs to process:', savedLogs.length);
-
       notesCount = await notesService.extractAndStoreNotesFromCSV(
         savedLogs,
         parsed.data,
         notesColumn
       );
-
-      console.log('[uploadWithMapping] Notes extraction complete. Count:', notesCount);
-    } else {
-      console.log('[uploadWithMapping] No notes column detected in mapping');
+      logger.debug('Notes extracted', { count: notesCount });
     }
 
     // Create officer records
@@ -593,14 +670,21 @@ const uploadWithMapping = async (req, res, next) => {
     const skippedRows = errors.length;
     const successRows = savedLogs.length;
 
+    if (errors.length > 0) {
+      logger.warn(`${skippedRows} rows skipped`, errors.slice(0, 3).join('; '));
+    }
+
+    logger.success('Upload Complete', {
+      'Rows saved': successRows,
+      'Cases': new Set(savedLogs.map(l => l.case_id)).size,
+      'Officers': officers.size,
+      'Notes imported': notesCount,
+      'Errors': skippedRows
+    });
+
     let message = `Workflow logs uploaded: ${successRows} of ${totalRows} rows successful`;
     if (skippedRows > 0) {
       message += ` (${skippedRows} rows skipped due to validation errors)`;
-    }
-
-    console.log(`[uploadWithMapping] Upload complete: ${successRows}/${totalRows} rows saved, ${skippedRows} errors`);
-    if (errors.length > 0) {
-      console.log('[uploadWithMapping] First 5 errors:', errors.slice(0, 5));
     }
 
     return successResponse(
@@ -625,6 +709,9 @@ const uploadWithMapping = async (req, res, next) => {
 
 const analyzePatterns = async (req, res, next) => {
   try {
+    logger.endpoint('POST', '/api/workflows/analyze-patterns');
+    const timer = logger.startTimer();
+
     // CRITICAL FIX: Filter by current session ID to prevent analyzing accumulated deviations
     // This ensures we only analyze deviations from the most recent workflow analysis
     const whereClause = currentAnalysisSessionId
@@ -642,12 +729,17 @@ const analyzePatterns = async (req, res, next) => {
     });
 
     if (deviations.length === 0) {
+      logger.warn('No deviations found for pattern analysis');
       return successResponse(res, {
         message: 'No deviations found for pattern analysis'
       });
     }
 
-    console.log(`[analyzePatterns] Analyzing ${deviations.length} deviations from session ${currentAnalysisSessionId || 'unknown'} with layered approach (cleaning + stats + AI)`);
+    logger.step('Pattern Analysis Pipeline', {
+      'Deviations': deviations.length,
+      'Session': currentAnalysisSessionId?.slice(0, 8) || 'unknown',
+      'Approach': 'layered (cleaning + stats + ML + AI)'
+    });
 
     // Format deviations for AI analysis (include timestamp for temporal analysis)
     const deviationsWithNotes = deviations.map(dev => ({
@@ -665,7 +757,6 @@ const analyzePatterns = async (req, res, next) => {
 
     // Query workflow logs for deviation cases (enables temporal analysis)
     const deviationCaseIds = [...new Set(deviations.map(d => d.case_id))];
-    console.log(`[analyzePatterns] Querying workflow logs for ${deviationCaseIds.length} cases with deviations`);
 
     const workflowLogs = await WorkflowLog.findAll({
       where: { case_id: deviationCaseIds },
@@ -683,26 +774,22 @@ const analyzePatterns = async (req, res, next) => {
       status: log.status,
     }));
 
-    console.log(`[analyzePatterns] Sending ${deviations.length} deviations and ${workflowLogs.length} workflow logs for pattern analysis`);
+    logger.debug('Data prepared for AI service', {
+      deviations: deviations.length,
+      workflow_logs: workflowLogs.length,
+      cases: deviationCaseIds.length
+    });
 
     // Call AI service for layered pattern analysis
-    // Layer 1: Data Cleaning (duplicates, validation, normalization)
-    // Layer 2: Statistical Analysis (distributions, correlations, temporal patterns WITH WORKFLOW LOGS)
-    // Layer 3: AI Pattern Analysis (behavioral patterns, hidden rules, recommendations)
-    console.log('[analyzePatterns] Sending to AI service for layered analysis with temporal data...');
     const patternAnalysis = await aiService.analyzeDeviationPatterns(deviationsWithNotes, formattedLogs);
-    console.log('[analyzePatterns] Layered analysis complete');
 
-    // Log the full AI service response for debugging
-    console.log('[analyzePatterns] AI service response keys:', Object.keys(patternAnalysis));
-    console.log('[analyzePatterns] log_cleaning_report:', patternAnalysis.log_cleaning_report);
-    console.log('[analyzePatterns] log_quality:', patternAnalysis.log_quality);
-    console.log('[analyzePatterns] ml_summary:', patternAnalysis.ml_summary);
-    console.log('[analyzePatterns] ml_metadata:', patternAnalysis.ml_metadata);
-    console.log('[analyzePatterns] statistical_summary keys:', patternAnalysis.statistical_summary ? Object.keys(patternAnalysis.statistical_summary) : 'null');
-    if (patternAnalysis.statistical_summary?.temporal_patterns) {
-      console.log('[analyzePatterns] temporal_patterns:', patternAnalysis.statistical_summary.temporal_patterns);
-    }
+    logger.success('Pattern Analysis Complete', {
+      'Behavioral patterns': patternAnalysis.behavioral_patterns?.length || 0,
+      'Hidden rules': patternAnalysis.hidden_rules?.length || 0,
+      'Recommendations': patternAnalysis.recommendations?.length || 0,
+      'ML clusters': patternAnalysis.ml_summary?.cluster_summary?.length || 0,
+      'Time': logger.getElapsed(timer)
+    });
 
     return successResponse(
       res,
@@ -738,16 +825,17 @@ const listWorkflowFiles = async (req, res, next) => {
 
     // Group workflow logs by upload session (uploaded_at)
     // Each upload session represents one file
+    // Using minute-level precision to group files uploaded in the same batch
     const uploadSessions = await WorkflowLog.findAll({
       attributes: [
-        [sequelize.fn('strftime', '%Y-%m-%d %H:%M:%S', sequelize.col('uploaded_at')), 'upload_timestamp'],
+        [sequelize.fn('strftime', '%Y-%m-%d %H:%M', sequelize.col('uploaded_at')), 'upload_timestamp'],
         [sequelize.fn('COUNT', sequelize.col('id')), 'total_logs'],
         [sequelize.fn('COUNT', sequelize.fn('DISTINCT', sequelize.col('case_id'))), 'unique_cases'],
         [sequelize.fn('MAX', sequelize.col('is_synthetic')), 'is_generated'],
         [sequelize.fn('MAX', sequelize.col('uploaded_at')), 'uploaded_at'],
         [sequelize.fn('MAX', sequelize.col('metadata')), 'metadata'],
       ],
-      group: [sequelize.fn('strftime', '%Y-%m-%d %H:%M:%S', sequelize.col('uploaded_at'))],
+      group: [sequelize.fn('strftime', '%Y-%m-%d %H:%M', sequelize.col('uploaded_at'))],
       order: [[sequelize.fn('MAX', sequelize.col('uploaded_at')), 'DESC']],
       raw: true,
     });
@@ -787,7 +875,7 @@ const listWorkflowFiles = async (req, res, next) => {
       // Get column names from first log in this session
       const firstLog = await WorkflowLog.findOne({
         where: sequelize.where(
-          sequelize.fn('strftime', '%Y-%m-%d %H:%M:%S', sequelize.col('uploaded_at')),
+          sequelize.fn('strftime', '%Y-%m-%d %H:%M', sequelize.col('uploaded_at')),
           session.upload_timestamp
         ),
         limit: 1
@@ -823,7 +911,7 @@ const deleteWorkflowFile = async (req, res, next) => {
     // Get case IDs from workflow logs to be deleted
     const logsToDelete = await WorkflowLog.findAll({
       where: sequelize.where(
-        sequelize.fn('strftime', '%Y-%m-%d %H:%M:%S', sequelize.col('uploaded_at')),
+        sequelize.fn('strftime', '%Y-%m-%d %H:%M', sequelize.col('uploaded_at')),
         id
       ),
       attributes: ['case_id'],
@@ -831,11 +919,11 @@ const deleteWorkflowFile = async (req, res, next) => {
 
     const caseIds = [...new Set(logsToDelete.map(log => log.case_id))];
 
-    // The ID is the upload_timestamp in format 'YYYY-MM-DD HH:MM:SS'
+    // The ID is the upload_timestamp in format 'YYYY-MM-DD HH:MM'
     // Delete all logs with this upload timestamp
     const deleted = await WorkflowLog.destroy({
       where: sequelize.where(
-        sequelize.fn('strftime', '%Y-%m-%d %H:%M:%S', sequelize.col('uploaded_at')),
+        sequelize.fn('strftime', '%Y-%m-%d %H:%M', sequelize.col('uploaded_at')),
         id
       ),
     });

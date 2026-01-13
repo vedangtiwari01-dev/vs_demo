@@ -129,7 +129,7 @@ class NotesAnalyzer:
     def analyze_pattern_batch(
         self,
         deviations_with_notes: List[Dict[str, Any]],
-        max_batch_size: int = 100,
+        max_batch_size: int = 2500,
         statistical_context: Optional[Dict[str, Any]] = None,
         ml_context: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -201,7 +201,7 @@ class NotesAnalyzer:
                        "The entire response must be parseable by json.loads(). "
                        "Do not add any comments, do not add trailing commas, ensure all string quotes are properly escaped."),
                 json_mode=True,
-                max_tokens=4096  # Larger response for comprehensive analysis
+                max_tokens=None  # Use MAX_TOKENS from settings (.env)
             )
 
             # Save response text for error logging

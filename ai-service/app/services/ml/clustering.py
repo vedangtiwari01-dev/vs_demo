@@ -108,18 +108,23 @@ class DeviationClusterer:
 
         n_samples = X_scaled.shape[0]
 
-        # Adaptive eps: increase for larger datasets to get bigger clusters
+        # Adaptive eps: MUCH SMALLER values for fine-grained clustering (300-400 clusters)
+        # Smaller eps = more clusters with 3-4 deviations each
         if n_samples < 100:
-            eps = 0.5
+            eps = 0.2
         elif n_samples < 500:
-            eps = 0.8
+            eps = 0.25
         elif n_samples < 1000:
-            eps = 1.0
+            eps = 0.3
+        elif n_samples < 1500:
+            eps = 0.35  # For 1000-1200 deviations: ~300-400 clusters
+        elif n_samples < 2500:
+            eps = 0.4
         else:
-            eps = 1.2  # Larger datasets need larger eps
+            eps = 0.45  # Very large datasets
 
-        # Adaptive min_samples: increase for larger datasets
-        min_samples = min(10, max(5, n_samples // 200))
+        # Adaptive min_samples: MUCH SMALLER for fine-grained clustering
+        min_samples = max(2, min(3, n_samples // 500))
 
         logger.info(f"Running DBSCAN with eps={eps}, min_samples={min_samples} (adaptive for {n_samples} samples)")
 

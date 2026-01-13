@@ -2,22 +2,24 @@ const { SOP, SOPRule } = require('../models');
 const aiService = require('../services/ai-integration.service');
 const { successResponse, errorResponse } = require('../utils/response');
 const path = require('path');
+const logger = require('../utils/clean-logger');
 
 const uploadSOP = async (req, res, next) => {
   try {
-    console.log('[uploadSOP] Starting upload process');
     const { title, version } = req.body;
     const file = req.file;
 
-    console.log('[uploadSOP] Request body:', { title, version });
-    console.log('[uploadSOP] File:', file ? { name: file.originalname, size: file.size, path: file.path } : 'No file');
+    logger.endpoint('POST', '/api/sops/upload', {
+      'Filename': file?.originalname || 'none',
+      'Title': title || 'auto',
+      'Version': version || '1.0'
+    });
 
     if (!file) {
-      console.log('[uploadSOP] Error: No file uploaded');
+      logger.error('No file uploaded');
       return errorResponse(res, 'No file uploaded', 400);
     }
 
-    console.log('[uploadSOP] Creating SOP record in database...');
     const sop = await SOP.create({
       title: title || file.originalname,
       version: version || '1.0',
@@ -26,15 +28,15 @@ const uploadSOP = async (req, res, next) => {
       status: 'uploaded',
     });
 
-    console.log('[uploadSOP] SOP created successfully:', sop.id);
-    console.log('[uploadSOP] Sending success response...');
+    logger.success('SOP Uploaded', {
+      'ID': sop.id,
+      'Title': sop.title,
+      'Type': sop.file_type
+    });
 
-    const response = successResponse(res, sop, 'SOP uploaded successfully', 201);
-    console.log('[uploadSOP] Response sent successfully');
-    return response;
+    return successResponse(res, sop, 'SOP uploaded successfully', 201);
   } catch (error) {
-    console.log('[uploadSOP] Error caught:', error.message);
-    console.log('[uploadSOP] Error stack:', error.stack);
+    logger.error('SOP upload failed', error);
     next(error);
   }
 };
@@ -87,53 +89,64 @@ const processSOP = async (req, res, next) => {
 
   try {
     const { id } = req.params;
-    console.log(`[processSOP] Starting SOP processing for ID: ${id}`);
+
+    logger.endpoint('POST', `/api/sops/${id}/process`);
+    const timer = logger.startTimer();
 
     const sop = await SOP.findByPk(id);
 
     if (!sop) {
+      logger.error('SOP not found');
       return errorResponse(res, 'SOP not found', 404);
     }
 
     if (sop.processed) {
+      logger.warn('SOP already processed');
       return errorResponse(res, 'SOP already processed', 400);
     }
 
-    console.log(`[processSOP] SOP file path: ${sop.file_path}`);
-    console.log(`[processSOP] SOP file type: ${sop.file_type}`);
+    logger.step('Loading SOP', {
+      'Title': sop.title,
+      'Type': sop.file_type,
+      'Version': sop.version
+    });
 
     // Update status to processing
     await sop.update({ status: 'processing' });
 
     // Step 1: Parse SOP document
     currentStep = 'parsing';
-    console.log(`[processSOP] Step 1: Parsing SOP document...`);
     const parseStart = Date.now();
     const parseResult = await aiService.parseSOP(sop.file_path, sop.file_type);
     const parseTime = Date.now() - parseStart;
-    console.log(`[processSOP] Parsing completed in ${parseTime}ms`);
-    console.log(`[processSOP] Extracted text length: ${parseResult.text?.length || 0} characters`);
 
     if (!parseResult.text || parseResult.text.trim().length === 0) {
       throw new Error('SOP document is empty or could not be parsed. Please check if the file is valid and contains text.');
     }
 
+    logger.step('Document Parsed', {
+      'Characters': parseResult.text.length,
+      'Time': `${parseTime}ms`
+    });
+
     // Step 2: Extract rules using Claude AI
     currentStep = 'rule_extraction';
-    console.log(`[processSOP] Step 2: Extracting rules from text using Claude AI...`);
     const extractStart = Date.now();
     const rulesResult = await aiService.extractRules(parseResult.text);
     const extractTime = Date.now() - extractStart;
-    console.log(`[processSOP] Rule extraction completed in ${extractTime}ms`);
-    console.log(`[processSOP] Extracted ${rulesResult.rules?.length || 0} rules`);
 
     if (!rulesResult.rules || rulesResult.rules.length === 0) {
       throw new Error('No rules could be extracted from the SOP document. The document may not contain structured rules that the AI can identify. Please ensure your SOP has clear requirements, steps, and policies.');
     }
 
+    logger.step('Rules Extracted', {
+      'Count': rulesResult.rules.length,
+      'Time': `${extractTime}ms`,
+      'Model': 'Claude Sonnet 4.5'
+    });
+
     // Step 3: Validate and save rules
     currentStep = 'saving_rules';
-    console.log(`[processSOP] Step 3: Saving ${rulesResult.rules.length} rules to database...`);
     const rules = await Promise.all(
       rulesResult.rules.map(rule =>
         SOPRule.create({
@@ -175,9 +188,22 @@ const processSOP = async (req, res, next) => {
       },
     });
 
-    const totalTime = Date.now() - startTime;
-    console.log(`[processSOP] ✓ SOP processing completed successfully in ${totalTime}ms`);
-    console.log(`[processSOP] Summary: ${rules.length} rules extracted and saved`);
+    // Aggregate rules by type
+    const rulesByType = {};
+    const rulesBySeverity = {};
+    rules.forEach(r => {
+      rulesByType[r.rule_type] = (rulesByType[r.rule_type] || 0) + 1;
+      rulesBySeverity[r.severity] = (rulesBySeverity[r.severity] || 0) + 1;
+    });
+
+    logger.aggregated('Rules by Type', rulesByType, { maxItems: 8 });
+
+    logger.success('SOP Processing Complete', {
+      'Total rules': rules.length,
+      'Parse time': `${parseTime}ms`,
+      'Extract time': `${extractTime}ms`,
+      'Total time': logger.getElapsed(timer)
+    });
 
     return successResponse(res, { sop, rules }, 'SOP processed successfully');
   } catch (error) {

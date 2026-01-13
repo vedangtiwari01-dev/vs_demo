@@ -322,6 +322,11 @@ class ConditionalRuleEvaluator:
 
             # Check if the required step exists (case-insensitive, partial match)
             if not any(required_step_lower in step for step in step_names):
+                # Extract case context from log_data (if available)
+                loan_amount = log_data.get('loan_amount') or log_data.get('loan_amount_sanctioned')
+                customer_segment = log_data.get('customer_segment')
+                product_type = log_data.get('product_type')
+
                 return {
                     'case_id': case_id,
                     'officer_id': logs[0].get('officer_id', 'unknown'),
@@ -331,6 +336,18 @@ class ConditionalRuleEvaluator:
                     'description': f'Conditional rule violated: {required_step} missing',
                     'expected_behavior': f'When {ConditionalRuleEvaluator._format_condition(condition_logic["condition"])}, {required_step} is required',
                     'actual_behavior': f'{required_step} step not found in workflow',
+
+                    # Rule Context (NEW)
+                    'rule_id': rule.get('id'),
+                    'rule_description': rule.get('rule_description'),
+                    'rule_type': rule.get('rule_type'),
+                    'rule_severity': rule.get('severity'),
+
+                    # Case Context (NEW)
+                    'loan_amount': loan_amount,
+                    'customer_segment': customer_segment,
+                    'product_type': product_type,
+
                     'context': {
                         'rule_id': rule.get('id'),
                         'rule_description': rule.get('rule_description'),
@@ -352,6 +369,11 @@ class ConditionalRuleEvaluator:
                     missing_steps.append(required_step)
 
             if missing_steps:
+                # Extract case context from log_data (if available)
+                loan_amount = log_data.get('loan_amount') or log_data.get('loan_amount_sanctioned')
+                customer_segment = log_data.get('customer_segment')
+                product_type = log_data.get('product_type')
+
                 return {
                     'case_id': case_id,
                     'officer_id': logs[0].get('officer_id', 'unknown'),
@@ -361,6 +383,18 @@ class ConditionalRuleEvaluator:
                     'description': f'Conditional rule violated: {", ".join(missing_steps)} missing',
                     'expected_behavior': f'When {ConditionalRuleEvaluator._format_condition(condition_logic["condition"])}, all of [{", ".join(required_steps)}] are required',
                     'actual_behavior': f'Missing steps: {", ".join(missing_steps)}',
+
+                    # Rule Context (NEW)
+                    'rule_id': rule.get('id'),
+                    'rule_description': rule.get('rule_description'),
+                    'rule_type': rule.get('rule_type'),
+                    'rule_severity': rule.get('severity'),
+
+                    # Case Context (NEW)
+                    'loan_amount': loan_amount,
+                    'customer_segment': customer_segment,
+                    'product_type': product_type,
+
                     'context': {
                         'rule_id': rule.get('id'),
                         'rule_description': rule.get('rule_description'),

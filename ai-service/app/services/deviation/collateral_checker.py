@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 from collections import defaultdict
 from datetime import datetime, timedelta
+from .rule_parser import RuleParser
 
 class CollateralChecker:
     """
@@ -11,14 +12,17 @@ class CollateralChecker:
     - valuation_missing_or_stale: Collateral valuation missing or outdated
     - security_not_created: Legal security not created before disbursement
 
-    DEFENSIVE: Gracefully handles missing fields/rules.
-    Only validates when collateral fields are present in workflow logs.
+    STRICT MODE: Only validates if SOP explicitly defines collateral requirements.
+    If no collateral rules exist, returns empty list (no validation, no false positives).
     """
 
     @staticmethod
     def check_collateral(logs: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Check collateral and security compliance deviations.
+
+        STRICT MODE: Only validates based on explicit SOP requirements.
+        If no collateral thresholds defined, skips validation entirely.
 
         Args:
             logs: Workflow logs with optional fields (ltv_ratio, collateral_value, collateral_value_date, security_created_flag)
@@ -29,26 +33,17 @@ class CollateralChecker:
         """
         deviations = []
 
-        # Extract collateral rules
-        collateral_rules = [r for r in rules if r.get('rule_type') == 'collateral']
+        # Extract collateral requirements from SOP
+        collateral_reqs = RuleParser.extract_collateral_requirements(rules)
 
-        # Default thresholds (used if not in SOP)
-        max_ltv = 0.80  # 80% LTV
-        max_valuation_age_days = 90  # 3 months
+        # STRICT MODE: If no collateral requirements defined in SOP, skip validation
+        if not collateral_reqs['ltv_limits'] and collateral_reqs['valuation_age_days'] is None and not collateral_reqs['security_required']:
+            return deviations
 
-        # Override with SOP rules if available
-        for rule in collateral_rules:
-            desc = rule.get('rule_description', '').lower()
-            if 'ltv' in desc or 'loan to value' in desc or 'loan-to-value' in desc:
-                import re
-                match = re.search(r'(\d+)%', desc)
-                if match:
-                    max_ltv = int(match.group(1)) / 100.0
-            if 'valuation' in desc and ('days' in desc or 'months' in desc):
-                match = re.search(r'(\d+)\s*(day|month)', desc)
-                if match:
-                    value = int(match.group(1))
-                    max_valuation_age_days = value if 'day' in desc else value * 30
+        # Extract requirements (None if not defined)
+        ltv_limits = collateral_reqs['ltv_limits']
+        max_valuation_age_days = collateral_reqs['valuation_age_days']
+        security_required = collateral_reqs['security_required']
 
         # Group logs by case_id
         cases = defaultdict(list)

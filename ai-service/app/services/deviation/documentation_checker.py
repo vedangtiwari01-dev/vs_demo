@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 from collections import defaultdict
 from datetime import datetime, timedelta
+from .rule_parser import RuleParser
 
 class DocumentationChecker:
     """
@@ -12,14 +13,17 @@ class DocumentationChecker:
     - legal_clearance_missing: Legal/title clearance not completed
     - collateral_docs_incomplete: Collateral documentation incomplete
 
-    DEFENSIVE: Gracefully handles missing fields/rules.
-    Only validates when document fields are present in workflow logs.
+    STRICT MODE: Only validates if SOP explicitly defines documentation requirements.
+    If no documentation rules exist, returns empty list (no validation, no false positives).
     """
 
     @staticmethod
     def check_documentation(logs: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Check documentation compliance deviations.
+
+        STRICT MODE: Only validates based on explicit SOP requirements.
+        If no documentation rules defined, skips validation entirely.
 
         Args:
             logs: Workflow logs with optional fields (document_type, document_status, document_expiry_date)
@@ -30,27 +34,15 @@ class DocumentationChecker:
         """
         deviations = []
 
-        # Extract documentation rules
-        doc_rules = [r for r in rules if r.get('rule_type') == 'documentation']
+        # Extract documentation requirements from SOP
+        doc_requirements = RuleParser.extract_document_requirements(rules)
 
-        # Mandatory documents (from SOP or default)
-        mandatory_docs = set()
-        for rule in doc_rules:
-            desc = rule.get('rule_description', '').lower()
-            if 'mandatory' in desc or 'required' in desc:
-                # Extract document names
-                if 'income proof' in desc or 'income document' in desc:
-                    mandatory_docs.add('income_proof')
-                if 'identity proof' in desc or 'id proof' in desc:
-                    mandatory_docs.add('identity_proof')
-                if 'address proof' in desc:
-                    mandatory_docs.add('address_proof')
-                if 'bank statement' in desc:
-                    mandatory_docs.add('bank_statement')
+        # STRICT MODE: If no documentation rules defined in SOP, skip validation
+        if not doc_requirements['mandatory_docs'] and not doc_requirements['product_specific']:
+            return deviations
 
-        # Default mandatory docs if not in SOP
-        if not mandatory_docs:
-            mandatory_docs = {'income_proof', 'identity_proof', 'address_proof'}
+        # Get mandatory documents
+        mandatory_docs = doc_requirements['mandatory_docs']
 
         # Group logs by case_id
         cases = defaultdict(list)
@@ -156,45 +148,36 @@ class DocumentationChecker:
                         'context': expired
                     })
 
-            # Check if this is a secured loan (collateral present) - used by checks 3 & 4
-            has_collateral = any('collateral' in log.get('step_name', '').lower() or
-                                log.get('collateral_type') or
-                                log.get('collateral_value')
-                                for log in case_logs)
-
-            # Check 3: Legal clearance missing (for secured loans)
-            if has_disbursement_step:
-
-                if has_collateral and 'legal_clearance' not in documents_submitted:
+            # Check 3: Legal clearance missing (only if SOP explicitly requires it)
+            if 'legal_clearance' in mandatory_docs:
+                if has_disbursement_step and 'legal_clearance' not in documents_submitted:
                     deviations.append({
                         'case_id': case_id,
                         'officer_id': officer_id,
                         'timestamp': timestamp,
                         'deviation_type': 'legal_clearance_missing',
                         'severity': 'critical',
-                        'description': 'Secured loan disbursed without legal/title clearance',
-                        'expected_behavior': 'Legal clearance required before disbursing secured loans',
+                        'description': 'Loan disbursed without required legal/title clearance',
+                        'expected_behavior': 'Legal clearance required before disbursement (per SOP)',
                         'actual_behavior': 'Disbursement step completed without legal clearance',
                         'context': {
-                            'has_collateral': has_collateral,
                             'legal_clearance_completed': False
                         }
                     })
 
-            # Check 4: Collateral documentation incomplete
-            if has_collateral and 'collateral_docs' not in documents_submitted:
-                if has_disbursement_step:
+            # Check 4: Collateral documentation incomplete (only if SOP explicitly requires it)
+            if 'collateral_docs' in mandatory_docs:
+                if has_disbursement_step and 'collateral_docs' not in documents_submitted:
                     deviations.append({
                         'case_id': case_id,
                         'officer_id': officer_id,
                         'timestamp': timestamp,
                         'deviation_type': 'collateral_docs_incomplete',
                         'severity': 'critical',
-                        'description': 'Secured loan disbursed with incomplete collateral documentation',
-                        'expected_behavior': 'Complete collateral documentation required before disbursement',
+                        'description': 'Loan disbursed with incomplete collateral documentation',
+                        'expected_behavior': 'Complete collateral documentation required before disbursement (per SOP)',
                         'actual_behavior': 'Disbursement completed without verified collateral docs',
                         'context': {
-                            'has_collateral': has_collateral,
                             'collateral_docs_complete': False
                         }
                     })

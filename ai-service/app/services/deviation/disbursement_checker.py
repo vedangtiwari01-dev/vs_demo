@@ -1,5 +1,6 @@
 from typing import List, Dict, Any
 from collections import defaultdict
+from .rule_parser import RuleParser
 
 class DisbursementChecker:
     """
@@ -11,14 +12,17 @@ class DisbursementChecker:
     - incorrect_disbursement_amount: Disbursed amount differs from sanctioned amount
     - post_disbursement_qc_missing: Post-disbursement quality check not performed
 
-    DEFENSIVE: Gracefully handles missing fields/rules.
-    Only validates when disbursement fields are present in workflow logs.
+    STRICT MODE: Only validates if SOP explicitly defines disbursement requirements.
+    If no disbursement rules exist, returns empty list (no validation, no false positives).
     """
 
     @staticmethod
     def check_disbursement(logs: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Check disbursement compliance deviations.
+
+        STRICT MODE: Only validates based on explicit SOP requirements.
+        If no disbursement rules defined, skips validation entirely.
 
         Args:
             logs: Workflow logs with optional fields (disbursement_date, disbursement_amount, mandate_status, post_disbursement_qc_flag)
@@ -29,8 +33,15 @@ class DisbursementChecker:
         """
         deviations = []
 
-        # Extract disbursement rules
-        disbursement_rules = [r for r in rules if r.get('rule_type') in ['disbursement', 'post_disbursement_qc']]
+        # Extract disbursement preconditions from SOP
+        disbursement_reqs = RuleParser.extract_disbursement_preconditions(rules)
+
+        # STRICT MODE: If no disbursement rules defined in SOP, skip validation
+        if (not disbursement_reqs['required_steps'] and
+            not disbursement_reqs['mandate_required'] and
+            not disbursement_reqs['qc_required'] and
+            disbursement_reqs['tolerance_percent'] is None):
+            return deviations
 
         # Group logs by case_id
         cases = defaultdict(list)
@@ -73,30 +84,41 @@ class DisbursementChecker:
             if not has_disbursement and not has_disbursement_step:
                 continue  # No disbursement, skip checks
 
-            # Check 1: Pre-disbursement conditions (approval must exist before disbursement)
-            if has_disbursement or has_disbursement_step:
-                has_approval = case_data.get('approved', False)
-                has_approval_step = any('approval' in step.lower() for step in step_names)
+            # Check 1: Pre-disbursement conditions (only if SOP requires specific steps)
+            if disbursement_reqs['required_steps'] and (has_disbursement or has_disbursement_step):
+                missing_steps = []
 
-                if not has_approval and not has_approval_step:
+                for required_step in disbursement_reqs['required_steps']:
+                    step_found = any(required_step.lower() in step.lower() for step in step_names)
+
+                    # Special handling for approval
+                    if required_step.lower() == 'approval':
+                        has_approval = case_data.get('approved', False)
+                        has_approval_step = any('approval' in step.lower() for step in step_names)
+                        if not has_approval and not has_approval_step:
+                            missing_steps.append(required_step)
+                    elif not step_found:
+                        missing_steps.append(required_step)
+
+                if missing_steps:
                     deviations.append({
                         'case_id': case_id,
                         'officer_id': officer_id,
                         'timestamp': timestamp,
                         'deviation_type': 'pre_disbursement_condition_unmet',
                         'severity': 'critical',
-                        'description': 'Disbursement completed without approval step/decision',
-                        'expected_behavior': 'Loan must be approved before disbursement',
-                        'actual_behavior': 'Disbursement found without approval',
+                        'description': f'Disbursement completed without required pre-conditions: {", ".join(missing_steps)}',
+                        'expected_behavior': f'Required steps before disbursement (per SOP): {", ".join(disbursement_reqs["required_steps"])}',
+                        'actual_behavior': f'Disbursement found without: {", ".join(missing_steps)}',
                         'context': {
-                            'has_approval': has_approval,
-                            'has_approval_step': has_approval_step,
+                            'required_steps': disbursement_reqs['required_steps'],
+                            'missing_steps': missing_steps,
                             'has_disbursement': has_disbursement
                         }
                     })
 
-            # Check 2: Mandate not set before disbursement (EMI collection setup)
-            if has_disbursement or has_disbursement_step:
+            # Check 2: Mandate not set before disbursement (only if SOP requires it)
+            if disbursement_reqs['mandate_required'] and (has_disbursement or has_disbursement_step):
                 mandate_set = case_data.get('mandate_set', False)
                 mandate_status = str(case_data.get('mandate_status', '')).lower()
 
@@ -115,8 +137,8 @@ class DisbursementChecker:
                             'timestamp': timestamp,
                             'deviation_type': 'mandate_not_set_before_disbursement',
                             'severity': 'critical',
-                            'description': 'Loan disbursed without setting up EMI mandate/NACH',
-                            'expected_behavior': 'EMI mandate must be set before disbursement',
+                            'description': 'Loan disbursed without setting up EMI mandate/NACH (per SOP)',
+                            'expected_behavior': 'EMI mandate must be set before disbursement (per SOP)',
                             'actual_behavior': f'Disbursement completed with mandate status: {mandate_status or "not set"}',
                             'context': {
                                 'mandate_set': mandate_set,
@@ -125,39 +147,41 @@ class DisbursementChecker:
                             }
                         })
 
-            # Check 3: Incorrect disbursement amount (if both amounts present)
-            if 'disbursement_amount' in case_data and 'sanctioned_amount' in case_data:
-                try:
-                    disbursed = float(case_data['disbursement_amount'])
-                    sanctioned = float(case_data['sanctioned_amount'])
+            # Check 3: Incorrect disbursement amount (only check if tolerance defined in SOP)
+            if disbursement_reqs['tolerance_percent'] is not None:
+                if 'disbursement_amount' in case_data and 'sanctioned_amount' in case_data:
+                    try:
+                        disbursed = float(case_data['disbursement_amount'])
+                        sanctioned = float(case_data['sanctioned_amount'])
 
-                    # Allow 1% tolerance for rounding
-                    tolerance = sanctioned * 0.01
-                    difference = abs(disbursed - sanctioned)
+                        # Use tolerance from SOP (as percentage)
+                        tolerance = sanctioned * (disbursement_reqs['tolerance_percent'] / 100)
+                        difference = abs(disbursed - sanctioned)
 
-                    if difference > tolerance:
-                        severity = 'critical' if difference > sanctioned * 0.05 else 'high'
-                        deviations.append({
-                            'case_id': case_id,
-                            'officer_id': officer_id,
-                            'timestamp': timestamp,
-                            'deviation_type': 'incorrect_disbursement_amount',
-                            'severity': severity,
-                            'description': f'Disbursed amount {disbursed} differs from sanctioned amount {sanctioned} (difference: {difference})',
-                            'expected_behavior': f'Disbursed amount should match sanctioned amount: {sanctioned}',
-                            'actual_behavior': f'Disbursed: {disbursed}',
-                            'context': {
-                                'sanctioned_amount': sanctioned,
-                                'disbursed_amount': disbursed,
-                                'difference': difference,
-                                'difference_percentage': (difference / sanctioned) * 100
-                            }
-                        })
-                except (ValueError, TypeError):
-                    pass
+                        if difference > tolerance:
+                            severity = 'critical' if difference > sanctioned * 0.05 else 'high'
+                            deviations.append({
+                                'case_id': case_id,
+                                'officer_id': officer_id,
+                                'timestamp': timestamp,
+                                'deviation_type': 'incorrect_disbursement_amount',
+                                'severity': severity,
+                                'description': f'Disbursed amount {disbursed} differs from sanctioned amount {sanctioned} by {difference} (tolerance: {tolerance})',
+                                'expected_behavior': f'Disbursed amount should match sanctioned within {disbursement_reqs["tolerance_percent"]}%: {sanctioned}',
+                                'actual_behavior': f'Disbursed: {disbursed}',
+                                'context': {
+                                    'sanctioned_amount': sanctioned,
+                                    'disbursed_amount': disbursed,
+                                    'difference': difference,
+                                    'difference_percentage': (difference / sanctioned) * 100,
+                                    'tolerance_percent': disbursement_reqs['tolerance_percent']
+                                }
+                            })
+                    except (ValueError, TypeError):
+                        pass
 
-            # Check 4: Post-disbursement QC missing (if disbursement occurred)
-            if has_disbursement or has_disbursement_step:
+            # Check 4: Post-disbursement QC missing (only if SOP requires it)
+            if disbursement_reqs['qc_required'] and (has_disbursement or has_disbursement_step):
                 qc_completed = case_data.get('qc_completed', False)
 
                 # Also check step names
@@ -165,26 +189,20 @@ class DisbursementChecker:
                                 for step in step_names)
 
                 if not qc_completed and not has_qc_step:
-                    # Look for rule requiring post-disbursement QC
-                    qc_required = any('post' in r.get('rule_description', '').lower() and
-                                     'disbursement' in r.get('rule_description', '').lower()
-                                     for r in disbursement_rules)
-
-                    if qc_required or disbursement_rules:  # If rules exist, assume QC required
-                        deviations.append({
-                            'case_id': case_id,
-                            'officer_id': officer_id,
-                            'timestamp': timestamp,
-                            'deviation_type': 'post_disbursement_qc_missing',
-                            'severity': 'medium',
-                            'description': 'Post-disbursement quality check not performed',
-                            'expected_behavior': 'Post-disbursement QC required within specified timeframe',
-                            'actual_behavior': 'No QC step or flag found after disbursement',
-                            'context': {
-                                'qc_completed': qc_completed,
-                                'has_qc_step': has_qc_step,
-                                'has_disbursement': has_disbursement
-                            }
-                        })
+                    deviations.append({
+                        'case_id': case_id,
+                        'officer_id': officer_id,
+                        'timestamp': timestamp,
+                        'deviation_type': 'post_disbursement_qc_missing',
+                        'severity': 'medium',
+                        'description': 'Post-disbursement quality check not performed (per SOP)',
+                        'expected_behavior': 'Post-disbursement QC required (per SOP)',
+                        'actual_behavior': 'No QC step or flag found after disbursement',
+                        'context': {
+                            'qc_completed': qc_completed,
+                            'has_qc_step': has_qc_step,
+                            'has_disbursement': has_disbursement
+                        }
+                    })
 
         return deviations

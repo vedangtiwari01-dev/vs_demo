@@ -254,25 +254,27 @@ const OverviewTab = ({ data, patterns, deviations, analysisResult }) => {
 
       {/* 3. Workflow Log Quality Report */}
       {(patterns?.log_cleaning_report || patterns?.log_quality) && (
-        <div className="widget-transparent rounded-xl shadow-xl p-4 border border-primary-300">
-          <h3 className="text-base font-semibold text-primary-600 mb-3">Workflow Log Quality Report</h3>
-
-          {/* Data Quality Score */}
-          {patterns.log_quality && (
-            <div className="mb-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border border-green-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Data Quality Score</p>
-                  <p className="text-2xl font-bold text-primary-600">{patterns.log_quality.score}/100</p>
-                  <p className="text-xs text-gray-600">Grade: {patterns.log_quality.grade} - {patterns.log_quality.assessment}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-600">Retention Rate</p>
-                  <p className="text-lg font-semibold text-green-600">{patterns.log_quality.details?.retention_rate || 0}%</p>
+        <details className="widget-transparent rounded-xl shadow-xl border border-primary-300">
+          <summary className="px-6 py-4 cursor-pointer font-medium text-primary-600 hover:bg-primary-50/50 transition-colors">
+            Workflow Log Quality Report
+          </summary>
+          <div className="px-6 pb-4">
+            {/* Data Quality Score */}
+            {patterns.log_quality && (
+              <div className="mb-4 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg p-4 border border-cyan-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Data Quality Score</p>
+                    <p className="text-2xl font-bold text-primary-600">{patterns.log_quality.score}/100</p>
+                    <p className="text-xs text-gray-600">Grade: {patterns.log_quality.grade} - {patterns.log_quality.assessment}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-600">Retention Rate</p>
+                    <p className="text-lg font-semibold text-cyan-600">{patterns.log_quality.details?.retention_rate || 0}%</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Cleaning Statistics */}
           {patterns.log_cleaning_report && (
@@ -285,32 +287,124 @@ const OverviewTab = ({ data, patterns, deviations, analysisResult }) => {
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                   <p className="text-xs font-medium text-gray-500 uppercase mb-1">Final Logs</p>
-                  <p className="text-lg font-semibold text-green-600">{patterns.log_cleaning_report.final_count || patterns.log_cleaning_report.original_count || 0}</p>
+                  <p className="text-lg font-semibold text-cyan-600">{patterns.log_cleaning_report.final_count || patterns.log_cleaning_report.original_count || 0}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                   <p className="text-xs font-medium text-gray-500 uppercase mb-1">Duplicates Removed</p>
-                  <p className="text-lg font-semibold text-orange-600">{patterns.log_cleaning_report.duplicates_removed || 0}</p>
+                  <p className="text-lg font-semibold text-blue-600">{patterns.log_cleaning_report.duplicates_removed || 0}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                   <p className="text-xs font-medium text-gray-500 uppercase mb-1">Invalid Removed</p>
-                  <p className="text-lg font-semibold text-red-600">{patterns.log_cleaning_report.invalid_logs_removed || 0}</p>
+                  <p className="text-lg font-semibold text-blue-600">{patterns.log_cleaning_report.invalid_logs_removed || 0}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                   <p className="text-xs font-medium text-gray-500 uppercase mb-1">Types Fixed</p>
-                  <p className="text-lg font-semibold text-blue-600">{patterns.log_cleaning_report.invalid_types_fixed || 0}</p>
+                  <p className="text-lg font-semibold text-cyan-600">{patterns.log_cleaning_report.invalid_types_fixed || 0}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                   <p className="text-xs font-medium text-gray-500 uppercase mb-1">Missing Handled</p>
-                  <p className="text-lg font-semibold text-purple-600">{patterns.log_cleaning_report.missing_values_handled || 0}</p>
+                  <p className="text-lg font-semibold text-cyan-600">{patterns.log_cleaning_report.missing_values_handled || 0}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                   <p className="text-xs font-medium text-gray-500 uppercase mb-1">Text Normalized</p>
-                  <p className="text-lg font-semibold text-cyan-600">{patterns.log_cleaning_report.text_normalized || 0}</p>
+                  <p className="text-lg font-semibold text-blue-600">{patterns.log_cleaning_report.text_normalized || 0}</p>
                 </div>
               </div>
             </div>
           )}
-        </div>
+
+          {/* Missing Field Analysis */}
+          {patterns.log_cleaning_report?.missing_field_analysis && (
+            <div className="mt-6">
+              <h4 className="text-xs font-medium text-gray-700 mb-3">Missing Field Analysis</h4>
+
+              {/* Impact Summary */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-lg p-3 border border-cyan-200">
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Total Rules</p>
+                  <p className="text-lg font-semibold text-cyan-600">
+                    {patterns.log_cleaning_report.missing_field_analysis.impact_summary?.total_rules || 0}
+                  </p>
+                </div>
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-3 border border-blue-200">
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Evaluable Rules</p>
+                  <p className="text-lg font-semibold text-cyan-600">
+                    {patterns.log_cleaning_report.missing_field_analysis.impact_summary?.evaluable_rules || 0}
+                  </p>
+                </div>
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-3 border border-blue-200">
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Blocked Rules</p>
+                  <p className="text-lg font-semibold text-blue-600">
+                    {patterns.log_cleaning_report.missing_field_analysis.impact_summary?.blocked_rules || 0}
+                  </p>
+                </div>
+                <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-lg p-3 border border-cyan-200">
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Missing Fields</p>
+                  <p className="text-lg font-semibold text-blue-600">
+                    {patterns.log_cleaning_report.missing_field_analysis.impact_summary?.missing_field_count || 0}
+                  </p>
+                </div>
+              </div>
+
+              {/* Missing Fields List */}
+              {patterns.log_cleaning_report.missing_field_analysis.missing_fields?.length > 0 && (
+                <div className="bg-cyan-50/50 rounded-lg p-4 border border-cyan-200 mb-4">
+                  <p className="text-xs font-semibold text-cyan-800 mb-2">Missing Fields:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {patterns.log_cleaning_report.missing_field_analysis.missing_fields.map((field, idx) => (
+                      <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-mono">
+                        {field}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Affected Rules (Collapsed by default) */}
+              {patterns.log_cleaning_report.missing_field_analysis.rules_affected?.length > 0 && (
+                <details className="bg-gray-50 rounded-lg border border-gray-200">
+                  <summary className="px-4 py-3 cursor-pointer text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                    Rules Affected by Missing Fields ({patterns.log_cleaning_report.missing_field_analysis.rules_affected.length})
+                  </summary>
+                  <div className="px-4 pb-3 space-y-2 max-h-64 overflow-y-auto">
+                    {patterns.log_cleaning_report.missing_field_analysis.rules_affected.map((rule, idx) => (
+                      <div key={idx} className={`p-3 rounded border-l-4 ${
+                        rule.severity === 'critical' ? 'bg-red-50 border-red-500' :
+                        rule.severity === 'high' ? 'bg-orange-50 border-orange-500' :
+                        rule.severity === 'medium' ? 'bg-yellow-50 border-yellow-500' :
+                        'bg-blue-50 border-blue-500'
+                      }`}>
+                        <div className="flex items-start justify-between mb-1">
+                          <div>
+                            <p className="text-xs font-semibold text-gray-800">{rule.rule_type}</p>
+                            <p className="text-xs text-gray-600 mt-1">{rule.rule_description}</p>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            rule.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                            rule.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                            rule.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
+                            {rule.severity}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          <span className="text-xs text-gray-600 font-medium mr-1">Missing:</span>
+                          {rule.missing_fields?.map((field, fidx) => (
+                            <span key={fidx} className="px-2 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono text-gray-700">
+                              {field}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </div>
+          )}
+          </div>
+        </details>
       )}
 
       {/* 4. All Deviations List */}
@@ -604,6 +698,68 @@ const AIInsightsTab = ({ patterns }) => {
           </div>
         </details>
       )}
+
+      {/* 7. Justification Analysis */}
+      {patterns.justification_analysis && (
+        <details className="widget-transparent rounded-xl shadow-xl border border-primary-300">
+          <summary className="px-6 py-4 cursor-pointer font-medium text-primary-600 hover:bg-primary-50/50 transition-colors">
+            Justification Analysis
+          </summary>
+          <div className="px-6 pb-4 space-y-4">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-lg p-4 border border-cyan-200">
+                <div className="text-sm text-cyan-600 mb-1">Justified</div>
+                <div className="text-2xl font-bold text-cyan-700">
+                  {patterns.justification_analysis.justified_count || 0}
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-4 border border-blue-200">
+                <div className="text-sm text-blue-600 mb-1">Not Justified</div>
+                <div className="text-2xl font-bold text-blue-700">
+                  {patterns.justification_analysis.not_justified_count || 0}
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-lg p-4 border border-cyan-200">
+                <div className="text-sm text-cyan-600 mb-1">Unclear</div>
+                <div className="text-2xl font-bold text-cyan-700">
+                  {patterns.justification_analysis.unclear_count || 0}
+                </div>
+              </div>
+            </div>
+
+            {/* Most Common Reasons */}
+            {patterns.justification_analysis.most_common_reasons &&
+             patterns.justification_analysis.most_common_reasons.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-primary-600 mb-3">Most Common Reasons</h4>
+                <div className="space-y-2">
+                  {patterns.justification_analysis.most_common_reasons.map((item, idx) => (
+                    <div key={idx} className="flex items-start space-x-3 bg-white/50 p-3 rounded-lg border-l-4 border-cyan-500">
+                      <div className="flex-shrink-0 w-8 h-8 bg-cyan-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                        {item.count}
+                      </div>
+                      <div className="text-sm text-gray-800 flex-1">{item.reason}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Detailed Analysis */}
+            {patterns.justification_analysis.analysis && (
+              <div>
+                <h4 className="text-sm font-semibold text-primary-600 mb-3">Detailed Analysis</h4>
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-4 border border-blue-200">
+                  <p className="text-sm text-gray-800 leading-relaxed">
+                    {patterns.justification_analysis.analysis}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </details>
+      )}
     </div>
   );
 };
@@ -846,53 +1002,76 @@ const MLStatisticsTab = ({ patterns, deviations }) => {
             </div>
           )}
 
-          {/* Chart 4: Bar Chart - Officer Deviation Rate */}
-          {topOfficers.length > 0 && (() => {
-            const barData = topOfficers.slice(0, 10).map(officer => {
-              // Calculate deviation rate: (total deviations / unique cases handled)
-              const deviationRate = officer.unique_cases
-                ? ((officer.total_deviations / officer.unique_cases) * 100).toFixed(1)
-                : 0;
+          {/* Chart 4: Pie Chart - Deviation Type Distribution */}
+          {deviations.length > 0 && (() => {
+            // Count deviations by type
+            const typeCount = deviations.reduce((acc, dev) => {
+              const type = dev.deviation_type || 'Unknown';
+              acc[type] = (acc[type] || 0) + 1;
+              return acc;
+            }, {});
 
-              return {
-                officer: officer.officer_id,
-                rate: parseFloat(deviationRate),
-                deviations: officer.total_deviations,
-                cases: officer.unique_cases || 0
-              };
-            });
+            // Convert to array and calculate percentages
+            const total = deviations.length;
+            const pieData = Object.entries(typeCount).map(([name, value]) => ({
+              name,
+              value,
+              percentage: ((value / total) * 100).toFixed(1)
+            }));
+
+            // Colors for different deviation types
+            const COLORS = [
+              '#dc2626', // red
+              '#ea580c', // orange
+              '#ca8a04', // yellow
+              '#2563eb', // blue
+              '#7c3aed', // purple
+              '#db2777', // pink
+              '#059669', // green
+              '#0891b2', // cyan
+              '#64748b', // slate
+              '#f97316', // orange-alt
+            ];
 
             return (
               <div className="widget-transparent rounded-lg shadow-xl p-3 border border-primary-300">
-                <h4 className="text-sm font-semibold text-primary-600 mb-2">Officer Deviation Rate (%)</h4>
+                <h4 className="text-sm font-semibold text-primary-600 mb-2">Deviation Type Distribution</h4>
                 <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={barData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(6, 182, 212, 0.2)" />
-                    <XAxis
-                      dataKey="officer"
-                      tick={{ fontSize: 9, fill: '#1f2937' }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 10, fill: '#1f2937' }}
-                      label={{ value: 'Rate (%)', angle: -90, position: 'insideLeft', style: { fontSize: 10 } }}
-                    />
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percentage }) => `${percentage}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
                         border: '1px solid rgba(6, 182, 212, 0.3)',
                         borderRadius: '8px',
                         fontSize: '11px'
                       }}
                       formatter={(value, name, props) => [
-                        `${value}% (${props.payload.deviations} deviations / ${props.payload.cases} cases)`,
-                        'Deviation Rate'
+                        `${value} (${props.payload.percentage}%)`,
+                        props.payload.name
                       ]}
                     />
-                    <Bar dataKey="rate" fill="#06b6d4" radius={[4, 4, 0, 0]} />
-                  </BarChart>
+                    <Legend
+                      wrapperStyle={{ fontSize: '10px' }}
+                      layout="vertical"
+                      align="right"
+                      verticalAlign="middle"
+                      iconSize={8}
+                    />
+                  </PieChart>
                 </ResponsiveContainer>
               </div>
             );
