@@ -100,6 +100,115 @@ def _aggressive_json_cleanup(json_text: str) -> str:
 
     return json_text
 
+
+def chunk_sop_by_sections(sop_text: str, max_chunk_size: int = 10000) -> List[Dict[str, Any]]:
+    """
+    Split SOP into chunks based on section headers, optimized for LLM extraction.
+
+    Args:
+        sop_text: Full SOP text
+        max_chunk_size: Maximum characters per chunk (default 10k to avoid token limit truncation)
+
+    Returns:
+        List of chunks with metadata
+    """
+    # Patterns to detect section headers (e.g., "2.1 WORKFLOW", "SECTION 3:", "3.4 Age Eligibility")
+    section_pattern = r'^(?:SECTION\s+)?(\d+(?:\.\d+)?)[:\.\s]+([A-Z][A-Z\s\-\/]+)$'
+
+    lines = sop_text.split('\n')
+    chunks = []
+    current_chunk_lines = []
+    current_chunk_sections = []
+    current_chunk_size = 0
+
+    for line in lines:
+        line_stripped = line.strip()
+
+        # Check if this is a section header
+        section_match = re.match(section_pattern, line_stripped)
+
+        if section_match:
+            section_num = section_match.group(1)
+            section_name = section_match.group(2).strip()
+
+            # If current chunk is getting large, save it and start new one
+            if current_chunk_size > max_chunk_size and current_chunk_lines:
+                chunks.append({
+                    'sections': current_chunk_sections.copy(),
+                    'text': '\n'.join(current_chunk_lines),
+                    'size': current_chunk_size
+                })
+                current_chunk_lines = []
+                current_chunk_sections = []
+                current_chunk_size = 0
+
+            # Start tracking new section
+            current_chunk_sections.append(f"{section_num} {section_name}")
+
+        # Add line to current chunk
+        current_chunk_lines.append(line)
+        current_chunk_size += len(line) + 1  # +1 for newline
+
+    # Add final chunk
+    if current_chunk_lines:
+        chunks.append({
+            'sections': current_chunk_sections,
+            'text': '\n'.join(current_chunk_lines),
+            'size': current_chunk_size
+        })
+
+    # If no sections detected or only one huge chunk, fall back to size-based chunking
+    if len(chunks) <= 1 and len(sop_text) > max_chunk_size:
+        logger.warning("No clear sections detected, using size-based chunking")
+        chunks = []
+        overlap = 1000  # Character overlap between chunks
+
+        for i in range(0, len(sop_text), max_chunk_size - overlap):
+            chunk_text = sop_text[i:i + max_chunk_size]
+            chunks.append({
+                'sections': [f'Chunk {len(chunks) + 1}'],
+                'text': chunk_text,
+                'size': len(chunk_text)
+            })
+
+    logger.info(f"Split SOP into {len(chunks)} chunks: {[', '.join(c['sections']) for c in chunks]}")
+    return chunks
+
+
+def _merge_rule_sets(rule_sets: List[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+    """
+    Merge multiple rule sets and remove duplicates.
+
+    Args:
+        rule_sets: List of rule lists from different chunks
+
+    Returns:
+        Deduplicated merged rule list
+    """
+    all_rules = []
+    seen_rules = set()
+
+    for rule_set in rule_sets:
+        for rule in rule_set:
+            # Create a unique key for deduplication
+            # Use rule_type + rule_description + threshold_value as key
+            rule_key = (
+                rule.get('rule_type', ''),
+                rule.get('rule_description', ''),
+                rule.get('threshold_value'),
+                rule.get('step_number')  # Important for sequence rules
+            )
+
+            if rule_key not in seen_rules:
+                seen_rules.add(rule_key)
+                all_rules.append(rule)
+            else:
+                logger.debug(f"Skipping duplicate rule: {rule.get('rule_description', 'unknown')[:50]}...")
+
+    logger.info(f"Merged {sum(len(rs) for rs in rule_sets)} rules → {len(all_rules)} unique rules")
+    return all_rules
+
+
 class LLMRuleParser:
     """
     LLM-powered SOP rule extraction using Claude.
@@ -126,6 +235,7 @@ class LLMRuleParser:
     ) -> Dict[str, Any]:
         """
         Extract rules from SOP text using Claude LLM.
+        Automatically uses chunking for large SOPs (>25k characters).
 
         Args:
             sop_text: The full text of the SOP document
@@ -135,16 +245,24 @@ class LLMRuleParser:
         Returns:
             Dict containing:
                 - rules: List of extracted rules
-                - extraction_method: "llm" or "regex"
+                - extraction_method: "llm" or "llm_chunked" or "regex"
                 - confidence: Overall confidence score (0-1)
                 - warnings: Any issues encountered
+                - chunks_processed: Number of chunks (if chunked)
         """
         if not use_llm or not self.claude_client:
             logger.info("Using fallback regex parser (LLM disabled or unavailable)")
             return self._extract_with_fallback(sop_text)
 
+        # CHUNKING THRESHOLD: Large SOPs need to be split
+        CHUNKING_THRESHOLD = 25000  # characters
+
+        if len(sop_text) > CHUNKING_THRESHOLD:
+            logger.info(f"Large SOP detected ({len(sop_text)} chars > {CHUNKING_THRESHOLD}), using chunked extraction")
+            return self._extract_rules_chunked(sop_text, fallback_on_error)
+
         try:
-            logger.info("Extracting SOP rules with Claude LLM")
+            logger.info(f"Extracting SOP rules with Claude LLM ({len(sop_text)} chars, single pass)")
 
             # Format prompt
             prompt = format_sop_extraction_prompt(sop_text)
@@ -270,6 +388,170 @@ class LLMRuleParser:
                 'confidence': 0.0,
                 'warnings': [f'LLM extraction failed: {str(e)}']
             }
+
+    def _extract_rules_chunked(
+        self,
+        sop_text: str,
+        fallback_on_error: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Extract rules from large SOP by splitting into chunks.
+
+        Args:
+            sop_text: Full SOP text
+            fallback_on_error: Whether to use fallback on failure
+
+        Returns:
+            Dict with merged rules from all chunks
+        """
+        try:
+            # Split SOP into chunks
+            chunks = chunk_sop_by_sections(sop_text, max_chunk_size=4500)
+            logger.info(f"Processing {len(chunks)} chunks")
+
+            # Extract rules from each chunk
+            all_rule_sets = []
+            warnings = []
+            failed_chunks = []
+
+            for i, chunk in enumerate(chunks):
+                logger.info(f"Processing chunk {i+1}/{len(chunks)}: {', '.join(chunk['sections'])} ({chunk['size']} chars)")
+
+                try:
+                    chunk_result = self._extract_single_chunk(chunk['text'])
+
+                    if chunk_result and 'rules' in chunk_result:
+                        all_rule_sets.append(chunk_result['rules'])
+                        logger.info(f"Chunk {i+1}: Extracted {len(chunk_result['rules'])} rules")
+
+                        if 'warnings' in chunk_result:
+                            warnings.extend(chunk_result.get('warnings', []))
+                    else:
+                        failed_chunks.append(f"Chunk {i+1}")
+                        warnings.append(f"Chunk {i+1} returned no rules")
+
+                except Exception as chunk_error:
+                    logger.error(f"Chunk {i+1} extraction failed: {str(chunk_error)}")
+                    failed_chunks.append(f"Chunk {i+1}")
+                    warnings.append(f"Chunk {i+1} failed: {str(chunk_error)}")
+
+            # Merge all rule sets
+            if all_rule_sets:
+                merged_rules = _merge_rule_sets(all_rule_sets)
+                logger.info(f"Successfully extracted {len(merged_rules)} unique rules from {len(chunks)} chunks")
+
+                return {
+                    'rules': merged_rules,
+                    'extraction_method': 'llm_chunked',
+                    'confidence': 0.9 if not failed_chunks else 0.7,
+                    'warnings': warnings,
+                    'chunks_processed': len(chunks),
+                    'chunks_succeeded': len(all_rule_sets),
+                    'chunks_failed': len(failed_chunks)
+                }
+            else:
+                logger.error("All chunks failed to extract rules")
+                if fallback_on_error:
+                    logger.info("Falling back to regex parser")
+                    return self._extract_with_fallback(sop_text)
+                return {
+                    'rules': [],
+                    'extraction_method': 'llm_chunked',
+                    'confidence': 0.0,
+                    'warnings': warnings + ['All chunks failed'],
+                    'chunks_processed': len(chunks),
+                    'chunks_succeeded': 0,
+                    'chunks_failed': len(failed_chunks)
+                }
+
+        except Exception as e:
+            logger.error(f"Chunked extraction failed: {str(e)}")
+            if fallback_on_error:
+                logger.info("Falling back to regex parser")
+                return self._extract_with_fallback(sop_text)
+            return {
+                'rules': [],
+                'extraction_method': 'llm_chunked',
+                'confidence': 0.0,
+                'warnings': [f'Chunked extraction failed: {str(e)}']
+            }
+
+    def _extract_single_chunk(self, chunk_text: str) -> Dict[str, Any]:
+        """
+        Extract rules from a single SOP chunk.
+
+        Args:
+            chunk_text: Text of the chunk to extract
+
+        Returns:
+            Dict with rules and metadata
+        """
+        try:
+            # Format prompt
+            prompt = format_sop_extraction_prompt(chunk_text)
+
+            # Call Claude
+            response = self.claude_client.generate(
+                prompt=prompt,
+                system=("You are an expert at analyzing compliance documents and extracting rules. "
+                       "IMPORTANT: Respond with ONLY valid JSON. No markdown, no explanations, no text outside the JSON. "
+                       "The entire response must be parseable by json.loads()."),
+                json_mode=True
+            )
+
+            # Parse response
+            response_text = response['text']
+
+            # DEBUG: Log response length and first 200 chars
+            logger.info(f"Claude response length: {len(response_text)} chars")
+            logger.debug(f"Response preview: {response_text[:200]}")
+
+            json_text = extract_json_from_text(response_text)
+
+            # DEBUG: Log extracted JSON length
+            logger.info(f"Extracted JSON length: {len(json_text)} chars")
+            logger.debug(f"JSON preview: {json_text[:200]}")
+
+            # Try to parse JSON
+            MAX_PARSE_RETRIES = 3
+            for retry_attempt in range(MAX_PARSE_RETRIES):
+                try:
+                    if retry_attempt == 1:
+                        json_text = _aggressive_json_cleanup(json_text)
+                        logger.info(f"Retry {retry_attempt}: Applied aggressive cleanup")
+                    elif retry_attempt == 2:
+                        json_text = repair_json(json_text)
+                        logger.info(f"Retry {retry_attempt}: Applied json-repair")
+
+                    result = json.loads(json_text)
+
+                    # Validate result structure
+                    if 'rules' in result and isinstance(result['rules'], list):
+                        logger.info(f"Successfully parsed {len(result['rules'])} rules from chunk")
+                        return {
+                            'rules': result['rules'],
+                            'warnings': []
+                        }
+                    else:
+                        logger.warning("Invalid response structure: missing rules array")
+                        return {
+                            'rules': [],
+                            'warnings': ['Invalid response structure: missing rules array']
+                        }
+
+                except json.JSONDecodeError as parse_error:
+                    logger.warning(f"Parse attempt {retry_attempt + 1} failed: {str(parse_error)}")
+                    if retry_attempt == MAX_PARSE_RETRIES - 1:
+                        logger.error(f"Failed to parse chunk JSON after {MAX_PARSE_RETRIES} attempts")
+                        logger.error(f"Last 500 chars of JSON: {json_text[-500:]}")
+                        raise
+
+            return {'rules': [], 'warnings': ['JSON parsing failed']}
+
+        except Exception as e:
+            logger.error(f"Chunk extraction error: {type(e).__name__}: {str(e)}")
+            logger.exception("Full traceback:")
+            return {'rules': [], 'warnings': [str(e)]}
 
     def _extract_with_fallback(self, sop_text: str) -> Dict[str, Any]:
         """

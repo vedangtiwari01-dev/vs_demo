@@ -3,253 +3,344 @@ Centralized prompt templates for Claude API interactions.
 """
 from typing import Dict, Any, List, Optional
 
-# SOP Rule Extraction Prompt
-SOP_RULE_EXTRACTION_PROMPT = """You are an expert at analyzing Standard Operating Procedures (SOPs) for loan processing and extracting compliance rules.
+# SOP Rule Extraction Prompt - IMPROVED (Compact Output + Explicit Instructions)
+# SOP Rule Extraction Prompt - IMPROVED (Compact Output + Explicit Instructions)
+SOP_RULE_EXTRACTION_PROMPT = """You are an expert at analyzing Standard Operating Procedures (SOPs) and extracting structured compliance rules.
 
-Analyze the following SOP document text and extract ALL compliance rules. For each rule, identify:
+Your task: Extract ALL rules from the SOP document and return them as a JSON array.
 
-1. **Rule Type**: One of:
-   - "sequence": Steps that must happen in a specific order
-   - "approval": Requirements for manager/authority approval and escalation
-   - "timing": Time constraints, SLAs, TATs, cut-off times
-   - "eligibility": Age, tenure, income, employment, geography, product qualifications
-   - "credit_risk": Bureau score, delinquency, EMI/DTI ratios, LTV, exposure limits
-   - "kyc": KYC verification, documentation, refresh cycles
-   - "aml": Sanctions/watchlist screening, PEP handling, enhanced due diligence
-   - "documentation": Required document packs, authenticity, expiry, retention
-   - "collateral": Valuation, security creation/perfection, margin, LTV caps (for secured loans)
-   - "disbursement": Pre-disbursement conditions, disbursement modes, stage releases
-   - "post_disbursement_qc": Post-disbursement quality checks and audit requirements
-   - "collection": DPD-based escalation, repossession triggers
-   - "restructuring": Restructuring and write-off approval requirements
-   - "regulatory": NPA classification, provisioning, regulatory reporting requirements
-   - "data_quality": Logging, audit trails, data completeness, consistency, reconciliation
-   - "operational": Manual override rules, error handling, segregation of duties
+# OUTPUT FORMAT
 
-2. **Rule Description**: Clear, concise description of the rule
+Return a JSON object with this EXACT structure:
 
-3. **Step Number**: The step number in the process (if mentioned)
-   - **CRITICAL FOR SEQUENCE RULES**: ALWAYS extract step numbers for sequence rules
-   - If rule mentions "Step 13 and Step 14 before Step 16", create SEPARATE rules:
-     * Rule 1: step_number: 13, rule_description: "Legal Security Creation must be completed before Loan Disbursement"
-     * Rule 2: step_number: 14, rule_description: "EMI Mandate Setup must be completed before Loan Disbursement"
-     * Rule 3: step_number: 16, rule_description: "Loan Disbursement (depends on steps 13, 14)"
-   - Do NOT create one rule with the full compound text as rule_description
-   - Each step in a sequence should have its own rule entry with proper step_number
-
-4. **Severity**: Based on the language used:
-   - "critical": Uses "must", "shall", "required", regulatory/legal requirements
-   - "high": Uses "should", affects compliance or risk
-   - "medium": Uses "recommended", "advised", affects process quality
-   - "low": Uses "may", "optional", best practices
-
-5. **Required Fields**: ANY data fields mentioned that must be present (e.g., income_verification, credit_score, loan_amount, collateral_value, emi_amount, product_type, customer_segment, etc.)
-
-6. **Timing Constraint**: If it's a timing rule, extract the specific time requirement (e.g., "48 hours", "3 days", "immediately", "within 12 months")
-
-7. **Condition Logic**: For conditional rules (IF-THEN logic), extract in structured JSON format:
-
-   **Simple condition:**
-   {{
-     "condition": {{"field": "loan_amount_sanctioned", "operator": ">=", "value": 10000}},
-     "then": {{"require_step": "Manager Approval", "severity": "critical"}}
-   }}
-
-   **With calculation (NEW - for LTV, EMI, etc.):**
-   {{
-     "condition": {{
-       "calculation": {{"function": "DIVIDE", "args": [{{"field": "loan_amount"}}, {{"field": "collateral_value"}}]}},
-       "operator": ">",
-       "value": 0.8
-     }},
-     "then": {{"action": "flag_violation", "deviation_type": "ltv_breach", "severity": "high"}}
-   }}
-
-   **Complex AND/OR:**
-   {{
-     "condition": {{
-       "operator": "AND",
-       "conditions": [
-         {{"field": "credit_score_bureau", "operator": "<", "value": 600}},
-         {{"field": "loan_amount_sanctioned", "operator": ">", "value": 5000}}
-       ]
-     }},
-     "then": {{"require_step": "Risk Head Approval", "severity": "high"}}
-   }}
-
-   **Supported operators:** ==, !=, <, >, <=, >=, IN, NOT_IN, AND, OR, NOT
-   **Calculation functions:** DIVIDE, MULTIPLY, ADD, SUBTRACT, PERCENT, EMI, MAX, MIN, SUM
-
-8. **Product Types** (NEW): List of product types this rule applies to (e.g., ["Home Loan"], ["Gold Loan", "Personal Loan"], or ["All"] if applies to all products)
-
-9. **Customer Segments** (NEW): List of customer segments (e.g., ["Priority"], ["Retail"], ["All"])
-
-10. **Channels** (NEW): List of channels (e.g., ["Branch"], ["Digital"], ["All"])
-
-11. **Geography** (NEW): Geographic applicability (e.g., ["Urban"], ["Rural"], ["All"])
-
-12. **Exceptions** (NEW): Any exception cases mentioned (e.g., [{{"condition": "customer_segment == Priority", "override": "EMI ratio can be 60%"}}])
-
-13. **Calculation Formula** (NEW): For rules involving calculations, extract the formula as a string (e.g., "EMI = P * r * (1+r)^n / ((1+r)^n - 1)", "LTV = loan_amount / collateral_value")
-
-14. **Temporal Constraint** (NEW): For step-to-step timing rules:
-   {{
-     "step_a": "Risk Assessment",
-     "step_b": "Manager Approval",
-     "max_hours": 48,
-     "business_days_only": true
-   }}
-
-15. **Threshold Value** (NEW): Numeric threshold if rule involves a limit (e.g., 10000 for "$10,000+", 0.5 for "50%", 0.8 for "80%")
-
-16. **Field Dependencies** (NEW): List of ALL fields this rule depends on (e.g., ["loan_amount", "collateral_value"] for LTV rule, ["emi_to_income_ratio", "customer_segment"] for EMI rule)
-
-17. **Regulatory Reference** (NEW): Any legal/regulatory reference mentioned (e.g., "RBI Master Circular", "Basel III Norms", "Section 17(2)")
-
-SOP Document Text:
-{sop_text}
-
-Return your analysis as a JSON array with this EXACT structure:
-
-{{{{
+```json
+{{
   "rules": [
-    {{{{
-      "rule_type": "approval",
-      "rule_description": "Loans $10,000 or more require manager approval",
+    {{
+      "rule_type": "sequence|approval|timing|eligibility|credit_risk|kyc|aml|documentation|collateral|disbursement|post_disbursement_qc|collection|restructuring|regulatory|data_quality|operational",
+      "rule_description": "Clear description of the rule",
       "step_number": 5,
-      "severity": "critical",
-      "required_fields": ["loan_amount_sanctioned", "approver_id"],
-      "timing_constraint": null,
-      "condition_logic": {{{{
-        "condition": {{"field": "loan_amount_sanctioned", "operator": ">=", "value": 10000}},
+      "severity": "critical|high|medium|low",
+      "threshold_value": 10000,
+      "field_dependencies": ["loan_amount_sanctioned", "collateral_value"],
+      "condition_logic": {{
+        "condition": {{"field": "loan_amount", "operator": ">=", "value": 10000}},
         "then": {{"require_step": "Manager Approval", "severity": "critical"}}
-      }}}},
+      }},
       "product_types": ["All"],
       "customer_segments": ["All"],
       "channels": ["All"],
       "geography": ["All"],
       "exceptions": [],
-      "calculation_formula": null,
-      "temporal_constraint": null,
-      "threshold_value": 10000,
-      "field_dependencies": ["loan_amount_sanctioned"],
-      "regulatory_reference": null
-    }}}}
+      "calculation_formula": "LTV = loan_amount / collateral_value",
+      "temporal_constraint": {{"step_a": "Risk Assessment", "step_b": "Approval", "max_hours": 48}},
+      "regulatory_reference": null,
+      "timing_constraint": "within 48 hours"
+    }}
   ]
-}}}}
+}}
+```
 
-CRITICAL INSTRUCTIONS:
-- Extract EVERY field mentioned, even if optional
-- For conditional rules, ALWAYS populate condition_logic
-- For timing rules, ALWAYS populate temporal_constraint
-- For calculation rules, ALWAYS populate calculation_formula
-- ALWAYS list ALL fields the rule depends on in field_dependencies
-- If a field is not applicable, use null (not empty string)
-- If a list field applies to everything, use ["All"]
-- Be thorough - extract every rule you can find
-- Use exact field names as they appear in the document
+**IMPORTANT - Keep Output Compact:**
+- **OMIT fields that are null or empty** (don't include them at all)
+- Only include optional fields (temporal_constraint, calculation_formula, regulatory_reference, timing_constraint, exceptions) when they have actual values
+- ALWAYS include: rule_type, rule_description, severity, field_dependencies
+- Include threshold_value only if the rule has a numeric threshold
 
-EXAMPLE EXTRACTIONS:
+# CRITICAL RULES FOR EXTRACTION
 
-0. "Legal Security Creation (Step 13) and EMI Mandate Setup (Step 14) shall be completed before Loan Disbursement (Step 16)" →
-   **Create 3 SEPARATE rules:**
-   {{
-     "rule_type": "sequence",
-     "rule_description": "Legal Security Creation must be completed before Loan Disbursement",
-     "step_number": 13,
-     "severity": "critical",
-     "required_fields": ["step_name", "timestamp"],
-     "temporal_constraint": {{"step_a": "Legal Security Creation", "step_b": "Loan Disbursement", "max_hours": null}},
-     "field_dependencies": ["step_name"]
-   }},
-   {{
-     "rule_type": "sequence",
-     "rule_description": "EMI Mandate Setup must be completed before Loan Disbursement",
-     "step_number": 14,
-     "severity": "critical",
-     "required_fields": ["step_name", "timestamp"],
-     "temporal_constraint": {{"step_a": "EMI Mandate Setup", "step_b": "Loan Disbursement", "max_hours": null}},
-     "field_dependencies": ["step_name"]
-   }},
-   {{
-     "rule_type": "sequence",
-     "rule_description": "Loan Disbursement (depends on Legal Security Creation and EMI Mandate Setup)",
-     "step_number": 16,
-     "severity": "critical",
-     "required_fields": ["step_name", "timestamp"],
-     "field_dependencies": ["step_name"]
-   }}
+## Rule 1: ALWAYS Extract threshold_value
 
-1. "Loans of $10,000 or more require manager approval" →
-   condition_logic: {{"condition": {{"field": "loan_amount_sanctioned", "operator": ">=", "value": 10000}}, "then": {{"require_step": "Manager Approval"}}}}
-   threshold_value: 10000
-   field_dependencies: ["loan_amount_sanctioned"]
+**What it is:** The NUMERIC value in the rule (age limits, amounts, ratios, percentages)
 
-2. "LTV must not exceed 80%" →
-   condition_logic: {{"condition": {{"calculation": {{"function": "DIVIDE", "args": [{{"field": "loan_amount"}}, {{"field": "collateral_value"}}]}}, "operator": ">", "value": 0.8}}, "then": {{"action": "flag_violation"}}}}
-   calculation_formula: "LTV = loan_amount / collateral_value"
-   threshold_value: 0.8
-   field_dependencies: ["loan_amount", "collateral_value"]
+**Examples:**
+- "Minimum Age: 21 years" → threshold_value: 21
+- "Maximum LTV: 80%" → threshold_value: 0.8 (decimal format for percentages)
+- "Loans above $10,000" → threshold_value: 10000
+- "EMI ratio max 55%" → threshold_value: 0.55
+- "Credit score minimum 650" → threshold_value: 650
 
-3. "Manager Approval must be completed within 48 hours of Risk Assessment" →
-   temporal_constraint: {{"step_a": "Risk Assessment", "step_b": "Manager Approval", "max_hours": 48}}
-   timing_constraint: "48 hours"
-   field_dependencies: ["step_name", "timestamp"]
+**VALIDATION:** Age thresholds MUST be 18-100. If you extract 40000 as age, YOU ARE WRONG - that's a loan amount!
 
-4. "Home loans require property valuation" →
-   condition_logic: {{"condition": {{"field": "product_type", "operator": "==", "value": "Home Loan"}}, "then": {{"require_step": "Property Valuation"}}}}
-   product_types: ["Home Loan"]
-   field_dependencies: ["product_type"]
+## Rule 2: ALWAYS Extract field_dependencies
 
-5. "Priority customers can have EMI ratio up to 60% (normal customers: 50%)" →
-   condition_logic: {{"condition": {{"operator": "AND", "conditions": [{{"field": "emi_to_income_ratio", "operator": ">", "value": 0.6}}, {{"field": "customer_segment", "operator": "!=", "value": "Priority"}}]}}, "then": {{"action": "flag_violation"}}}}
-   customer_segments: ["All"]
-   exceptions: [{{"condition": "customer_segment == Priority", "override": "EMI ratio can be 60%"}}]
-   threshold_value: 0.5
-   field_dependencies: ["emi_to_income_ratio", "customer_segment"]
+**What it is:** List of ALL data fields this rule needs to check
 
-6. "Loans with LTV exceeding 80% require Credit Committee approval" →
-   condition_logic: {{
-     "condition": {{
-       "calculation": {{"function": "DIVIDE", "args": [{{"field": "loan_amount_sanctioned"}}, {{"field": "collateral_value"}}]}},
-       "operator": ">",
-       "value": 0.8
-     }},
-     "then": {{"require_step": "Credit Approval (Level 3 - Credit Committee)", "severity": "critical"}}
-   }}
-   calculation_formula: "LTV = loan_amount_sanctioned / collateral_value"
-   threshold_value: 0.8
-   field_dependencies: ["loan_amount_sanctioned", "collateral_value"]
+**Examples:**
+- "Minimum age 21" → field_dependencies: ["customer_age"]
+- "LTV must not exceed 80%" → field_dependencies: ["loan_amount_sanctioned", "collateral_value"]
+- "EMI ratio below 55%" → field_dependencies: ["emi_to_income_ratio"]
+- "Credit score above 650 for loans over $500K" → field_dependencies: ["credit_score_bureau", "loan_amount_sanctioned"]
+- "KYC must be completed before approval" → field_dependencies: ["step_name", "kyc_status"]
 
-7. "Credit scores between 650-699 require Regional Credit Manager approval" →
-   condition_logic: {{
-     "condition": {{
-       "operator": "AND",
-       "conditions": [
-         {{"field": "credit_score_bureau", "operator": ">=", "value": 650}},
-         {{"field": "credit_score_bureau", "operator": "<=", "value": 699}}
-       ]
-     }},
-     "then": {{"require_step": "Credit Approval (Level 2 - Regional Credit Manager)", "severity": "critical"}}
-   }}
-   threshold_value: 650
-   field_dependencies: ["credit_score_bureau"]
+## Rule 3: ALWAYS Extract condition_logic for conditional rules
 
-8. "EMI Mandate must be Active before Loan Disbursement" →
-   condition_logic: {{
-     "condition": {{"field": "mandate_status", "operator": "!=", "value": "Active"}},
-     "then": {{"action": "block_step", "blocked_step": "Loan Disbursement", "severity": "critical"}}
-   }}
-   rule_type: "disbursement"
-   severity: "critical"
-   field_dependencies: ["mandate_status", "step_name"]
+**What it is:** Structured IF-THEN logic for rules that have conditions
 
-IMPORTANT:
-- Use "rule_type" NOT "type"
-- Use "rule_description" NOT "description"
-- Use "condition_logic" NOT "conditional_logic"
-- Be thorough - extract every rule you can find, even if they seem minor
-- ALWAYS fill in the new fields (product_types, customer_segments, etc.) even if ["All"]"""
+**Format:**
+```json
+{{
+  "condition": {{
+    "field": "loan_amount_sanctioned",
+    "operator": ">=",
+    "value": 1000000
+  }},
+  "then": {{
+    "require_step": "Regional Credit Manager Approval",
+    "severity": "critical"
+  }}
+}}
+```
+
+**When to use:**
+- Approval rules with amount thresholds: "Loans above $1M require Regional Manager approval"
+- Risk-based rules: "Credit score below 650 requires exception"
+- Conditional requirements: "Self-employed customers must provide ITR"
+
+## Rule 4: Extract product_types, customer_segments, channels if mentioned
+
+**Examples:**
+- "For Home Loans, property valuation is mandatory" → product_types: ["Home Loan"]
+- "Priority customers can have EMI ratio up to 60%" → customer_segments: ["Priority"]
+- "Digital channel loans limited to $3M" → channels: ["Digital"]
+- If NOT mentioned, use: ["All"]
+
+## Rule 5: Extract exceptions if mentioned
+
+**What it is:** Exception cases or special conditions
+
+**Examples:**
+- "Age limit 65, except existing premium customers can be 68" → exceptions: [{{"condition": "existing premium customer", "override": "maximum age 68"}}]
+- "Credit score minimum 650, except with strong collateral" → exceptions: [{{"condition": "strong collateral", "override": "score below 650 acceptable"}}]
+
+# SPECIFIC EXTRACTION RULES BY TYPE
+
+## A. ELIGIBILITY RULES
+
+Extract as SEPARATE rules (do NOT combine):
+
+**Age Rules:**
+```json
+{{
+  "rule_type": "eligibility",
+  "rule_description": "Minimum age requirement is 21 years",
+  "threshold_value": 21,
+  "field_dependencies": ["customer_age"],
+  "condition_logic": {{
+    "condition": {{"field": "customer_age", "operator": "<", "value": 21}},
+    "then": {{"action": "reject", "reason": "Below minimum age"}}
+  }},
+  "severity": "critical",
+  "product_types": ["All"],
+  "customer_segments": ["All"]
+}}
+```
+
+Note: No null fields included - only fields with actual values.
+
+**Income Rules:**
+```json
+{{
+  "rule_type": "eligibility",
+  "rule_description": "Minimum monthly income for salaried customers is INR 25,000",
+  "threshold_value": 25000,
+  "field_dependencies": ["monthly_income", "customer_type"],
+  "condition_logic": {{
+    "condition": {{
+      "operator": "AND",
+      "conditions": [
+        {{"field": "customer_type", "operator": "==", "value": "Salaried"}},
+        {{"field": "monthly_income", "operator": "<", "value": 25000}}
+      ]
+    }},
+    "then": {{"action": "reject"}}
+  }},
+  "customer_segments": ["Salaried"],
+  "severity": "critical"
+}}
+```
+
+## B. CREDIT RISK RULES
+
+**EMI-to-Income Rules:**
+```json
+{{
+  "rule_type": "credit_risk",
+  "rule_description": "Maximum EMI-to-Income ratio is 55% for salaried customers",
+  "threshold_value": 0.55,
+  "field_dependencies": ["emi_to_income_ratio", "customer_type"],
+  "condition_logic": {{
+    "condition": {{
+      "operator": "AND",
+      "conditions": [
+        {{"field": "customer_type", "operator": "==", "value": "Salaried"}},
+        {{"field": "emi_to_income_ratio", "operator": ">", "value": 0.55}}
+      ]
+    }},
+    "then": {{"action": "flag_violation", "severity": "high"}}
+  }},
+  "customer_segments": ["Salaried"],
+  "exceptions": [{{"condition": "income > INR 100,000/month", "override": "60% EMI ratio acceptable"}}],
+  "severity": "high"
+}}
+```
+
+**Credit Score Rules:**
+```json
+{{
+  "rule_type": "credit_risk",
+  "rule_description": "Minimum credit score requirement is 650",
+  "threshold_value": 650,
+  "field_dependencies": ["credit_score_bureau"],
+  "condition_logic": {{
+    "condition": {{"field": "credit_score_bureau", "operator": "<", "value": 650}},
+    "then": {{"require_step": "Credit Committee Approval", "severity": "critical"}}
+  }},
+  "severity": "critical"
+}}
+```
+
+## C. APPROVAL AUTHORITY RULES
+
+**Amount-Based Approval:**
+```json
+{{
+  "rule_type": "approval",
+  "rule_description": "Loans above INR 1,000,000 require Regional Credit Manager approval",
+  "threshold_value": 1000000,
+  "field_dependencies": ["loan_amount_sanctioned"],
+  "condition_logic": {{
+    "condition": {{"field": "loan_amount_sanctioned", "operator": ">", "value": 1000000}},
+    "then": {{"require_step": "Credit Approval (Level 2 - Regional Credit Manager)", "severity": "critical"}}
+  }},
+  "severity": "critical"
+}}
+```
+
+## D. SEQUENCE RULES
+
+**IMPORTANT:** If the SOP lists a mandatory workflow with numbered steps (Step 1, Step 2, etc.),
+extract each step as a SEPARATE sequence rule:
+
+```json
+{{
+  "rule_type": "sequence",
+  "rule_description": "Application Received and Registration is Step 1 in the mandatory workflow",
+  "step_number": 1,
+  "field_dependencies": ["step_name"],
+  "severity": "critical",
+  "product_types": ["All"]
+}}
+```
+
+**Dependency Rules (no step_number, but include temporal_constraint):**
+```json
+{{
+  "rule_type": "sequence",
+  "rule_description": "KYC Verification must be completed before Credit Approval",
+  "field_dependencies": ["step_name", "kyc_status"],
+  "temporal_constraint": {{
+    "step_a": "Customer KYC and AML Verification",
+    "step_b": "Credit Approval (Level 1 - Branch Manager)"
+  }},
+  "severity": "critical",
+  "product_types": ["All"]
+}}
+```
+
+Note: Omitted max_hours from temporal_constraint when not specified.
+
+## E. TIMING RULES
+
+```json
+{{
+  "rule_type": "timing",
+  "rule_description": "Post-Disbursement Quality Audit must be completed within 48 hours of disbursement",
+  "timing_constraint": "within 48 hours",
+  "threshold_value": 48,
+  "field_dependencies": ["step_name", "timestamp"],
+  "temporal_constraint": {{
+    "step_a": "Loan Disbursement",
+    "step_b": "Post-Disbursement Quality Audit",
+    "max_hours": 48
+  }},
+  "severity": "critical",
+  "product_types": ["All"]
+}}
+```
+
+Note: temporal_constraint is included here because it's a timing rule. For non-timing rules, omit it.
+
+## F. COLLATERAL RULES
+
+**LTV Rules:**
+```json
+{{
+  "rule_type": "collateral",
+  "rule_description": "Maximum LTV for residential property is 75%",
+  "threshold_value": 0.75,
+  "calculation_formula": "LTV = loan_amount_sanctioned / collateral_value",
+  "field_dependencies": ["loan_amount_sanctioned", "collateral_value", "collateral_type"],
+  "condition_logic": {{
+    "condition": {{
+      "calculation": {{
+        "function": "DIVIDE",
+        "args": [
+          {{"field": "loan_amount_sanctioned"}},
+          {{"field": "collateral_value"}}
+        ]
+      }},
+      "operator": ">",
+      "value": 0.75
+    }},
+    "then": {{"action": "flag_violation", "severity": "high"}}
+  }},
+  "product_types": ["Property Backed Loan"],
+  "severity": "high"
+}}
+```
+
+## G. REGULATORY RULES
+
+**Customer Exposure Limits:**
+```json
+{{
+  "rule_type": "regulatory",
+  "rule_description": "Maximum exposure to single customer (including group entities) is INR 15,000,000",
+  "threshold_value": 15000000,
+  "field_dependencies": ["total_customer_exposure", "customer_id", "group_entity_ids"],
+  "condition_logic": {{
+    "condition": {{"field": "total_customer_exposure", "operator": ">", "value": 15000000}},
+    "then": {{"action": "flag_violation", "severity": "critical"}}
+  }},
+  "regulatory_reference": "Customer Exposure Limits Policy",
+  "severity": "critical"
+}}
+```
+
+# EXTRACTION CHECKLIST
+
+Before returning your JSON, verify:
+
+1. ✅ EVERY numeric threshold has threshold_value field (ages, amounts, ratios)
+2. ✅ EVERY rule has field_dependencies listing which fields it needs
+3. ✅ Conditional rules have condition_logic
+4. ✅ Age thresholds are 18-100 (NOT 40000 or other large numbers)
+5. ✅ Percentages are in decimal format (0.55 for 55%, 0.8 for 80%)
+6. ✅ Each workflow step is a separate rule (not combined)
+7. ✅ Approval authority rules extracted for EACH threshold mentioned
+8. ✅ All exceptions are captured in exceptions field
+9. ✅ Customer exposure limits are classified as "regulatory" type (NOT "credit_risk")
+
+# SOP DOCUMENT TO ANALYZE
+
+{sop_text}
+
+# YOUR RESPONSE
+
+Return ONLY the JSON object starting with {{"rules": [...]}}.
+No markdown code fences, no explanations, just the JSON.
+"""
 
 # Column Mapping Prompt
 COLUMN_MAPPING_PROMPT = """You are an expert at analyzing CSV column headers and mapping them to standardized system fields for loan processing workflow data.

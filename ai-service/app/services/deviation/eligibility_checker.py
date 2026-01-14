@@ -49,6 +49,15 @@ class EligibilityChecker:
         min_credit_score = thresholds.get('min_credit_score')
         max_ltv = thresholds.get('max_ltv')
 
+        # DEFENSIVE VALIDATION: Use SOP defaults if extracted values are garbage
+        # Age must be reasonable (18-100 range), not loan amounts (40000) or other values
+        if min_age is not None and (min_age < 18 or min_age > 100):
+            logger.warning(f"Invalid min_age {min_age} detected (outside 18-100 range), using SOP default 21")
+            min_age = 21  # SOP Section 3.1 default
+        if max_age is not None and (max_age < 18 or max_age > 100 or max_age < (min_age or 18)):
+            logger.warning(f"Invalid max_age {max_age} detected, using SOP default 65")
+            max_age = 65  # SOP Section 3.1 default
+
         # Group logs by case_id
         cases = defaultdict(list)
         for log in logs:
@@ -129,16 +138,37 @@ class EligibilityChecker:
             if 'emi_to_income_ratio' in case_data and max_emi_to_income is not None:
                 try:
                     emi_ratio = float(case_data['emi_to_income_ratio'])
-                    if emi_ratio > max_emi_to_income:
+
+                    # NORMALIZE THRESHOLD TO MATCH INPUT FORMAT
+                    # Input data uses raw numbers (42 = 42%), threshold uses decimals (0.6 = 60%)
+                    # Convert threshold to match input format for consistent comparison
+                    threshold_normalized = max_emi_to_income
+                    if emi_ratio > 1 and max_emi_to_income <= 1:
+                        # Input is raw percentage (42), threshold is decimal (0.6) → convert threshold to raw (60)
+                        threshold_normalized = max_emi_to_income * 100
+                    elif emi_ratio <= 1 and max_emi_to_income > 1:
+                        # Input is decimal (0.42), threshold is raw (60) → convert threshold to decimal (0.6)
+                        threshold_normalized = max_emi_to_income / 100
+
+                    if emi_ratio > threshold_normalized:
+                        # Format for display: if value > 1, it's already a percentage, use {:.2f}%
+                        # If value <= 1, it's a decimal, use {:.2%} to convert to percentage
+                        if emi_ratio > 1:
+                            display_ratio = f'{emi_ratio:.2f}%'
+                            display_max = f'{threshold_normalized:.2f}%'
+                        else:
+                            display_ratio = f'{emi_ratio:.2%}'
+                            display_max = f'{threshold_normalized:.2%}'
+
                         deviations.append({
                             'case_id': case_id,
                             'officer_id': officer_id,
                             'timestamp': timestamp,
                             'deviation_type': 'emi_to_income_breach',
                             'severity': 'high',
-                            'description': f'EMI-to-Income ratio {emi_ratio:.2%} exceeds limit {max_emi_to_income:.2%}',
-                            'expected_behavior': f'EMI-to-Income ratio must be ≤{max_emi_to_income:.2%}',
-                            'actual_behavior': f'Ratio is {emi_ratio:.2%}',
+                            'description': f'EMI-to-Income ratio {display_ratio} exceeds limit {display_max}',
+                            'expected_behavior': f'EMI-to-Income ratio must be ≤{display_max}',
+                            'actual_behavior': f'Ratio is {display_ratio}',
                             'context': {'emi_to_income_ratio': emi_ratio, 'max_ratio': max_emi_to_income}
                         })
                 except (ValueError, TypeError):

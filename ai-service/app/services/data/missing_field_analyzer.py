@@ -5,6 +5,7 @@ Analyzes rules and workflow logs to identify missing fields that prevent rule ev
 Shows which specific rules require which missing fields.
 """
 import logging
+import json
 from typing import Dict, List, Any
 
 logger = logging.getLogger(__name__)
@@ -60,9 +61,25 @@ class MissingFieldAnalyzer:
 
             # Get field dependencies (primary source)
             field_deps = rule.get('field_dependencies', [])
+            # DEFENSIVE: Parse JSON string if needed (SQLite stores as string)
+            if isinstance(field_deps, str):
+                try:
+                    field_deps = json.loads(field_deps)
+                except (json.JSONDecodeError, ValueError):
+                    field_deps = []
+            elif field_deps is None:
+                field_deps = []
 
             # Also check required_fields as fallback
             req_fields = rule.get('required_fields', [])
+            # DEFENSIVE: Parse JSON string if needed
+            if isinstance(req_fields, str):
+                try:
+                    req_fields = json.loads(req_fields)
+                except (json.JSONDecodeError, ValueError):
+                    req_fields = []
+            elif req_fields is None:
+                req_fields = []
 
             # Combine both sources
             rule_fields = set(field_deps) | set(req_fields)

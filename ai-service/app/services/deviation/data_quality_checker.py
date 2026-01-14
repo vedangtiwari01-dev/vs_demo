@@ -140,25 +140,9 @@ class DataQualityChecker:
                 if field in log and log[field] is not None:
                     case_field_values[case_id][field].add(str(log[field]))
 
-            # Check 4: Audit trail missing
-            if 'audit_trail_id' not in log and 'source_system' not in log:
-                # Only flag if this is an approval/disbursement step (critical steps)
-                step_name = str(log.get('step_name', '')).lower()
-                if 'approval' in step_name or 'disbursement' in step_name or 'sanction' in step_name:
-                    deviations.append({
-                        'case_id': case_id,
-                        'officer_id': log.get('officer_id', 'unknown'),
-                        'timestamp': log.get('timestamp'),
-                        'deviation_type': 'audit_trail_missing',
-                        'severity': 'medium',
-                        'description': f'Critical step "{step_name}" missing audit trail information',
-                        'expected_behavior': 'Critical steps must have audit_trail_id or source_system',
-                        'actual_behavior': 'No audit trail information found',
-                        'context': {
-                            'log_identifier': log_identifier,
-                            'step_name': step_name
-                        }
-                    })
+            # Check 4: Audit trail missing → MOVED TO LOG QUALITY REPORT
+            # This is now reported in workflow_log_cleaner.py as part of log quality metrics
+            # Not counted as a compliance deviation per user request
 
         # Check 5: Duplicate active cases (same case_id with multiple active workflows)
         # Note: This is a simplified check - in production, would check against database

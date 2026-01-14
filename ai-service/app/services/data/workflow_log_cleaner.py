@@ -116,6 +116,11 @@ class WorkflowLogCleaner:
         report['final_count'] = len(cleaned_logs)
         logger.info(f"Cleaning complete: {original_count} → {len(cleaned_logs)} logs")
 
+        # Step 6: Check for missing audit trail fields (log quality, not deviation)
+        audit_trail_issues = WorkflowLogCleaner._check_audit_trail_completeness(cleaned_logs)
+        report['audit_trail_issues'] = audit_trail_issues
+        logger.info(f"Audit trail check: {audit_trail_issues['critical_steps_missing_audit_trail']} critical steps without audit trail")
+
         # Run missing field analysis if rules are provided
         if rules and len(rules) > 0:
             logger.info(f"Running missing field analysis with {len(rules)} rules")
@@ -243,6 +248,51 @@ class WorkflowLogCleaner:
                     normalized += 1
 
         return logs, normalized
+
+    @staticmethod
+    def _check_audit_trail_completeness(logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Check for missing audit trail fields in critical steps.
+        This is a LOG QUALITY check, not a compliance deviation.
+
+        Returns:
+            Dict with audit trail completeness metrics
+        """
+        total_logs = len(logs)
+        total_critical_steps = 0
+        missing_audit_trail = 0
+        affected_cases = set()
+
+        CRITICAL_STEP_KEYWORDS = ['approval', 'disbursement', 'sanction', 'final']
+
+        for log in logs:
+            step_name = str(log.get('step_name', '')).lower()
+
+            # Check if this is a critical step
+            is_critical = any(keyword in step_name for keyword in CRITICAL_STEP_KEYWORDS)
+
+            if is_critical:
+                total_critical_steps += 1
+
+                # Check if audit trail fields are present
+                has_audit_trail_id = 'audit_trail_id' in log and log['audit_trail_id'] is not None
+                has_source_system = 'source_system' in log and log['source_system'] is not None
+
+                if not has_audit_trail_id and not has_source_system:
+                    missing_audit_trail += 1
+                    affected_cases.add(log.get('case_id', 'unknown'))
+
+        return {
+            'total_logs': total_logs,
+            'total_critical_steps': total_critical_steps,
+            'critical_steps_missing_audit_trail': missing_audit_trail,
+            'affected_cases_count': len(affected_cases),
+            'audit_trail_completeness_rate': (
+                ((total_critical_steps - missing_audit_trail) / total_critical_steps * 100)
+                if total_critical_steps > 0 else 100.0
+            ),
+            'note': 'Audit trail fields (audit_trail_id or source_system) should be present for critical steps (approval, disbursement, sanction)'
+        }
 
     @staticmethod
     def get_data_quality_score(report: Dict[str, Any]) -> Dict[str, Any]:

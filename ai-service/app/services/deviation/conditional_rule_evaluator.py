@@ -58,104 +58,9 @@ class ConditionalRuleEvaluator:
         'ROUND': lambda a, decimals=2: round(a, decimals)
     }
 
-    # Phase 4 Enhancement: Hardcoded rule templates for common conditional patterns
-    # These supplement rules extracted from SOP to catch violations that LLM may not structure properly
-    CONDITIONAL_RULE_TEMPLATES = [
-        {
-            "id": "ltv_above_80_requires_credit_committee",
-            "rule_type": "approval",
-            "rule_description": "Loans with LTV exceeding 80% require Credit Committee approval",
-            "severity": "critical",
-            "condition_logic": {
-                "condition": {
-                    "calculation": {
-                        "function": "DIVIDE",
-                        "args": [
-                            {"field": "loan_amount_sanctioned"},
-                            {"field": "collateral_value"}
-                        ]
-                    },
-                    "operator": ">",
-                    "value": 0.80
-                },
-                "then": {
-                    "require_step": "Credit Approval (Level 3 - Credit Committee)",
-                    "require_step_alternatives": [
-                        "Credit Committee Approval",
-                        "Level 3 Credit Approval",
-                        "Credit Approval Level 3",
-                        "Credit Committee"
-                    ],
-                    "severity": "critical"
-                }
-            },
-            "required_fields": ["loan_amount_sanctioned", "collateral_value", "step_name"],
-            "product_types": ["All"],
-            "customer_segments": ["All"],
-            "channels": ["All"],
-            "geography": ["All"]
-        },
-        {
-            "id": "credit_score_650_699_requires_regional_manager",
-            "rule_type": "approval",
-            "rule_description": "Credit scores between 650-699 require Regional Credit Manager approval",
-            "severity": "critical",
-            "condition_logic": {
-                "condition": {
-                    "operator": "AND",
-                    "conditions": [
-                        {"field": "credit_score_bureau", "operator": ">=", "value": 650},
-                        {"field": "credit_score_bureau", "operator": "<=", "value": 699}
-                    ]
-                },
-                "then": {
-                    "require_step": "Credit Approval (Level 2 - Regional Credit Manager)",
-                    "require_step_alternatives": [
-                        "Regional Credit Manager Approval",
-                        "Level 2 Credit Approval",
-                        "Credit Approval Level 2",
-                        "Regional Manager Approval",
-                        "RCM Approval"
-                    ],
-                    "severity": "critical"
-                }
-            },
-            "required_fields": ["credit_score_bureau", "step_name"],
-            "product_types": ["All"],
-            "customer_segments": ["All"],
-            "channels": ["All"],
-            "geography": ["All"]
-        },
-        {
-            "id": "mandate_must_be_active_before_disbursement",
-            "rule_type": "disbursement",
-            "rule_description": "EMI Mandate must be Active before Loan Disbursement",
-            "severity": "critical",
-            "condition_logic": {
-                "condition": {
-                    "field": "mandate_status",
-                    "operator": "!=",
-                    "value": "Active"
-                },
-                "then": {
-                    "action": "block_step",
-                    "blocked_step": "Loan Disbursement",
-                    "blocked_step_alternatives": [
-                        "Disbursement",
-                        "Loan Disbursal",
-                        "Disbursal",
-                        "Fund Transfer"
-                    ],
-                    "severity": "critical"
-                }
-            },
-            "required_fields": ["mandate_status", "step_name"],
-            "product_types": ["All"],
-            "customer_segments": ["All"],
-            "channels": ["All"],
-            "geography": ["All"]
-        }
-    ]
+    # Phase 4 Enhancement: REMOVED HARDCODED TEMPLATES
+    # All rules now extracted from SOP via enhanced LLM prompt
+    # See prompts.py "SPECIAL ATTENTION: APPROVAL AUTHORITY HIERARCHIES" section
 
     @staticmethod
     def evaluate(logs: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -179,13 +84,10 @@ class ConditionalRuleEvaluator:
         for log in logs:
             cases[log['case_id']].append(log)
 
-        # Get rules with condition_logic
+        # Get rules with condition_logic (extracted from SOP via enhanced LLM prompt)
         conditional_rules = [r for r in rules if r.get('condition_logic')]
 
-        # Phase 4 Enhancement: Merge with hardcoded rule templates
-        conditional_rules.extend(ConditionalRuleEvaluator.CONDITIONAL_RULE_TEMPLATES)
-
-        logger.info(f"[ConditionalRuleEvaluator] Total rules: {len(rules)}, Conditional rules: {len(conditional_rules)} (including {len(ConditionalRuleEvaluator.CONDITIONAL_RULE_TEMPLATES)} templates)")
+        logger.info(f"[ConditionalRuleEvaluator] Total rules: {len(rules)}, Conditional rules: {len(conditional_rules)} (all from SOP extraction)")
         logger.info(f"[ConditionalRuleEvaluator] Total cases: {len(cases)}")
 
         # Evaluate each case against each conditional rule

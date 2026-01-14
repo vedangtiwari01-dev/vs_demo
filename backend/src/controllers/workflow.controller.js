@@ -288,8 +288,22 @@ const analyzeWorkflow = async (req, res, next) => {
       return baseLog;
     });
 
+    // Helper function to parse JSON string fields from database
+    const parseJSONField = (field) => {
+      if (field === null || field === undefined) return field;
+      if (typeof field === 'string') {
+        try {
+          return JSON.parse(field);
+        } catch (e) {
+          // If parsing fails, return as-is (might be a non-JSON string)
+          return field;
+        }
+      }
+      return field;  // Already parsed or not a string
+    };
+
     // Format rules for AI service
-    // CRITICAL FIX: Include ALL rule fields (condition_logic, temporal_constraint, etc.)
+    // CRITICAL FIX: Include ALL rule fields AND parse JSON strings from database
     const formattedRules = rules.map(rule => ({
       id: rule.id,
       rule_type: rule.rule_type,
@@ -297,19 +311,20 @@ const analyzeWorkflow = async (req, res, next) => {
       step_number: rule.step_number,
       severity: rule.severity,
       // Include extended fields for new evaluators
-      condition_logic: rule.condition_logic,
-      temporal_constraint: rule.temporal_constraint,
-      required_fields: rule.required_fields,
-      timing_constraint: rule.timing_constraint,
-      product_types: rule.product_types,
-      customer_segments: rule.customer_segments,
-      channels: rule.channels,
-      geography: rule.geography,
-      exceptions: rule.exceptions,
-      calculation_formula: rule.calculation_formula,
-      threshold_value: rule.threshold_value,
-      field_dependencies: rule.field_dependencies,
-      regulatory_reference: rule.regulatory_reference,
+      // CRITICAL: Parse JSON string fields (stored as strings in SQLite, need to be objects/arrays)
+      condition_logic: parseJSONField(rule.condition_logic),
+      temporal_constraint: parseJSONField(rule.temporal_constraint),
+      required_fields: parseJSONField(rule.required_fields),
+      timing_constraint: rule.timing_constraint,  // This is plain text, no parsing needed
+      product_types: parseJSONField(rule.product_types),
+      customer_segments: parseJSONField(rule.customer_segments),
+      channels: parseJSONField(rule.channels),
+      geography: parseJSONField(rule.geography),
+      exceptions: parseJSONField(rule.exceptions),
+      calculation_formula: rule.calculation_formula,  // Plain text formula
+      threshold_value: rule.threshold_value,  // Numeric, no parsing needed
+      field_dependencies: parseJSONField(rule.field_dependencies),
+      regulatory_reference: rule.regulatory_reference,  // Plain text
     }));
 
     logger.step('Detecting Deviations', {
@@ -353,6 +368,7 @@ const analyzeWorkflow = async (req, res, next) => {
         context: dev.context || {},
         notes: notesByCase[dev.case_id] || null,  // ✅ Attach notes from WorkflowLog
         analysis_session_id: sessionId,  // ✅ Track which analysis run created this deviation
+        detected_at: dev.timestamp ? new Date(dev.timestamp) : new Date(),  // ✅ CRITICAL FIX: Preserve actual log timestamp
       });
       savedDeviations.push(deviation);
     }
