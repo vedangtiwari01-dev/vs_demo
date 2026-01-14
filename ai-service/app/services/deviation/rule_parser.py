@@ -35,9 +35,11 @@ class RuleParser:
 
         Logic:
             1. Filter rules with rule_type='sequence'
-            2. Sort by step_number field
+            2. Sort by step_number field (extract from description if missing)
             3. Extract step names from rule_description or required_fields
             4. Return None if no valid sequence found (triggers skip validation)
+
+        Phase 2 Enhancement: Parse step_number from description if field is None
         """
         sequence_rules = [r for r in rules if r.get('rule_type') == 'sequence']
 
@@ -48,6 +50,16 @@ class RuleParser:
         steps_with_numbers = []
         for rule in sequence_rules:
             step_number = rule.get('step_number')
+
+            # Phase 2 Enhancement: If step_number is None, try to parse from description
+            if step_number is None:
+                desc = rule.get('rule_description', '')
+                # Look for "Step N" pattern in description
+                step_match = re.search(r'Step\s+(\d+)', desc, re.IGNORECASE)
+                if step_match:
+                    step_number = int(step_match.group(1))
+                    logger.debug(f"Extracted step_number {step_number} from description: {desc[:50]}...")
+
             if step_number is not None:
                 # Try to extract step name from rule_description
                 desc = rule.get('rule_description', '')

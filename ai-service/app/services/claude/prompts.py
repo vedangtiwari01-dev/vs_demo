@@ -29,6 +29,13 @@ Analyze the following SOP document text and extract ALL compliance rules. For ea
 2. **Rule Description**: Clear, concise description of the rule
 
 3. **Step Number**: The step number in the process (if mentioned)
+   - **CRITICAL FOR SEQUENCE RULES**: ALWAYS extract step numbers for sequence rules
+   - If rule mentions "Step 13 and Step 14 before Step 16", create SEPARATE rules:
+     * Rule 1: step_number: 13, rule_description: "Legal Security Creation must be completed before Loan Disbursement"
+     * Rule 2: step_number: 14, rule_description: "EMI Mandate Setup must be completed before Loan Disbursement"
+     * Rule 3: step_number: 16, rule_description: "Loan Disbursement (depends on steps 13, 14)"
+   - Do NOT create one rule with the full compound text as rule_description
+   - Each step in a sequence should have its own rule entry with proper step_number
 
 4. **Severity**: Based on the language used:
    - "critical": Uses "must", "shall", "required", regulatory/legal requirements
@@ -144,6 +151,35 @@ CRITICAL INSTRUCTIONS:
 
 EXAMPLE EXTRACTIONS:
 
+0. "Legal Security Creation (Step 13) and EMI Mandate Setup (Step 14) shall be completed before Loan Disbursement (Step 16)" →
+   **Create 3 SEPARATE rules:**
+   {{
+     "rule_type": "sequence",
+     "rule_description": "Legal Security Creation must be completed before Loan Disbursement",
+     "step_number": 13,
+     "severity": "critical",
+     "required_fields": ["step_name", "timestamp"],
+     "temporal_constraint": {{"step_a": "Legal Security Creation", "step_b": "Loan Disbursement", "max_hours": null}},
+     "field_dependencies": ["step_name"]
+   }},
+   {{
+     "rule_type": "sequence",
+     "rule_description": "EMI Mandate Setup must be completed before Loan Disbursement",
+     "step_number": 14,
+     "severity": "critical",
+     "required_fields": ["step_name", "timestamp"],
+     "temporal_constraint": {{"step_a": "EMI Mandate Setup", "step_b": "Loan Disbursement", "max_hours": null}},
+     "field_dependencies": ["step_name"]
+   }},
+   {{
+     "rule_type": "sequence",
+     "rule_description": "Loan Disbursement (depends on Legal Security Creation and EMI Mandate Setup)",
+     "step_number": 16,
+     "severity": "critical",
+     "required_fields": ["step_name", "timestamp"],
+     "field_dependencies": ["step_name"]
+   }}
+
 1. "Loans of $10,000 or more require manager approval" →
    condition_logic: {{"condition": {{"field": "loan_amount_sanctioned", "operator": ">=", "value": 10000}}, "then": {{"require_step": "Manager Approval"}}}}
    threshold_value: 10000
@@ -171,6 +207,42 @@ EXAMPLE EXTRACTIONS:
    exceptions: [{{"condition": "customer_segment == Priority", "override": "EMI ratio can be 60%"}}]
    threshold_value: 0.5
    field_dependencies: ["emi_to_income_ratio", "customer_segment"]
+
+6. "Loans with LTV exceeding 80% require Credit Committee approval" →
+   condition_logic: {{
+     "condition": {{
+       "calculation": {{"function": "DIVIDE", "args": [{{"field": "loan_amount_sanctioned"}}, {{"field": "collateral_value"}}]}},
+       "operator": ">",
+       "value": 0.8
+     }},
+     "then": {{"require_step": "Credit Approval (Level 3 - Credit Committee)", "severity": "critical"}}
+   }}
+   calculation_formula: "LTV = loan_amount_sanctioned / collateral_value"
+   threshold_value: 0.8
+   field_dependencies: ["loan_amount_sanctioned", "collateral_value"]
+
+7. "Credit scores between 650-699 require Regional Credit Manager approval" →
+   condition_logic: {{
+     "condition": {{
+       "operator": "AND",
+       "conditions": [
+         {{"field": "credit_score_bureau", "operator": ">=", "value": 650}},
+         {{"field": "credit_score_bureau", "operator": "<=", "value": 699}}
+       ]
+     }},
+     "then": {{"require_step": "Credit Approval (Level 2 - Regional Credit Manager)", "severity": "critical"}}
+   }}
+   threshold_value: 650
+   field_dependencies: ["credit_score_bureau"]
+
+8. "EMI Mandate must be Active before Loan Disbursement" →
+   condition_logic: {{
+     "condition": {{"field": "mandate_status", "operator": "!=", "value": "Active"}},
+     "then": {{"action": "block_step", "blocked_step": "Loan Disbursement", "severity": "critical"}}
+   }}
+   rule_type: "disbursement"
+   severity: "critical"
+   field_dependencies: ["mandate_status", "step_name"]
 
 IMPORTANT:
 - Use "rule_type" NOT "type"

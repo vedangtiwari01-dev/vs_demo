@@ -233,6 +233,10 @@ class LLMRuleParser:
                     'warnings': ['Invalid response structure from LLM']
                 }
 
+            # Phase 2 Enhancement: Post-process rules to split compound rules
+            result['rules'] = self._post_process_rules(result['rules'])
+            logger.info(f"Post-processing complete: {len(result['rules'])} rules after split")
+
             # Calculate confidence based on rule completeness
             confidence = self._calculate_confidence(result['rules'])
 
@@ -333,6 +337,64 @@ class LLMRuleParser:
                 return False
 
         return True
+
+    def _post_process_rules(self, rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Post-process rules to fix common LLM extraction issues.
+
+        Phase 2 Enhancement: Split compound sequence rules and extract step numbers.
+
+        Args:
+            rules: Raw rules from LLM
+
+        Returns:
+            Processed rules with compound rules split
+        """
+        processed = []
+
+        for rule in rules:
+            # If not a sequence rule, keep as-is
+            if rule.get('rule_type') != 'sequence':
+                processed.append(rule)
+                continue
+
+            # Check if rule description contains compound step references
+            desc = rule.get('rule_description', '')
+
+            # Pattern: "Step X and Step Y before Step Z" or "(Step X) and (Step Y)"
+            step_numbers = re.findall(r'Step\s+(\d+)', desc, re.IGNORECASE)
+
+            # If rule has step_number field or no compound steps found, keep as-is
+            if rule.get('step_number') is not None or len(step_numbers) <= 1:
+                processed.append(rule)
+                continue
+
+            # Compound rule detected - try to split it
+            logger.info(f"Splitting compound sequence rule: {desc[:100]}...")
+
+            # Extract step names (heuristic approach)
+            # Look for patterns like "X (Step N) and Y (Step M)"
+            # or "X and Y shall be completed before Z"
+
+            # Simple approach: If we found multiple step numbers but no clear step names,
+            # just create a rule for each step number with the full description
+            # The Phase 1 defensive checks will filter these out if needed
+
+            for step_num in step_numbers:
+                split_rule = rule.copy()
+                split_rule['step_number'] = int(step_num)
+
+                # Keep the original description but mark it as auto-split
+                if 'context' not in split_rule:
+                    split_rule['context'] = {}
+                split_rule['context']['auto_split_from_compound'] = True
+                split_rule['context']['original_description'] = desc
+
+                processed.append(split_rule)
+
+            logger.info(f"Split into {len(step_numbers)} rules with step numbers: {step_numbers}")
+
+        return processed
 
     def _calculate_confidence(self, rules: List[Dict[str, Any]]) -> float:
         """

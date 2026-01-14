@@ -122,13 +122,36 @@ async def detect_deviations(request: DeviationDetectionRequest):
             'Time': clean_logger.get_elapsed(timer)
         })
 
-        return DeviationDetectionResponse(
-            deviations=all_deviations,
-            log_cleaning_report=log_cleaning_report,
-            log_quality=log_quality
-        )
+        # DEBUG: Log first deviation to check structure
+        if all_deviations:
+            import json
+            sample_dev = all_deviations[0]
+            print(f"[DEBUG] Sample deviation keys: {list(sample_dev.keys())}")
+            print(f"[DEBUG] Sample deviation: {json.dumps(sample_dev, indent=2, default=str)}")
+
+        try:
+            response = DeviationDetectionResponse(
+                deviations=all_deviations,
+                log_cleaning_report=log_cleaning_report,
+                log_quality=log_quality
+            )
+            return response
+        except Exception as serialization_error:
+            print(f"[ERROR] Response serialization failed: {serialization_error}")
+            print(f"[ERROR] Error type: {type(serialization_error)}")
+            if all_deviations:
+                print(f"[ERROR] First deviation: {json.dumps(all_deviations[0], indent=2, default=str)}")
+
+            # If it's a Pydantic validation error, show details
+            if hasattr(serialization_error, 'errors'):
+                print(f"[ERROR] Pydantic validation errors: {serialization_error.errors()}")
+
+            clean_logger.error('Response serialization failed', serialization_error)
+            raise HTTPException(status_code=500, detail=f"Serialization error: {str(serialization_error)}")
     except Exception as e:
         clean_logger.error('Deviation detection failed', e)
+        import traceback
+        clean_logger.debug('Full traceback', traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Deviation detection error: {str(e)}")
 
 @router.post('/validate-sequence')

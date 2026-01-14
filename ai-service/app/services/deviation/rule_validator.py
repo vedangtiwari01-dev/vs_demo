@@ -1,6 +1,7 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 from collections import defaultdict
+import re
 
 class RuleValidator:
     """
@@ -27,6 +28,31 @@ class RuleValidator:
     The primary deviation detection is handled by Claude AI through comprehensive prompts.
     This class provides rule-based validation as a complementary layer for critical checks.
     """
+
+    # Phase 5 Enhancement: Approval Authority Hierarchy
+    APPROVAL_HIERARCHY = {
+        "Branch Manager": {
+            "level": 1,
+            "max_amount": 1000000,
+            "min_credit_score": 700,
+            "max_ltv": 0.70,
+            "keywords": ["branch manager", "level 1", "bm approval", "branch mgr"]
+        },
+        "Regional Credit Manager": {
+            "level": 2,
+            "max_amount": 3000000,
+            "min_credit_score": 650,
+            "max_ltv": 0.80,
+            "keywords": ["regional", "level 2", "rcm", "regional manager", "regional credit"]
+        },
+        "Credit Committee": {
+            "level": 3,
+            "max_amount": float('inf'),
+            "min_credit_score": 0,
+            "max_ltv": 1.0,
+            "keywords": ["credit committee", "level 3", "committee", "cc approval"]
+        }
+    }
 
     @staticmethod
     def validate_all(logs: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -75,8 +101,116 @@ class RuleValidator:
         return deviations
 
     @staticmethod
+    def _extract_approval_level(step_names: List[str]) -> Optional[str]:
+        """
+        Phase 5 Enhancement: Extract the highest approval level from step names.
+
+        Args:
+            step_names: List of step names (lowercase)
+
+        Returns:
+            Approval level name ("Branch Manager", "Regional Credit Manager", "Credit Committee") or None
+        """
+        highest_level = 0
+        highest_approver = None
+
+        for step in step_names:
+            for approver, config in RuleValidator.APPROVAL_HIERARCHY.items():
+                for keyword in config["keywords"]:
+                    if keyword in step and "approv" in step:
+                        if config["level"] > highest_level:
+                            highest_level = config["level"]
+                            highest_approver = approver
+
+        return highest_approver
+
+    @staticmethod
+    def _determine_required_approval_level(log_data: Dict[str, Any]) -> Optional[str]:
+        """
+        Phase 5 Enhancement: Determine required approval level based on case data.
+
+        Args:
+            log_data: Aggregated case data with loan_amount_sanctioned, credit_score_bureau, etc.
+
+        Returns:
+            Required approval level name or None
+        """
+        loan_amount = log_data.get('loan_amount_sanctioned') or log_data.get('loan_amount')
+        credit_score = log_data.get('credit_score_bureau')
+        collateral_value = log_data.get('collateral_value')
+
+        # Calculate LTV if possible
+        ltv = None
+        if loan_amount and collateral_value and collateral_value > 0:
+            try:
+                ltv = float(loan_amount) / float(collateral_value)
+            except (ValueError, TypeError, ZeroDivisionError):
+                ltv = None
+
+        # Determine required level based on amount, credit score, LTV
+        required_level = 1  # Start with Branch Manager
+
+        # Amount-based escalation
+        if loan_amount:
+            try:
+                amount_float = float(loan_amount)
+                if amount_float > 3000000:
+                    required_level = max(required_level, 3)  # Credit Committee
+                elif amount_float > 1000000:
+                    required_level = max(required_level, 2)  # Regional Manager
+            except (ValueError, TypeError):
+                pass
+
+        # Credit score-based escalation
+        if credit_score:
+            try:
+                score_int = int(credit_score)
+                if score_int < 650:
+                    required_level = max(required_level, 3)  # Credit Committee
+                elif score_int < 700:
+                    required_level = max(required_level, 2)  # Regional Manager
+            except (ValueError, TypeError):
+                pass
+
+        # LTV-based escalation
+        if ltv:
+            if ltv > 0.80:
+                required_level = max(required_level, 3)  # Credit Committee
+            elif ltv > 0.70:
+                required_level = max(required_level, 2)  # Regional Manager
+
+        # Map level to approver name
+        for approver, config in RuleValidator.APPROVAL_HIERARCHY.items():
+            if config["level"] == required_level:
+                return approver
+
+        return "Branch Manager"  # Default
+
+    @staticmethod
+    def _aggregate_log_data(logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Phase 5 Enhancement: Aggregate all fields from logs into single dict.
+
+        Args:
+            logs: List of workflow logs for a case
+
+        Returns:
+            Dictionary with all available fields
+        """
+        aggregated = {}
+        for log in logs:
+            for key, value in log.items():
+                if value is not None and key not in aggregated:
+                    aggregated[key] = value
+        return aggregated
+
+    @staticmethod
     def _check_approval_rules(case_id: str, logs: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Check if approval rules are followed"""
+        """
+        Check if approval rules are followed.
+
+        Phase 5 Enhancement: Validates approval authority hierarchy based on loan amount, LTV, credit score.
+        """
         deviations = []
         approval_rules = [r for r in rules if r.get('rule_type') == 'approval']
 
@@ -93,6 +227,75 @@ class RuleValidator:
         # Extract case start time (timestamp of first log entry)
         case_start_time = logs[0]['timestamp'] if logs else None
 
+        # Phase 5 Enhancement: Validate approval hierarchy
+        log_data = RuleValidator._aggregate_log_data(logs)
+        actual_approval_level = RuleValidator._extract_approval_level(step_names)
+        required_approval_level = RuleValidator._determine_required_approval_level(log_data)
+
+        # DEBUG: Log Phase 5 approval hierarchy validation for first 3 cases
+        if case_id in ['SPL-001', 'SPL-002', 'SPL-003']:
+            print(f"\n[DEBUG {case_id}] Phase 5 Approval Hierarchy:")
+            print(f"  Log data keys: {list(log_data.keys())[:10]}")
+            print(f"  loan_amount_sanctioned: {log_data.get('loan_amount_sanctioned')}")
+            print(f"  credit_score_bureau: {log_data.get('credit_score_bureau')}")
+            print(f"  collateral_value: {log_data.get('collateral_value')}")
+            print(f"  Actual approval level: {actual_approval_level}")
+            print(f"  Required approval level: {required_approval_level}")
+
+        if actual_approval_level and required_approval_level:
+            actual_level_num = RuleValidator.APPROVAL_HIERARCHY[actual_approval_level]["level"]
+            required_level_num = RuleValidator.APPROVAL_HIERARCHY[required_approval_level]["level"]
+
+            # DEBUG: Log comparison
+            if case_id in ['SPL-001', 'SPL-002', 'SPL-003']:
+                print(f"  Actual level: {actual_level_num}, Required level: {required_level_num}")
+                print(f"  Deviation? {actual_level_num < required_level_num}")
+
+            if actual_level_num < required_level_num:
+                loan_amount = log_data.get('loan_amount_sanctioned') or log_data.get('loan_amount')
+                credit_score = log_data.get('credit_score_bureau')
+                collateral_value = log_data.get('collateral_value')
+
+                # Calculate LTV for context
+                ltv = None
+                if loan_amount and collateral_value and collateral_value > 0:
+                    try:
+                        ltv = float(loan_amount) / float(collateral_value)
+                    except:
+                        pass
+
+                deviations.append({
+                    'case_id': case_id,
+                    'officer_id': officer_id,
+                    'timestamp': case_start_time,
+                    'deviation_type': 'insufficient_approval_hierarchy',
+                    'severity': 'critical',
+                    'description': f'Insufficient approval authority: {actual_approval_level} approved but {required_approval_level} required',
+                    'expected_behavior': f'{required_approval_level} approval required based on case parameters',
+                    'actual_behavior': f'Only {actual_approval_level} approval obtained',
+
+                    # Rule Context
+                    'rule_type': 'approval',
+                    'rule_severity': 'critical',
+
+                    # Case Context
+                    'loan_amount': loan_amount,
+                    'credit_score': credit_score,
+                    'ltv': round(ltv, 3) if ltv else None,
+
+                    'context': {
+                        'actual_approver': actual_approval_level,
+                        'required_approver': required_approval_level,
+                        'actual_level': actual_level_num,
+                        'required_level': required_level_num,
+                        'loan_amount': loan_amount,
+                        'credit_score': credit_score,
+                        'ltv': round(ltv, 3) if ltv else None,
+                        'steps_performed': step_names
+                    }
+                })
+
+        # Legacy checks (keep for backwards compatibility)
         if not has_manager_approval:
             deviations.append({
                 'case_id': case_id,

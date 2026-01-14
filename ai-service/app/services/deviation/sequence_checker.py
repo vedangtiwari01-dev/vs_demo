@@ -2,6 +2,8 @@ from typing import List, Dict, Any
 from datetime import datetime
 from collections import defaultdict
 from .rule_parser import RuleParser
+import re
+from difflib import SequenceMatcher
 
 class SequenceChecker:
     """
@@ -76,6 +78,133 @@ class SequenceChecker:
 
 
     @staticmethod
+    def _is_valid_step_name(step_name: str) -> bool:
+        """
+        Validate if step name is reasonable (not a compound rule description).
+
+        Phase 1 Defensive Check: Skip malformed rules to prevent false positives.
+
+        Returns False if:
+        - Step name is too long (> 80 chars, likely a rule description)
+        - Contains multiple step numbers (compound rule like "Step 13 and 14")
+        - Contains conjunction patterns suggesting compound rule
+        """
+        if not step_name or len(step_name) > 80:
+            return False
+
+        # Count step number references (e.g., "Step 13", "Step 14")
+        step_numbers = re.findall(r'Step\s+\d+', step_name, re.IGNORECASE)
+        if len(step_numbers) > 1:
+            return False  # Compound rule like "Step 13 and Step 14"
+
+        # Check for conjunctions suggesting compound rules
+        # Pattern: "X and Y shall be" or "X and Y before Z"
+        if re.search(r'\b(and|or)\b.*\b(shall|before|after|within)\b', step_name, re.IGNORECASE):
+            return False
+
+        return True
+
+    @staticmethod
+    def _normalize_step_name(step_name: str) -> str:
+        """
+        Normalize step name for fuzzy matching.
+
+        Phase 3 Enhancement: Remove common variations to enable better matching.
+
+        Normalization:
+        - Remove step number prefixes: "Step 13: X" → "X"
+        - Remove parenthetical info: "X (NACH/SI)" → "X"
+        - Lowercase and trim whitespace
+        - Remove punctuation
+
+        Args:
+            step_name: Original step name
+
+        Returns:
+            Normalized step name for comparison
+        """
+        if not step_name:
+            return ""
+
+        # Remove step number prefix: "Step 13: " or "13. " or "Step 13 - "
+        normalized = re.sub(r'^(?:Step\s+)?\d+[\.\:\-\)]\s*', '', step_name, flags=re.IGNORECASE)
+
+        # Remove parenthetical info: "X (NACH/SI)" → "X"
+        normalized = re.sub(r'\([^)]*\)', '', normalized)
+
+        # Remove common suffixes like "(Step N)"
+        normalized = re.sub(r'\s*\(Step\s+\d+\)\s*', '', normalized, flags=re.IGNORECASE)
+
+        # Remove conditional phrases that describe relationships between steps
+        # These phrases don't help with matching actual step names
+        conditional_patterns = [
+            r'\s+shall\s+be\s+\w+\s+before\s+.*$',  # "shall be completed before X"
+            r'\s+shall\s+be\s+\w+\s+after\s+.*$',   # "shall be completed after X"
+            r'\s+must\s+be\s+\w+\s+before\s+.*$',   # "must be completed before X"
+            r'\s+must\s+be\s+\w+\s+after\s+.*$',    # "must be completed after X"
+            r'\s+should\s+be\s+\w+\s+before\s+.*$', # "should be completed before X"
+            r'\s+before\s+proceeding\s+to\s+.*$',   # "before proceeding to X"
+        ]
+        for pattern in conditional_patterns:
+            normalized = re.sub(pattern, '', normalized, flags=re.IGNORECASE)
+
+        # Lowercase
+        normalized = normalized.lower()
+
+        # Remove punctuation and extra whitespace
+        normalized = re.sub(r'[^\w\s]', ' ', normalized)
+        normalized = re.sub(r'\s+', ' ', normalized)
+
+        return normalized.strip()
+
+    @staticmethod
+    def _steps_match(expected_step: str, actual_step: str, threshold: float = 0.60) -> bool:
+        """
+        Check if two step names match using fuzzy string comparison.
+
+        Phase 3 Enhancement: Use SequenceMatcher for similarity scoring.
+
+        Args:
+            expected_step: Expected step name from SOP
+            actual_step: Actual step name from workflow logs
+            threshold: Similarity threshold (0-1), default 0.60 (lowered from 0.75 to reduce false positives)
+
+        Returns:
+            True if steps match (similarity >= threshold)
+        """
+        # Normalize both step names
+        norm_expected = SequenceChecker._normalize_step_name(expected_step)
+        norm_actual = SequenceChecker._normalize_step_name(actual_step)
+
+        # Exact match after normalization
+        if norm_expected == norm_actual:
+            return True
+
+        # Subset match: if one is contained in the other, consider it a match
+        # e.g., "document verification" matches "document collection and verification"
+        if norm_expected in norm_actual or norm_actual in norm_expected:
+            return True
+
+        # Fuzzy match using SequenceMatcher
+        similarity = SequenceMatcher(None, norm_expected, norm_actual).ratio()
+
+        return similarity >= threshold
+
+    @staticmethod
+    def _find_matching_step(expected_step: str, actual_steps: List[str]) -> bool:
+        """
+        Check if expected step exists in actual steps using fuzzy matching.
+
+        Args:
+            expected_step: Expected step name
+            actual_steps: List of actual step names
+
+        Returns:
+            True if a match is found
+        """
+        return any(SequenceChecker._steps_match(expected_step, actual) for actual in actual_steps)
+
+    @staticmethod
     def _compare_sequences(
         case_id: str,
         officer_id: str,
@@ -86,6 +215,22 @@ class SequenceChecker:
         """Compare expected and actual sequences"""
         deviations = []
 
+        # Phase 1 Fix: Filter out invalid step names to prevent false positives
+        valid_expected = [step for step in expected if SequenceChecker._is_valid_step_name(step)]
+
+        # DEBUG: Log filtering results for first 3 cases
+        if case_id in ['SPL-001', 'SPL-002', 'SPL-003']:
+            print(f"\n[DEBUG {case_id}] Sequence Validation:")
+            print(f"  Expected rules (raw): {len(expected)}")
+            for i, step in enumerate(expected[:5]):  # Show first 5
+                is_valid = SequenceChecker._is_valid_step_name(step)
+                print(f"    {i+1}. [{len(step)} chars] {'✓' if is_valid else '✗'} {step[:80]}...")
+            print(f"  Valid rules after filtering: {len(valid_expected)}")
+
+        if len(valid_expected) == 0:
+            # No valid sequence rules, skip validation
+            return deviations
+
         # Extract case start time (timestamp of first log entry)
         case_start_time = logs[0]['timestamp'] if logs else None
 
@@ -94,7 +239,34 @@ class SequenceChecker:
         has_disbursement = any('disbursement' in log['step_name'].lower() for log in logs)
 
         # Check for missing steps (only for completed cases)
-        missing_steps = set(expected) - set(actual)
+        # Phase 1 Fix: Use valid_expected instead of expected to avoid false positives
+        # Phase 3 Fix: Use fuzzy matching instead of exact set comparison
+        missing_steps = []
+        for expected_step in valid_expected:
+            found = SequenceChecker._find_matching_step(expected_step, actual)
+
+            # DEBUG: Log fuzzy matching details for first 3 cases
+            if case_id in ['SPL-001', 'SPL-002', 'SPL-003']:
+                norm_expected = SequenceChecker._normalize_step_name(expected_step)
+                print(f"\n  Checking: '{expected_step[:60]}...'")
+                print(f"    Normalized: '{norm_expected}'")
+                print(f"    Found match: {found}")
+                if not found and len(actual) > 0:
+                    # Show best match attempt
+                    from difflib import SequenceMatcher
+                    best_score = 0
+                    best_match = None
+                    for actual_step in actual[:10]:  # Check first 10 actual steps
+                        norm_actual = SequenceChecker._normalize_step_name(actual_step)
+                        score = SequenceMatcher(None, norm_expected, norm_actual).ratio()
+                        if score > best_score:
+                            best_score = score
+                            best_match = actual_step
+                    print(f"    Best match: '{best_match[:60]}...' (score: {best_score:.2f}, threshold: 0.60)")
+
+            if not found:
+                missing_steps.append(expected_step)
+
         for step in missing_steps:
             # Skip missing-step detection if case hasn't reached disbursement yet
             if not has_disbursement:
@@ -115,7 +287,8 @@ class SequenceChecker:
             })
 
         # Check for wrong order
-        expected_idx = {step: idx for idx, step in enumerate(expected)}
+        # Phase 1 Fix: Use valid_expected instead of expected
+        expected_idx = {step: idx for idx, step in enumerate(valid_expected)}
         for i in range(len(actual) - 1):
             current_step = actual[i]
             next_step = actual[i + 1]

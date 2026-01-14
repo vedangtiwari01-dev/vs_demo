@@ -114,7 +114,7 @@ class Deviation(BaseModel):
     officer_id: str
     timestamp: Optional[str] = None  # Case start time for temporal pattern analysis
     deviation_type: str
-    rule_id: Optional[int] = None
+    rule_id: Optional[int] = None  # Integer ID for DB rules, None for template rules
     severity: str
     description: str
     expected_behavior: Optional[str] = None
@@ -130,6 +130,11 @@ class Deviation(BaseModel):
     loan_amount: Optional[float] = None
     customer_segment: Optional[str] = None
     product_type: Optional[str] = None
+
+    # Phase 4 & 5 Enhancement: Allow additional context fields (credit_score, ltv, mandate_status)
+    model_config = {
+        'extra': 'allow',
+    }
 
 class DeviationDetectionResponse(BaseModel):
     deviations: List[Deviation]

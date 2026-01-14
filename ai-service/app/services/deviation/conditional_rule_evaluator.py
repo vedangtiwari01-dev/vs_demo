@@ -58,6 +58,105 @@ class ConditionalRuleEvaluator:
         'ROUND': lambda a, decimals=2: round(a, decimals)
     }
 
+    # Phase 4 Enhancement: Hardcoded rule templates for common conditional patterns
+    # These supplement rules extracted from SOP to catch violations that LLM may not structure properly
+    CONDITIONAL_RULE_TEMPLATES = [
+        {
+            "id": "ltv_above_80_requires_credit_committee",
+            "rule_type": "approval",
+            "rule_description": "Loans with LTV exceeding 80% require Credit Committee approval",
+            "severity": "critical",
+            "condition_logic": {
+                "condition": {
+                    "calculation": {
+                        "function": "DIVIDE",
+                        "args": [
+                            {"field": "loan_amount_sanctioned"},
+                            {"field": "collateral_value"}
+                        ]
+                    },
+                    "operator": ">",
+                    "value": 0.80
+                },
+                "then": {
+                    "require_step": "Credit Approval (Level 3 - Credit Committee)",
+                    "require_step_alternatives": [
+                        "Credit Committee Approval",
+                        "Level 3 Credit Approval",
+                        "Credit Approval Level 3",
+                        "Credit Committee"
+                    ],
+                    "severity": "critical"
+                }
+            },
+            "required_fields": ["loan_amount_sanctioned", "collateral_value", "step_name"],
+            "product_types": ["All"],
+            "customer_segments": ["All"],
+            "channels": ["All"],
+            "geography": ["All"]
+        },
+        {
+            "id": "credit_score_650_699_requires_regional_manager",
+            "rule_type": "approval",
+            "rule_description": "Credit scores between 650-699 require Regional Credit Manager approval",
+            "severity": "critical",
+            "condition_logic": {
+                "condition": {
+                    "operator": "AND",
+                    "conditions": [
+                        {"field": "credit_score_bureau", "operator": ">=", "value": 650},
+                        {"field": "credit_score_bureau", "operator": "<=", "value": 699}
+                    ]
+                },
+                "then": {
+                    "require_step": "Credit Approval (Level 2 - Regional Credit Manager)",
+                    "require_step_alternatives": [
+                        "Regional Credit Manager Approval",
+                        "Level 2 Credit Approval",
+                        "Credit Approval Level 2",
+                        "Regional Manager Approval",
+                        "RCM Approval"
+                    ],
+                    "severity": "critical"
+                }
+            },
+            "required_fields": ["credit_score_bureau", "step_name"],
+            "product_types": ["All"],
+            "customer_segments": ["All"],
+            "channels": ["All"],
+            "geography": ["All"]
+        },
+        {
+            "id": "mandate_must_be_active_before_disbursement",
+            "rule_type": "disbursement",
+            "rule_description": "EMI Mandate must be Active before Loan Disbursement",
+            "severity": "critical",
+            "condition_logic": {
+                "condition": {
+                    "field": "mandate_status",
+                    "operator": "!=",
+                    "value": "Active"
+                },
+                "then": {
+                    "action": "block_step",
+                    "blocked_step": "Loan Disbursement",
+                    "blocked_step_alternatives": [
+                        "Disbursement",
+                        "Loan Disbursal",
+                        "Disbursal",
+                        "Fund Transfer"
+                    ],
+                    "severity": "critical"
+                }
+            },
+            "required_fields": ["mandate_status", "step_name"],
+            "product_types": ["All"],
+            "customer_segments": ["All"],
+            "channels": ["All"],
+            "geography": ["All"]
+        }
+    ]
+
     @staticmethod
     def evaluate(logs: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
@@ -83,7 +182,10 @@ class ConditionalRuleEvaluator:
         # Get rules with condition_logic
         conditional_rules = [r for r in rules if r.get('condition_logic')]
 
-        logger.info(f"[ConditionalRuleEvaluator] Total rules: {len(rules)}, Conditional rules: {len(conditional_rules)}")
+        # Phase 4 Enhancement: Merge with hardcoded rule templates
+        conditional_rules.extend(ConditionalRuleEvaluator.CONDITIONAL_RULE_TEMPLATES)
+
+        logger.info(f"[ConditionalRuleEvaluator] Total rules: {len(rules)}, Conditional rules: {len(conditional_rules)} (including {len(ConditionalRuleEvaluator.CONDITIONAL_RULE_TEMPLATES)} templates)")
         logger.info(f"[ConditionalRuleEvaluator] Total cases: {len(cases)}")
 
         # Evaluate each case against each conditional rule
@@ -101,6 +203,38 @@ class ConditionalRuleEvaluator:
         logger.info(f"[ConditionalRuleEvaluator] Total deviations found: {len(deviations)}")
 
         return deviations
+
+    @staticmethod
+    def _get_rule_id_for_db(rule: Dict[str, Any]) -> Optional[int]:
+        """
+        Extract rule_id for database storage.
+
+        Template rules have string IDs (e.g., 'mandate_must_be_active_before_disbursement')
+        which can't be stored in the INTEGER rule_id column. Return None for templates.
+
+        Args:
+            rule: Rule dictionary
+
+        Returns:
+            Integer rule ID if present, None for template rules
+        """
+        rule_id = rule.get('id')
+        if rule_id is None:
+            return None
+
+        # If it's already an integer, return it
+        if isinstance(rule_id, int):
+            return rule_id
+
+        # If it's a string that can be converted to int, convert it
+        if isinstance(rule_id, str):
+            try:
+                return int(rule_id)
+            except ValueError:
+                # String ID (template rule) - return None
+                return None
+
+        return None
 
     @staticmethod
     def _check_rule(case_id: str, logs: List[Dict[str, Any]], rule: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -318,10 +452,12 @@ class ConditionalRuleEvaluator:
         # Check for required single step
         if 'require_step' in then_clause:
             required_step = then_clause['require_step']
-            required_step_lower = required_step.lower()
 
-            # Check if the required step exists (case-insensitive, partial match)
-            if not any(required_step_lower in step for step in step_names):
+            # Phase 4 Enhancement: Use fuzzy matching with alternatives
+            alternatives = then_clause.get('require_step_alternatives', [])
+            if not ConditionalRuleEvaluator._step_matches_with_alternatives(
+                required_step, step_names, alternatives
+            ):
                 # Extract case context from log_data (if available)
                 loan_amount = log_data.get('loan_amount') or log_data.get('loan_amount_sanctioned')
                 customer_segment = log_data.get('customer_segment')
@@ -338,7 +474,7 @@ class ConditionalRuleEvaluator:
                     'actual_behavior': f'{required_step} step not found in workflow',
 
                     # Rule Context (NEW)
-                    'rule_id': rule.get('id'),
+                    'rule_id': ConditionalRuleEvaluator._get_rule_id_for_db(rule),
                     'rule_description': rule.get('rule_description'),
                     'rule_type': rule.get('rule_type'),
                     'rule_severity': rule.get('severity'),
@@ -364,8 +500,10 @@ class ConditionalRuleEvaluator:
             missing_steps = []
 
             for required_step in required_steps:
-                required_step_lower = required_step.lower()
-                if not any(required_step_lower in step for step in step_names):
+                # Phase 4 Enhancement: Use fuzzy matching
+                if not ConditionalRuleEvaluator._step_matches_with_alternatives(
+                    required_step, step_names, None
+                ):
                     missing_steps.append(required_step)
 
             if missing_steps:
@@ -385,7 +523,7 @@ class ConditionalRuleEvaluator:
                     'actual_behavior': f'Missing steps: {", ".join(missing_steps)}',
 
                     # Rule Context (NEW)
-                    'rule_id': rule.get('id'),
+                    'rule_id': ConditionalRuleEvaluator._get_rule_id_for_db(rule),
                     'rule_description': rule.get('rule_description'),
                     'rule_type': rule.get('rule_type'),
                     'rule_severity': rule.get('severity'),
@@ -406,7 +544,114 @@ class ConditionalRuleEvaluator:
                     }
                 }
 
+        # Phase 4 Enhancement: Check for block_step action (e.g., mandate validation)
+        if 'action' in then_clause and then_clause['action'] == 'block_step':
+            blocked_step = then_clause.get('blocked_step')
+            if blocked_step:
+                # Check if blocked step was performed (it shouldn't have been)
+                alternatives = then_clause.get('blocked_step_alternatives', [])
+                if ConditionalRuleEvaluator._step_matches_with_alternatives(
+                    blocked_step, step_names, alternatives
+                ):
+                    # Extract case context
+                    loan_amount = log_data.get('loan_amount') or log_data.get('loan_amount_sanctioned')
+                    customer_segment = log_data.get('customer_segment')
+                    product_type = log_data.get('product_type')
+
+                    return {
+                        'case_id': case_id,
+                        'officer_id': logs[0].get('officer_id', 'unknown'),
+                        'timestamp': logs[0].get('timestamp'),
+                        'deviation_type': 'precondition_violation',
+                        'severity': then_clause.get('severity', rule.get('severity', 'critical')),
+                        'description': f'Pre-condition not met: {blocked_step} proceeded despite condition violation',
+                        'expected_behavior': f'When {ConditionalRuleEvaluator._format_condition(condition_logic["condition"])}, {blocked_step} should be blocked',
+                        'actual_behavior': f'{blocked_step} was performed despite unmet condition',
+
+                        # Rule Context
+                        'rule_id': ConditionalRuleEvaluator._get_rule_id_for_db(rule),
+                        'rule_description': rule.get('rule_description'),
+                        'rule_type': rule.get('rule_type'),
+                        'rule_severity': rule.get('severity'),
+
+                        # Case Context
+                        'loan_amount': loan_amount,
+                        'customer_segment': customer_segment,
+                        'product_type': product_type,
+
+                        'context': {
+                            'rule_id': rule.get('id'),  # Keep string ID in context for reference
+                            'rule_description': rule.get('rule_description'),
+                            'condition': condition_logic['condition'],
+                            'log_data_sample': {k: v for k, v in log_data.items() if k in ['mandate_status', 'loan_amount_sanctioned', 'product_type']},
+                            'blocked_step': blocked_step,
+                            'steps_performed': step_names
+                        }
+                    }
+
         return None
+
+    @staticmethod
+    def _step_matches_with_alternatives(
+        required_step: str,
+        step_names: List[str],
+        alternatives: List[str] = None
+    ) -> bool:
+        """
+        Phase 4 Enhancement: Check if required step exists using fuzzy matching and alternatives.
+
+        Args:
+            required_step: Primary required step name
+            step_names: List of actual step names from logs
+            alternatives: Optional list of alternative step names
+
+        Returns:
+            True if step found (with fuzzy matching)
+        """
+        from difflib import SequenceMatcher
+
+        # Normalize function (same as SequenceChecker)
+        def normalize(name):
+            import re
+            name = re.sub(r'^(?:Step\s+)?\d+[\.\:\-\)]\s*', '', name, flags=re.IGNORECASE)
+            name = re.sub(r'\([^)]*\)', '', name)
+            name = re.sub(r'\s*\(Step\s+\d+\)\s*', '', name, flags=re.IGNORECASE)
+            name = name.lower()
+            name = re.sub(r'[^\w\s]', ' ', name)
+            name = re.sub(r'\s+', ' ', name)
+            return name.strip()
+
+        # Check primary step name
+        norm_required = normalize(required_step)
+        for actual_step in step_names:
+            norm_actual = normalize(actual_step)
+
+            # Exact match after normalization
+            if norm_required == norm_actual:
+                return True
+
+            # Fuzzy match
+            similarity = SequenceMatcher(None, norm_required, norm_actual).ratio()
+            if similarity >= 0.75:
+                return True
+
+        # Check alternatives if provided
+        if alternatives:
+            for alt_step in alternatives:
+                norm_alt = normalize(alt_step)
+                for actual_step in step_names:
+                    norm_actual = normalize(actual_step)
+
+                    # Exact match
+                    if norm_alt == norm_actual:
+                        return True
+
+                    # Fuzzy match
+                    similarity = SequenceMatcher(None, norm_alt, norm_actual).ratio()
+                    if similarity >= 0.75:
+                        return True
+
+        return False
 
     @staticmethod
     def _aggregate_log_data(logs: List[Dict[str, Any]]) -> Dict[str, Any]:
