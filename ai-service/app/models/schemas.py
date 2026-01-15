@@ -36,7 +36,7 @@ class ThenClause(BaseModel):
 
 class ConditionalLogic(BaseModel):
     """Structured conditional logic for rules"""
-    condition: Condition
+    condition: Optional[Condition] = None
     then_clause: ThenClause = Field(alias='then')
 
     model_config = {

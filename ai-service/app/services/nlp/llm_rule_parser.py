@@ -380,6 +380,8 @@ class LLMRuleParser:
 
         except Exception as e:
             logger.error(f"Error extracting rules with Claude: {str(e)}")
+            logger.error(f"Exception type: {type(e).__name__}")
+            logger.exception("Full traceback:")
             if fallback_on_error:
                 return self._extract_with_fallback(sop_text)
             return {

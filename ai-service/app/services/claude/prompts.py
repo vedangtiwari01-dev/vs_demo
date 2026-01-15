@@ -3,170 +3,106 @@ Centralized prompt templates for Claude API interactions.
 """
 from typing import Dict, Any, List, Optional
 
-# SOP Rule Extraction Prompt - IMPROVED (Compact Output + Explicit Instructions)
-# SOP Rule Extraction Prompt - IMPROVED (Compact Output + Explicit Instructions)
-SOP_RULE_EXTRACTION_PROMPT = """You are an expert at analyzing Standard Operating Procedures (SOPs) and extracting structured compliance rules.
+# SOP Rule Extraction Prompt - FOCUSED AND CONCISE
+SOP_RULE_EXTRACTION_PROMPT = """Extract compliance rules from the SOP document and return structured JSON.
 
-Your task: Extract ALL rules from the SOP document and return them as a JSON array.
+# 🚫 CRITICAL BANS - DO NOT DO THIS:
+- ❌ DO NOT copy SOP text verbatim into rule_description (summarize instead)
+- ❌ DO NOT add fields: "id", "name", "description", "condition"
+- ❌ DO NOT leave field_dependencies empty/null
+- ❌ DO NOT skip threshold_value for numeric rules
+- ❌ DO NOT use "condition" (use "condition_logic" instead)
 
-# OUTPUT FORMAT
+# ✅ MANDATORY FIELDS (Every rule MUST have):
+1. rule_type: One of [eligibility, approval, sequence, timing, credit_risk, collateral, kyc, documentation, disbursement, regulatory, operational]
+2. rule_description: Clear 1-sentence summary (NOT copied SOP text)
+3. severity: critical | high | medium | low
+4. field_dependencies: Array of field names (e.g., ["customer_age"], ["loan_amount_sanctioned"])
+5. threshold_value: Number if rule has age/amount/percentage/score/days/hours (e.g., 21, 1000000, 0.55, 48)
 
-Return a JSON object with this EXACT structure:
+# 📋 OPTIONAL FIELDS (Include when applicable):
+- condition_logic: For IF-THEN rules → {{"condition": {{...}}, "then": {{...}}}}
+- temporal_constraint: For sequence rules → {{"step_a": "...", "step_b": "...", "max_hours": 48}}
+- timing_constraint: Human-readable time (e.g., "within 48 hours")
+- step_number: For ordered workflow steps (1, 2, 3...)
+- product_types: ["All"] or specific products
+- customer_segments: ["All"] or specific segments
 
-```json
-{{
-  "rules": [
-    {{
-      "rule_type": "sequence|approval|timing|eligibility|credit_risk|kyc|aml|documentation|collateral|disbursement|post_disbursement_qc|collection|restructuring|regulatory|data_quality|operational",
-      "rule_description": "Clear description of the rule",
-      "step_number": 5,
-      "severity": "critical|high|medium|low",
-      "threshold_value": 10000,
-      "field_dependencies": ["loan_amount_sanctioned", "collateral_value"],
-      "condition_logic": {{
-        "condition": {{"field": "loan_amount", "operator": ">=", "value": 10000}},
-        "then": {{"require_step": "Manager Approval", "severity": "critical"}}
-      }},
-      "product_types": ["All"],
-      "customer_segments": ["All"],
-      "channels": ["All"],
-      "geography": ["All"],
-      "exceptions": [],
-      "calculation_formula": "LTV = loan_amount / collateral_value",
-      "temporal_constraint": {{"step_a": "Risk Assessment", "step_b": "Approval", "max_hours": 48}},
-      "regulatory_reference": null,
-      "timing_constraint": "within 48 hours"
-    }}
-  ]
-}}
-```
+# 🎯 FEW-SHOT EXAMPLES:
 
-**IMPORTANT - Keep Output Compact:**
-- **OMIT fields that are null or empty** (don't include them at all)
-- Only include optional fields (temporal_constraint, calculation_formula, regulatory_reference, timing_constraint, exceptions) when they have actual values
-- ALWAYS include: rule_type, rule_description, severity, field_dependencies
-- Include threshold_value only if the rule has a numeric threshold
-
-# CRITICAL RULES FOR EXTRACTION
-
-## Rule 1: ALWAYS Extract threshold_value
-
-**What it is:** The NUMERIC value in the rule (age limits, amounts, ratios, percentages)
-
-**Examples:**
-- "Minimum Age: 21 years" → threshold_value: 21
-- "Maximum LTV: 80%" → threshold_value: 0.8 (decimal format for percentages)
-- "Loans above $10,000" → threshold_value: 10000
-- "EMI ratio max 55%" → threshold_value: 0.55
-- "Credit score minimum 650" → threshold_value: 650
-
-**VALIDATION:** Age thresholds MUST be 18-100. If you extract 40000 as age, YOU ARE WRONG - that's a loan amount!
-
-## Rule 2: ALWAYS Extract field_dependencies
-
-**What it is:** List of ALL data fields this rule needs to check
-
-**Examples:**
-- "Minimum age 21" → field_dependencies: ["customer_age"]
-- "LTV must not exceed 80%" → field_dependencies: ["loan_amount_sanctioned", "collateral_value"]
-- "EMI ratio below 55%" → field_dependencies: ["emi_to_income_ratio"]
-- "Credit score above 650 for loans over $500K" → field_dependencies: ["credit_score_bureau", "loan_amount_sanctioned"]
-- "KYC must be completed before approval" → field_dependencies: ["step_name", "kyc_status"]
-
-## Rule 3: ALWAYS Extract condition_logic for conditional rules
-
-**What it is:** Structured IF-THEN logic for rules that have conditions
-
-**Format:**
-```json
-{{
-  "condition": {{
-    "field": "loan_amount_sanctioned",
-    "operator": ">=",
-    "value": 1000000
-  }},
-  "then": {{
-    "require_step": "Regional Credit Manager Approval",
-    "severity": "critical"
-  }}
-}}
-```
-
-**When to use:**
-- Approval rules with amount thresholds: "Loans above $1M require Regional Manager approval"
-- Risk-based rules: "Credit score below 650 requires exception"
-- Conditional requirements: "Self-employed customers must provide ITR"
-
-## Rule 4: Extract product_types, customer_segments, channels if mentioned
-
-**Examples:**
-- "For Home Loans, property valuation is mandatory" → product_types: ["Home Loan"]
-- "Priority customers can have EMI ratio up to 60%" → customer_segments: ["Priority"]
-- "Digital channel loans limited to $3M" → channels: ["Digital"]
-- If NOT mentioned, use: ["All"]
-
-## Rule 5: Extract exceptions if mentioned
-
-**What it is:** Exception cases or special conditions
-
-**Examples:**
-- "Age limit 65, except existing premium customers can be 68" → exceptions: [{{"condition": "existing premium customer", "override": "maximum age 68"}}]
-- "Credit score minimum 650, except with strong collateral" → exceptions: [{{"condition": "strong collateral", "override": "score below 650 acceptable"}}]
-
-# SPECIFIC EXTRACTION RULES BY TYPE
-
-## A. ELIGIBILITY RULES
-
-Extract as SEPARATE rules (do NOT combine):
-
-**Age Rules:**
-```json
+**Example 1: Eligibility Rule with Threshold**
+SOP Text: "Minimum Age: 21 years at the time of application"
+Output:
 {{
   "rule_type": "eligibility",
-  "rule_description": "Minimum age requirement is 21 years",
+  "rule_description": "Minimum age requirement is 21 years at application",
+  "severity": "critical",
   "threshold_value": 21,
   "field_dependencies": ["customer_age"],
   "condition_logic": {{
     "condition": {{"field": "customer_age", "operator": "<", "value": 21}},
     "then": {{"action": "reject", "reason": "Below minimum age"}}
   }},
-  "severity": "critical",
   "product_types": ["All"],
   "customer_segments": ["All"]
 }}
-```
 
-Note: No null fields included - only fields with actual values.
-
-**Income Rules:**
-```json
+**Example 2: Approval Rule with Amount Threshold**
+SOP Text: "Loans above INR 1,000,000 require Regional Credit Manager approval"
+Output:
 {{
-  "rule_type": "eligibility",
-  "rule_description": "Minimum monthly income for salaried customers is INR 25,000",
-  "threshold_value": 25000,
-  "field_dependencies": ["monthly_income", "customer_type"],
+  "rule_type": "approval",
+  "rule_description": "Loans above INR 1,000,000 require Regional Credit Manager approval",
+  "severity": "critical",
+  "threshold_value": 1000000,
+  "field_dependencies": ["loan_amount_sanctioned"],
   "condition_logic": {{
-    "condition": {{
-      "operator": "AND",
-      "conditions": [
-        {{"field": "customer_type", "operator": "==", "value": "Salaried"}},
-        {{"field": "monthly_income", "operator": "<", "value": 25000}}
-      ]
-    }},
-    "then": {{"action": "reject"}}
+    "condition": {{"field": "loan_amount_sanctioned", "operator": ">", "value": 1000000}},
+    "then": {{"require_step": "Credit Approval (Level 2 - Regional Credit Manager)", "severity": "critical"}}
   }},
-  "customer_segments": ["Salaried"],
-  "severity": "critical"
+  "product_types": ["All"]
 }}
-```
 
-## B. CREDIT RISK RULES
+**Example 3: Timing Rule with Temporal Constraint**
+SOP Text: "Post-Disbursement Quality Audit must be completed within 48 hours of disbursement"
+Output:
+{{
+  "rule_type": "timing",
+  "rule_description": "Post-Disbursement Quality Audit must be completed within 48 hours of disbursement",
+  "severity": "critical",
+  "threshold_value": 48,
+  "field_dependencies": ["step_name", "timestamp"],
+  "timing_constraint": "within 48 hours",
+  "temporal_constraint": {{
+    "step_a": "Loan Disbursement",
+    "step_b": "Post-Disbursement Quality Audit",
+    "max_hours": 48
+  }},
+  "product_types": ["All"]
+}}
 
-**EMI-to-Income Rules:**
-```json
+**Example 4: Sequence Rule with Dependencies**
+SOP Text: "KYC Verification must be completed before Credit Approval"
+Output:
+{{
+  "rule_type": "sequence",
+  "rule_description": "KYC Verification must be completed before Credit Approval",
+  "severity": "critical",
+  "field_dependencies": ["step_name", "kyc_status"],
+  "temporal_constraint": {{
+    "step_a": "Customer KYC and AML Verification",
+    "step_b": "Credit Approval (Level 1 - Branch Manager)"
+  }},
+  "product_types": ["All"]
+}}
+
+**Example 5: Credit Risk Rule with EMI Calculation**
+SOP Text: "Maximum EMI-to-Income ratio is 55% for salaried customers"
+Output:
 {{
   "rule_type": "credit_risk",
   "rule_description": "Maximum EMI-to-Income ratio is 55% for salaried customers",
+  "severity": "high",
   "threshold_value": 0.55,
   "field_dependencies": ["emi_to_income_ratio", "customer_type"],
   "condition_logic": {{
@@ -179,105 +115,16 @@ Note: No null fields included - only fields with actual values.
     }},
     "then": {{"action": "flag_violation", "severity": "high"}}
   }},
-  "customer_segments": ["Salaried"],
-  "exceptions": [{{"condition": "income > INR 100,000/month", "override": "60% EMI ratio acceptable"}}],
-  "severity": "high"
+  "customer_segments": ["Salaried"]
 }}
-```
 
-**Credit Score Rules:**
-```json
-{{
-  "rule_type": "credit_risk",
-  "rule_description": "Minimum credit score requirement is 650",
-  "threshold_value": 650,
-  "field_dependencies": ["credit_score_bureau"],
-  "condition_logic": {{
-    "condition": {{"field": "credit_score_bureau", "operator": "<", "value": 650}},
-    "then": {{"require_step": "Credit Committee Approval", "severity": "critical"}}
-  }},
-  "severity": "critical"
-}}
-```
-
-## C. APPROVAL AUTHORITY RULES
-
-**Amount-Based Approval:**
-```json
-{{
-  "rule_type": "approval",
-  "rule_description": "Loans above INR 1,000,000 require Regional Credit Manager approval",
-  "threshold_value": 1000000,
-  "field_dependencies": ["loan_amount_sanctioned"],
-  "condition_logic": {{
-    "condition": {{"field": "loan_amount_sanctioned", "operator": ">", "value": 1000000}},
-    "then": {{"require_step": "Credit Approval (Level 2 - Regional Credit Manager)", "severity": "critical"}}
-  }},
-  "severity": "critical"
-}}
-```
-
-## D. SEQUENCE RULES
-
-**IMPORTANT:** If the SOP lists a mandatory workflow with numbered steps (Step 1, Step 2, etc.),
-extract each step as a SEPARATE sequence rule:
-
-```json
-{{
-  "rule_type": "sequence",
-  "rule_description": "Application Received and Registration is Step 1 in the mandatory workflow",
-  "step_number": 1,
-  "field_dependencies": ["step_name"],
-  "severity": "critical",
-  "product_types": ["All"]
-}}
-```
-
-**Dependency Rules (no step_number, but include temporal_constraint):**
-```json
-{{
-  "rule_type": "sequence",
-  "rule_description": "KYC Verification must be completed before Credit Approval",
-  "field_dependencies": ["step_name", "kyc_status"],
-  "temporal_constraint": {{
-    "step_a": "Customer KYC and AML Verification",
-    "step_b": "Credit Approval (Level 1 - Branch Manager)"
-  }},
-  "severity": "critical",
-  "product_types": ["All"]
-}}
-```
-
-Note: Omitted max_hours from temporal_constraint when not specified.
-
-## E. TIMING RULES
-
-```json
-{{
-  "rule_type": "timing",
-  "rule_description": "Post-Disbursement Quality Audit must be completed within 48 hours of disbursement",
-  "timing_constraint": "within 48 hours",
-  "threshold_value": 48,
-  "field_dependencies": ["step_name", "timestamp"],
-  "temporal_constraint": {{
-    "step_a": "Loan Disbursement",
-    "step_b": "Post-Disbursement Quality Audit",
-    "max_hours": 48
-  }},
-  "severity": "critical",
-  "product_types": ["All"]
-}}
-```
-
-Note: temporal_constraint is included here because it's a timing rule. For non-timing rules, omit it.
-
-## F. COLLATERAL RULES
-
-**LTV Rules:**
-```json
+**Example 6: Collateral Rule with LTV Calculation**
+SOP Text: "Maximum LTV for residential property is 75%"
+Output:
 {{
   "rule_type": "collateral",
   "rule_description": "Maximum LTV for residential property is 75%",
+  "severity": "high",
   "threshold_value": 0.75,
   "calculation_formula": "LTV = loan_amount_sanctioned / collateral_value",
   "field_dependencies": ["loan_amount_sanctioned", "collateral_value", "collateral_type"],
@@ -295,51 +142,104 @@ Note: temporal_constraint is included here because it's a timing rule. For non-t
     }},
     "then": {{"action": "flag_violation", "severity": "high"}}
   }},
-  "product_types": ["Property Backed Loan"],
-  "severity": "high"
+  "product_types": ["Property Backed Loan"]
 }}
-```
 
-## G. REGULATORY RULES
-
-**Customer Exposure Limits:**
-```json
+**Example 7: KYC Rule with Sanctions Screening**
+SOP Text: "If Sanctions Hit = 'Yes': Application shall be REJECTED immediately"
+Output:
 {{
-  "rule_type": "regulatory",
-  "rule_description": "Maximum exposure to single customer (including group entities) is INR 15,000,000",
-  "threshold_value": 15000000,
-  "field_dependencies": ["total_customer_exposure", "customer_id", "group_entity_ids"],
+  "rule_type": "kyc",
+  "rule_description": "Applications with sanctions hit must be rejected immediately",
+  "severity": "critical",
+  "field_dependencies": ["sanctions_hit_flag"],
   "condition_logic": {{
-    "condition": {{"field": "total_customer_exposure", "operator": ">", "value": 15000000}},
-    "then": {{"action": "flag_violation", "severity": "critical"}}
-  }},
-  "regulatory_reference": "Customer Exposure Limits Policy",
-  "severity": "critical"
+    "condition": {{"field": "sanctions_hit_flag", "operator": "==", "value": "Yes"}},
+    "then": {{"action": "reject", "reason": "Sanctions hit detected"}}
+  }}
+}}
+
+# 📤 OUTPUT FORMAT:
+
+Return ONLY valid JSON starting with:
+
+{{
+  "rules": [
+    // Extract rules following the structure in examples above
+  ]
 }}
 ```
 
-# EXTRACTION CHECKLIST
+# 📝 AVAILABLE SYSTEM FIELDS (for field_dependencies):
 
-Before returning your JSON, verify:
+**Core Required Fields:**
+case_id, officer_id, step_name, action, timestamp
 
-1. ✅ EVERY numeric threshold has threshold_value field (ages, amounts, ratios)
-2. ✅ EVERY rule has field_dependencies listing which fields it needs
-3. ✅ Conditional rules have condition_logic
-4. ✅ Age thresholds are 18-100 (NOT 40000 or other large numbers)
-5. ✅ Percentages are in decimal format (0.55 for 55%, 0.8 for 80%)
-6. ✅ Each workflow step is a separate rule (not combined)
-7. ✅ Approval authority rules extracted for EACH threshold mentioned
-8. ✅ All exceptions are captured in exceptions field
-9. ✅ Customer exposure limits are classified as "regulatory" type (NOT "credit_risk")
+**Customer & Entity:**
+customer_id, customer_name, customer_age, customer_segment, customer_type, customer_risk_rating, group_id, related_party_flag
 
-# SOP DOCUMENT TO ANALYZE
+**Loan Amounts & Terms:**
+loan_amount_requested, loan_amount_sanctioned, loan_amount_disbursed, tenor_months, tenor_days, emi_amount, interest_rate, ltv_ratio, margin_pct, total_group_exposure, customer_total_exposure
+
+**Credit & Risk:**
+credit_score_bureau, credit_score_internal, emi_to_income_ratio, dti_ratio, risk_grade, risk_category, score_band
+
+**Collateral & Security:**
+collateral_type, collateral_value, collateral_value_date, collateral_description, valuation_status, security_created_flag, security_perfected_flag
+
+**KYC & AML:**
+kyc_status, kyc_completed_flag, kyc_date, sanctions_hit_flag, watchlist_hit_flag, pep_flag, aml_risk_rating
+
+**Workflow & Approval:**
+status, approval_role, approval_level, approver_id, approval_decision, approval_timestamp, exception_flag, override_flag, duration_seconds
+
+**Disbursement:**
+disbursement_date, disbursement_amount, disbursement_mode, mandate_status, post_disbursement_qc_flag, post_disbursement_qc_date, first_emi_date
+
+**Collections & Delinquency:**
+overdue_days, bucket, collection_status, collection_agent_id, restructure_flag, restructure_date, writeoff_flag
+
+**Audit & Data Quality:**
+audit_trail_id, source_system, created_by, created_at, updated_by, updated_at, error_code, error_message
+
+**Product & Channel:**
+product_type, sub_product_type, channel, branch_code, branch_name, region
+
+# 📋 FIELD DEPENDENCY EXAMPLES:
+
+- Age eligibility → ["customer_age"]
+- Income eligibility → ["monthly_income", "customer_type"] OR ["customer_income"]
+- Loan amount approval → ["loan_amount_sanctioned"]
+- EMI ratio → ["emi_to_income_ratio"] OR ["emi_amount", "monthly_income"]
+- Credit score → ["credit_score_bureau"]
+- LTV calculation → ["loan_amount_sanctioned", "collateral_value"]
+- KYC completion → ["step_name", "kyc_status"]
+- Sanctions screening → ["sanctions_hit_flag"]
+- Mandate setup → ["mandate_status"]
+- Sequence/timing → ["step_name", "timestamp"]
+- Disbursement → ["disbursement_date", "disbursement_amount"]
+- Collections → ["overdue_days", "bucket"]
+- Audit trail → ["audit_trail_id", "source_system"]
+
+# 🎯 THRESHOLD EXTRACTION RULES:
+
+- "21 years" → 21
+- "55%" → 0.55 (percentages as decimals)
+- "INR 1,000,000" → 1000000
+- "48 hours" → 48
+- "$10,000" → 10000
+
+# 📌 RULE TYPES:
+
+eligibility | approval | sequence | timing | credit_risk | collateral | kyc | documentation | disbursement | regulatory | operational
+
+# SOP DOCUMENT TO ANALYZE:
 
 {sop_text}
 
-# YOUR RESPONSE
+# YOUR JSON OUTPUT (no markdown, no explanations):
 
-Return ONLY the JSON object starting with {{"rules": [...]}}.
-No markdown code fences, no explanations, just the JSON.
+{{"rules":
 """
 
 # Column Mapping Prompt

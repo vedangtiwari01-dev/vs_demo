@@ -101,38 +101,26 @@ class RuleValidator:
         officer_id = logs[0]['officer_id'] if logs else 'unknown'
         case_start_time = logs[0]['timestamp'] if logs else None
 
-        has_manager_approval = any('manager' in step and 'approval' in step for step in step_names)
-        has_final_approval = any('final' in step and 'approval' in step for step in step_names)
+        # Check for any credit/loan approval with authority levels
+        # Matches: "credit approval", "loan approval", "approval (level X)", etc.
+        has_approval = any('approval' in step and any(keyword in step for keyword in
+                          ['credit', 'loan', 'manager', 'level', 'final', 'senior'])
+                          for step in step_names)
 
-        # Legacy checks (basic sanity checks only)
-        if not has_manager_approval:
+        # RELAXED CHECK: Only flag if NO approval steps found at all
+        # ConditionalRuleEvaluator handles detailed approval hierarchy validation
+        if not has_approval:
             deviations.append({
                 'case_id': case_id,
                 'officer_id': officer_id,
                 'timestamp': case_start_time,
                 'deviation_type': 'missing_approval',
                 'severity': 'critical',
-                'description': 'Missing manager approval',
-                'expected_behavior': 'Manager approval required before final approval',
-                'actual_behavior': 'Manager approval step not found',
+                'description': 'Missing approval step',
+                'expected_behavior': 'At least one approval step required',
+                'actual_behavior': 'No approval step found in workflow',
                 'context': {
-                    'approval_type': 'manager',
-                    'steps_performed': step_names
-                }
-            })
-
-        if not has_final_approval:
-            deviations.append({
-                'case_id': case_id,
-                'officer_id': officer_id,
-                'timestamp': case_start_time,
-                'deviation_type': 'missing_approval',
-                'severity': 'critical',
-                'description': 'Missing final approval',
-                'expected_behavior': 'Final approval required to complete case',
-                'actual_behavior': 'Final approval step not found',
-                'context': {
-                    'approval_type': 'final',
+                    'approval_type': 'any',
                     'steps_performed': step_names
                 }
             })

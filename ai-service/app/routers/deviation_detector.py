@@ -275,7 +275,7 @@ async def analyze_patterns(request: PatternAnalysisRequest):
         # ===================================================================
         # LAYER 2: STATISTICAL ANALYSIS (Basic + Advanced)
         # ===================================================================
-        statistical_analysis = StatisticalAnalyzer.analyze(cleaned_deviations)
+        statistical_analysis = StatisticalAnalyzer.analyze(cleaned_deviations, request.workflow_logs)
 
         # Add advanced statistical analysis
         from app.services.data import AdvancedStatistics

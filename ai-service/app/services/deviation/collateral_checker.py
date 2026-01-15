@@ -1,7 +1,10 @@
 from typing import List, Dict, Any
 from collections import defaultdict
 from datetime import datetime, timedelta
+import logging
 from .rule_parser import RuleParser
+
+logger = logging.getLogger(__name__)
 
 class CollateralChecker:
     """
@@ -36,8 +39,11 @@ class CollateralChecker:
         # Extract collateral requirements from SOP
         collateral_reqs = RuleParser.extract_collateral_requirements(rules)
 
+        logger.info(f"CollateralChecker ltv_limits={collateral_reqs['ltv_limits']}, valuation_age_days={collateral_reqs['valuation_age_days']}")
+
         # STRICT MODE: If no collateral requirements defined in SOP, skip validation
         if not collateral_reqs['ltv_limits'] and collateral_reqs['valuation_age_days'] is None and not collateral_reqs['security_required']:
+            logger.info("CollateralChecker skipping - no collateral requirements in SOP")
             return deviations
 
         # Extract requirements (None if not defined)
@@ -92,10 +98,15 @@ class CollateralChecker:
             # Determine if case progressed to disbursement
             has_disbursement_step = any('disbursement' in step.lower() or 'disburse' in step.lower() for step in step_names)
 
-            # Check 1: LTV breach (only if ltv_ratio present)
-            if 'ltv_ratio' in case_data:
+            # Check 1: LTV breach (only if ltv_ratio present AND ltv limits defined)
+            if 'ltv_ratio' in case_data and ltv_limits:
                 try:
                     ltv = float(case_data['ltv_ratio'])
+
+                    # Determine max_ltv based on collateral type
+                    collateral_type = case_data.get('collateral_type', 'default')
+                    max_ltv = ltv_limits.get(collateral_type, ltv_limits.get('default', 0.75))
+
                     if ltv > max_ltv:
                         deviations.append({
                             'case_id': case_id,
@@ -115,8 +126,8 @@ class CollateralChecker:
                 except (ValueError, TypeError):
                     pass
 
-            # Check 2: Valuation missing or stale (for secured loans)
-            if has_disbursement_step:
+            # Check 2: Valuation missing or stale (for secured loans with valuation age limit)
+            if has_disbursement_step and max_valuation_age_days:
                 valuation_status = str(case_data.get('valuation_status', '')).lower()
                 has_valid_valuation = valuation_status in ['completed', 'verified', 'approved']
 
@@ -177,8 +188,8 @@ class CollateralChecker:
                         }
                     })
 
-            # Check 3: Security not created (for secured loans before disbursement)
-            if has_disbursement_step:
+            # Check 3: Security not created (for secured loans before disbursement with security requirement)
+            if has_disbursement_step and security_required:
                 security_created = case_data.get('security_created', False)
 
                 if not security_created:
@@ -203,4 +214,5 @@ class CollateralChecker:
                             }
                         })
 
+        logger.info(f"CollateralChecker found {len(deviations)} deviations from {len(cases)} cases")
         return deviations

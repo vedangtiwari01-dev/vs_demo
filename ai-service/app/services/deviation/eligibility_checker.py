@@ -1,7 +1,10 @@
 from typing import List, Dict, Any
 from collections import defaultdict
 import re
+import logging
 from .rule_parser import RuleParser
+
+logger = logging.getLogger(__name__)
 
 class EligibilityChecker:
     """
@@ -49,6 +52,9 @@ class EligibilityChecker:
         min_credit_score = thresholds.get('min_credit_score')
         max_ltv = thresholds.get('max_ltv')
 
+        logger.info(f"EligibilityChecker base thresholds: age={min_age}-{max_age}, emi={max_emi_to_income}, score={min_credit_score}")
+        logger.info(f"EligibilityChecker will apply CONDITIONAL EMI thresholds: Salaried=55%, Self-Employed=50%, High-Income=60%")
+
         # DEFENSIVE VALIDATION: Use SOP defaults if extracted values are garbage
         # Age must be reasonable (18-100 range), not loan amounts (40000) or other values
         if min_age is not None and (min_age < 18 or min_age > 100):
@@ -79,6 +85,10 @@ class EligibilityChecker:
                     case_data['tenor_months'] = log['tenor_months']
                 if 'emi_to_income_ratio' in log and log['emi_to_income_ratio'] is not None:
                     case_data['emi_to_income_ratio'] = log['emi_to_income_ratio']
+                if 'employment_type' in log and log['employment_type'] is not None:
+                    case_data['employment_type'] = log['employment_type']
+                if 'monthly_income' in log and log['monthly_income'] is not None:
+                    case_data['monthly_income'] = log['monthly_income']
                 if 'credit_score' in log and log['credit_score'] is not None:
                     case_data['credit_score'] = log['credit_score']
                 if 'credit_score_bureau' in log and log['credit_score_bureau'] is not None:
@@ -134,21 +144,43 @@ class EligibilityChecker:
                 except (ValueError, TypeError):
                     pass
 
-            # Check 3: EMI-to-Income ratio (only if field present AND SOP defines limit)
+            # Check 3: EMI-to-Income ratio with CONDITIONAL thresholds (SOP Section 2.4)
             if 'emi_to_income_ratio' in case_data and max_emi_to_income is not None:
                 try:
                     emi_ratio = float(case_data['emi_to_income_ratio'])
+                    employment_type = case_data.get('employment_type', '').lower()
+                    monthly_income = case_data.get('monthly_income')
+
+                    # CONDITIONAL THRESHOLD: Apply different limits based on employment type
+                    # Per SOP Section 2.4:
+                    # - Salaried: 55% (0.55)
+                    # - Self-Employed: 50% (0.50)
+                    # - High Income (>100k/month): 60% (0.60)
+                    conditional_threshold = max_emi_to_income  # Default from SOP
+
+                    if 'salaried' in employment_type or 'employed' in employment_type:
+                        # Check if high income exception applies
+                        if monthly_income and float(monthly_income) > 100000:
+                            conditional_threshold = 0.60  # High income: 60%
+                        else:
+                            conditional_threshold = 0.55  # Standard salaried: 55%
+                    elif 'self' in employment_type or 'business' in employment_type:
+                        # Check if high income exception applies
+                        if monthly_income and float(monthly_income) > 100000:
+                            conditional_threshold = 0.60  # High income: 60%
+                        else:
+                            conditional_threshold = 0.50  # Self-employed: 50%
 
                     # NORMALIZE THRESHOLD TO MATCH INPUT FORMAT
-                    # Input data uses raw numbers (42 = 42%), threshold uses decimals (0.6 = 60%)
-                    # Convert threshold to match input format for consistent comparison
-                    threshold_normalized = max_emi_to_income
-                    if emi_ratio > 1 and max_emi_to_income <= 1:
-                        # Input is raw percentage (42), threshold is decimal (0.6) → convert threshold to raw (60)
-                        threshold_normalized = max_emi_to_income * 100
-                    elif emi_ratio <= 1 and max_emi_to_income > 1:
-                        # Input is decimal (0.42), threshold is raw (60) → convert threshold to decimal (0.6)
-                        threshold_normalized = max_emi_to_income / 100
+                    # Input data uses decimals (0.42 = 42%), threshold uses decimals (0.55 = 55%)
+                    # Already normalized by workflow_log_cleaner.py
+                    threshold_normalized = conditional_threshold
+                    if emi_ratio > 1 and conditional_threshold <= 1:
+                        # Input is raw percentage (42), threshold is decimal (0.55) → convert threshold to raw (55)
+                        threshold_normalized = conditional_threshold * 100
+                    elif emi_ratio <= 1 and conditional_threshold > 1:
+                        # Input is decimal (0.42), threshold is raw (55) → convert threshold to decimal (0.55)
+                        threshold_normalized = conditional_threshold / 100
 
                     if emi_ratio > threshold_normalized:
                         # Format for display: if value > 1, it's already a percentage, use {:.2f}%
@@ -160,16 +192,28 @@ class EligibilityChecker:
                             display_ratio = f'{emi_ratio:.2%}'
                             display_max = f'{threshold_normalized:.2%}'
 
+                        # Determine employment category for context
+                        employment_category = 'Unknown'
+                        if 'salaried' in employment_type or 'employed' in employment_type:
+                            employment_category = 'Salaried'
+                        elif 'self' in employment_type or 'business' in employment_type:
+                            employment_category = 'Self-Employed'
+
                         deviations.append({
                             'case_id': case_id,
                             'officer_id': officer_id,
                             'timestamp': timestamp,
                             'deviation_type': 'emi_to_income_breach',
                             'severity': 'high',
-                            'description': f'EMI-to-Income ratio {display_ratio} exceeds limit {display_max}',
-                            'expected_behavior': f'EMI-to-Income ratio must be ≤{display_max}',
+                            'description': f'EMI-to-Income ratio {display_ratio} exceeds limit {display_max} for {employment_category} customers',
+                            'expected_behavior': f'EMI-to-Income ratio must be ≤{display_max} for {employment_category} customers (per SOP Section 2.4)',
                             'actual_behavior': f'Ratio is {display_ratio}',
-                            'context': {'emi_to_income_ratio': emi_ratio, 'max_ratio': max_emi_to_income}
+                            'context': {
+                                'emi_to_income_ratio': emi_ratio,
+                                'max_ratio': conditional_threshold,
+                                'employment_type': employment_category,
+                                'threshold_applied': f'{conditional_threshold:.0%}'
+                            }
                         })
                 except (ValueError, TypeError):
                     pass
@@ -195,4 +239,5 @@ class EligibilityChecker:
                 except (ValueError, TypeError):
                     pass
 
+        logger.info(f"EligibilityChecker found {len(deviations)} deviations from {len(cases)} cases")
         return deviations

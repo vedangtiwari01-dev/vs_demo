@@ -24,12 +24,13 @@ class StatisticalAnalyzer:
     """
 
     @staticmethod
-    def analyze(deviations: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def analyze(deviations: List[Dict[str, Any]], workflow_logs: List[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Perform comprehensive statistical analysis on cleaned deviations.
 
         Args:
             deviations: List of cleaned deviation dictionaries
+            workflow_logs: Optional list of workflow logs for temporal analysis
 
         Returns:
             Dictionary containing all statistical insights
@@ -44,7 +45,7 @@ class StatisticalAnalyzer:
             'overview': StatisticalAnalyzer._calculate_overview(deviations),
             'severity_distribution': StatisticalAnalyzer._analyze_severity(deviations),
             'deviation_type_distribution': StatisticalAnalyzer._analyze_deviation_types(deviations),
-            'temporal_patterns': StatisticalAnalyzer._analyze_temporal_patterns(deviations),
+            'temporal_patterns': StatisticalAnalyzer._analyze_temporal_patterns(deviations, workflow_logs),
             'officer_statistics': StatisticalAnalyzer._analyze_officers(deviations),
             'case_statistics': StatisticalAnalyzer._analyze_cases(deviations),
             'correlations': StatisticalAnalyzer._analyze_correlations(deviations),
@@ -188,31 +189,66 @@ class StatisticalAnalyzer:
         }
 
     @staticmethod
-    def _analyze_temporal_patterns(deviations: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Analyze time-based patterns in deviations."""
-        # Extract timestamps
+    def _analyze_temporal_patterns(deviations: List[Dict[str, Any]], workflow_logs: List[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Analyze time-based patterns using WORKFLOW LOG timestamps (not deviation timestamps).
+
+        Deviation timestamps show when analysis was run (e.g., 10 PM on Sunday).
+        Workflow log timestamps show when actual events occurred (e.g., 9 AM on Monday).
+
+        Args:
+            deviations: List of deviations (used for counting only)
+            workflow_logs: List of workflow logs with timestamp field (preferred source)
+
+        Returns:
+            Temporal pattern analysis based on workflow event times
+        """
+        # Extract timestamps from workflow logs (preferred) or deviations (fallback)
         timestamps = []
-        for d in deviations:
-            # Try to get timestamp from different possible fields
-            timestamp = d.get('detected_at') or d.get('timestamp') or d.get('created_at')
-            if timestamp:
-                try:
-                    if isinstance(timestamp, str):
-                        # Try multiple datetime formats
-                        for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d']:
-                            try:
-                                dt = datetime.strptime(timestamp.split('.')[0], fmt)
-                                timestamps.append(dt)
-                                break
-                            except ValueError:
-                                continue
-                    elif isinstance(timestamp, datetime):
-                        timestamps.append(timestamp)
-                except Exception as e:
-                    logger.debug(f"Could not parse timestamp: {timestamp}, {e}")
+        data_source = []
+
+        if workflow_logs:
+            # PREFERRED: Use workflow log timestamps (actual event times)
+            logger.info(f"Using workflow log timestamps for temporal analysis ({len(workflow_logs)} logs)")
+            for log in workflow_logs:
+                timestamp = log.get('timestamp')
+                if timestamp:
+                    try:
+                        if isinstance(timestamp, str):
+                            # Try multiple datetime formats
+                            for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d']:
+                                try:
+                                    dt = datetime.strptime(timestamp.split('.')[0].replace('Z', ''), fmt)
+                                    timestamps.append(dt)
+                                    break
+                                except ValueError:
+                                    continue
+                        elif isinstance(timestamp, datetime):
+                            timestamps.append(timestamp)
+                    except Exception as e:
+                        logger.debug(f"Could not parse workflow log timestamp: {timestamp}, {e}")
+        else:
+            # FALLBACK: Use deviation timestamps (when analysis was run - not realistic)
+            logger.warning("No workflow logs provided - using deviation timestamps (shows when analysis was run, not when events occurred)")
+            for d in deviations:
+                timestamp = d.get('detected_at') or d.get('timestamp') or d.get('created_at')
+                if timestamp:
+                    try:
+                        if isinstance(timestamp, str):
+                            for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d']:
+                                try:
+                                    dt = datetime.strptime(timestamp.split('.')[0], fmt)
+                                    timestamps.append(dt)
+                                    break
+                                except ValueError:
+                                    continue
+                        elif isinstance(timestamp, datetime):
+                            timestamps.append(timestamp)
+                    except Exception as e:
+                        logger.debug(f"Could not parse deviation timestamp: {timestamp}, {e}")
 
         if not timestamps:
-            logger.debug("No valid timestamps found for deviation temporal analysis (expected - deviations don't have meaningful timestamps)")
+            logger.debug("No valid timestamps found for temporal analysis")
             return {
                 'has_temporal_data': False,
                 'message': 'No temporal data available'

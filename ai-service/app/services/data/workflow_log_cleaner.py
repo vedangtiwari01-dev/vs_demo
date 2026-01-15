@@ -179,6 +179,19 @@ class WorkflowLogCleaner:
                     log['duration_seconds'] = None
                     fixes += 1
 
+            # Normalize percentage fields: convert raw percentages (42) to decimals (0.42)
+            percentage_fields = ['emi_to_income_ratio', 'ltv_ratio', 'dti_ratio']
+            for field in percentage_fields:
+                if field in log and log[field] is not None:
+                    try:
+                        value = float(log[field])
+                        # If value > 1, assume it's stored as raw percentage (42 = 42%)
+                        if value > 1:
+                            log[field] = value / 100.0  # Convert to decimal: 42 → 0.42
+                            fixes += 1
+                    except (ValueError, TypeError):
+                        pass  # Keep original if conversion fails
+
             # Validate timestamp format
             if 'timestamp' in log and log['timestamp'] is not None:
                 if isinstance(log['timestamp'], str):

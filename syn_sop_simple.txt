@@ -1,0 +1,332 @@
+================================================================================
+                    STANDARD OPERATING PROCEDURE
+                       SECURED PERSONAL LOAN - SIMPLIFIED VERSION
+================================================================================
+
+Document Reference: SOP-SPL-2025-SIMPLE
+Version: 2.0
+Effective Date: January 15, 2026
+Document Owner: Chief Credit Officer
+
+================================================================================
+SECTION 1: MANDATORY WORKFLOW SEQUENCE
+================================================================================
+
+All Secured Personal Loan applications must follow this mandatory sequence:
+
+Step 1: Application Received and Registration
+Step 2: Initial Screening and Data Capture
+Step 3: Customer KYC and AML Verification
+Step 4: Document Collection and Verification
+Step 5: Credit Bureau Check
+Step 6: Income and Employment Verification
+Step 7: Collateral Valuation and Verification
+Step 8: Credit Risk Assessment and Scoring
+Step 9: Credit Approval (Level 1 - Branch Manager)
+Step 10: Credit Approval (Level 2 - Regional Credit Manager) [if loan amount > INR 1,000,000]
+Step 11: Legal Security Creation and Registration
+Step 12: EMI Mandate Setup
+Step 13: Final Pre-Disbursement Quality Check
+Step 14: Loan Disbursement
+Step 15: Post-Disbursement Quality Audit
+
+CRITICAL DEPENDENCIES:
+- KYC Verification (Step 3) must be completed before Credit Approval (Steps 9-10)
+- Document Verification (Step 4) must be completed before Credit Approval
+- Collateral Valuation (Step 7) must be completed before Credit Risk Assessment (Step 8)
+- All Credit Approvals must be obtained before Legal Security Creation (Step 11)
+- Legal Security Creation and EMI Mandate Setup must be completed before Disbursement
+
+PROHIBITED SEQUENCES:
+- Disbursement before approval completion is strictly prohibited
+- Credit approval before KYC completion is not allowed
+
+================================================================================
+SECTION 2: CUSTOMER ELIGIBILITY CRITERIA
+================================================================================
+
+2.1 AGE ELIGIBILITY
+- Minimum Age: 21 years (completed) at the time of application
+- Maximum Age: 65 years at loan maturity
+
+Exception: For existing premium customers with excellent repayment history, maximum
+age may be extended to 68 years with Senior Credit Manager approval.
+
+2.2 LOAN TENOR ELIGIBILITY
+- Minimum Tenor: 12 months
+- Maximum Tenor: 84 months (7 years) for standard risk customers
+- Maximum Tenor: 60 months (5 years) for higher risk customers with credit score
+  between 650-700
+
+2.3 INCOME REQUIREMENTS
+Minimum Monthly Income:
+- Salaried Customers: INR 25,000 per month
+- Self-Employed Customers: INR 40,000 per month (average of last 12 months)
+
+2.4 EMI-TO-INCOME RATIO
+Maximum EMI-to-Income Ratio (including existing loan obligations):
+- Salaried Customers: 55% of net monthly income
+- Self-Employed Customers: 50% of net monthly income
+- High Income Customers (income > INR 100,000/month): 60% allowed
+
+2.5 CREDIT SCORE REQUIREMENTS
+- Minimum Credit Score: 650 (CIBIL or equivalent bureau score)
+- Preferred Credit Score: 700 and above
+- Credit Score below 650: Application rejected unless substantial collateral (LTV < 50%)
+  AND Credit Committee approval obtained
+
+2.6 EMPLOYMENT STABILITY
+Salaried Customers:
+- Minimum Current Employment: 1 year with current employer
+- Total Work Experience: Minimum 2 years
+
+Self-Employed Customers:
+- Business Vintage: Minimum 3 years in current business
+- ITR Filing: Last 2 years Income Tax Returns mandatory
+
+================================================================================
+SECTION 3: KYC AND AML COMPLIANCE
+================================================================================
+
+3.1 KYC COMPLETION REQUIREMENT
+KYC verification must be completed and marked as "Verified" before the application
+proceeds to Credit Approval or Loan Disbursement.
+
+3.2 KYC DOCUMENTS REQUIRED
+Identity Proof (one mandatory):
+- Aadhaar Card (preferred)
+- Passport
+- Driving License
+- PAN Card with photograph
+
+Address Proof (one mandatory):
+- Aadhaar Card (preferred)
+- Utility Bills (not older than 3 months)
+- Bank Account Statement (not older than 3 months)
+
+3.3 SANCTIONS SCREENING
+All applicants must be screened against national and international sanctions lists.
+
+Actions:
+- If Sanctions Hit = "Yes": Application REJECTED immediately, no exceptions
+- Sanctions screening must be completed before KYC approval
+
+3.4 POLITICALLY EXPOSED PERSONS (PEP)
+If applicant is identified as PEP:
+- Enhanced Due Diligence (EDD) mandatory
+- Senior Compliance Officer approval mandatory
+- Additional source of income and wealth verification required
+- PEP applications without EDD and compliance approval cannot proceed to credit approval
+
+================================================================================
+SECTION 4: DOCUMENTATION REQUIREMENTS
+================================================================================
+
+4.1 MANDATORY DOCUMENTS FOR ALL APPLICANTS
+
+Income Proof:
+For Salaried:
+- Last 3 months salary slips
+- Last 6 months bank statements showing salary credits
+- Form 16 or ITR for last 2 years (for loans above INR 500,000)
+
+For Self-Employed:
+- Last 2 years Income Tax Returns with computation
+- Last 12 months bank statements (business and personal)
+- Balance Sheet and P&L Statement for last 2 years
+
+4.2 DOCUMENT VALIDITY
+- Income Proof: Not older than 3 months at application time
+- Bank Statements: Not older than 1 month at application time
+- Identity/Address Proof: Must be valid (not expired)
+
+Applications with expired documents cannot proceed to approval stage until valid
+documents are obtained.
+
+4.3 COLLATERAL DOCUMENTATION
+For Property Collateral:
+- Property title documents mandatory
+- Encumbrance certificate mandatory
+- Property valuation report mandatory
+
+For secured loans with property collateral, all property documents must be complete
+before disbursement.
+
+================================================================================
+SECTION 5: CREDIT RISK ASSESSMENT
+================================================================================
+
+5.1 CREDIT BUREAU CHECK
+- CIBIL Report mandatory for credit bureau check
+- Bureau report must not be older than 30 days
+
+5.2 CREDIT RISK GRADING
+Risk Grade A (Low Risk):
+- Credit Score: 750 and above
+- Stable employment (3+ years)
+- LTV below 70%
+- EMI-to-Income ratio below 45%
+
+Risk Grade C (Higher Risk):
+- Credit Score: 650-699
+- Acceptable employment stability
+- LTV 75-80%
+- EMI-to-Income ratio up to 55%
+
+Risk Grade D (Unacceptable Risk):
+- Credit Score: Below 650
+- Application rejected (Exception: Credit Committee approval with strong collateral)
+
+================================================================================
+SECTION 6: COLLATERAL AND SECURITY
+================================================================================
+
+6.1 LOAN-TO-VALUE (LTV) RATIO LIMITS
+
+Residential Property:
+- Self-occupied property: Maximum LTV 75%
+- Rented property: Maximum LTV 70%
+
+Commercial Property:
+- Office space: Maximum LTV 70%
+- Shop/Retail: Maximum LTV 65%
+
+Gold:
+- Maximum LTV 75% of current market value
+
+Fixed Deposits:
+- Bank's own FD: Maximum LTV 90%
+
+6.2 COLLATERAL VALUATION
+Property Valuation Requirements:
+- Valuation by bank-empaneled valuer mandatory
+- Valuation report must not be older than 90 days at disbursement time
+- Site visit mandatory
+- For loan amounts above INR 5,000,000: Two independent valuations required
+
+6.3 VALUATION VALIDITY
+- Property valuation: Valid for 90 days from valuation date
+- Valuation older than 90 days: Fresh valuation required before disbursement
+
+Applications with stale valuations (older than 90 days) cannot proceed to disbursement.
+
+================================================================================
+SECTION 7: APPROVAL AUTHORITY AND HIERARCHY
+================================================================================
+
+7.1 APPROVAL LIMITS BY LOAN AMOUNT
+
+Branch Manager (Level 1):
+- Loan Amount: Up to INR 500,000
+- Risk Grade: A and B only
+
+Regional Credit Manager (Level 2):
+- Loan Amount: INR 500,001 to INR 3,000,000
+- Risk Grade: A, B, and C
+
+Credit Committee:
+- Loan Amount: Above INR 3,000,000
+- All risk grades including exceptions
+
+7.2 APPROVAL REQUIREMENTS
+- Loans above INR 500,000: Regional Credit Manager approval mandatory
+- Loans above INR 1,000,000: Regional Credit Manager approval mandatory
+- Loans above INR 3,000,000: Credit Committee approval mandatory
+
+7.3 SELF-APPROVAL PROHIBITION
+- Same officer cannot originate AND approve the same loan application
+- Self-approval detected: Application flagged as serious process violation
+
+================================================================================
+SECTION 8: DISBURSEMENT REQUIREMENTS
+================================================================================
+
+8.1 PRE-DISBURSEMENT CONDITIONS
+Before disbursement, the following must be completed:
+- All credit approvals obtained
+- Legal security creation completed
+- EMI mandate setup completed (NACH/Standing Instruction)
+- Pre-disbursement quality check completed
+
+8.2 MANDATE SETUP REQUIREMENT
+- Repayment mandate must be set up before disbursement
+- Mandate status must be "Active" or "Registered"
+- Disbursement without active mandate is prohibited
+
+8.3 DISBURSEMENT VERIFICATION
+- Disbursed amount must equal sanctioned loan amount
+- Disbursement to loan account or directly to beneficiary as per approval
+- Disbursement approval and execution on same business day
+
+================================================================================
+SECTION 9: POST-DISBURSEMENT REQUIREMENTS
+================================================================================
+
+9.1 POST-DISBURSEMENT QUALITY AUDIT
+- Post-Disbursement Quality Audit must be completed within 48 hours of disbursement
+- Audit verifies: Documentation completeness, approval compliance, disbursement accuracy
+- Cases with audit findings: Remedial action within 5 business days
+
+9.2 POST-DISBURSEMENT DOCUMENTATION
+- Loan agreement executed and signed
+- Security documents registered (for property collateral)
+- Insurance coverage activated (for property/vehicle collateral)
+
+================================================================================
+SECTION 10: TIMING AND TAT REQUIREMENTS
+================================================================================
+
+10.1 STEP TIMING CONSTRAINTS
+
+Credit Bureau Check to Credit Approval:
+- Maximum Time: 72 hours
+- Breach: Escalation to Regional Credit Manager
+
+Credit Approval to Disbursement:
+- Maximum Time: 7 business days
+- Breach: Senior Management notification
+
+10.2 CRITICAL TIMING RULES
+- Post-Disbursement Quality Audit must be completed within 48 hours of disbursement
+- KYC Verification to Credit Approval: Maximum 5 business days
+- Document Collection to Verification: Maximum 3 business days
+
+================================================================================
+SECTION 11: REGULATORY COMPLIANCE
+================================================================================
+
+11.1 CUSTOMER EXPOSURE LIMITS
+- Maximum exposure to single customer (including group entities): INR 15,000,000
+- This is 25% of the bank's capital base of INR 60,000,000
+- Exposure exceeding limit: Board approval mandatory
+
+11.2 AUDIT TRAIL REQUIREMENTS
+Complete audit trail mandatory for all applications:
+- Every action logged with timestamp, user ID, and action taken
+- Missing audit trail: Flagged as serious compliance issue
+
+11.3 DATA QUALITY REQUIREMENTS
+Core fields mandatory for every workflow log entry:
+- case_id: Unique loan application identifier
+- officer_id: Officer handling the case
+- step_name: Workflow step name
+- action: Action taken (approved, rejected, completed)
+- timestamp: Date and time of action
+
+Missing core fields: Data quality violation, case flagged for review
+
+================================================================================
+SECTION 12: COLLECTIONS AND DELINQUENCY
+================================================================================
+
+12.1 OVERDUE MANAGEMENT
+Days Past Due (DPD) Classification:
+- 1-30 DPD: Bucket 1 - Soft reminder calls
+- 31-60 DPD: Bucket 2 - Field visit mandatory
+- 61-90 DPD: Bucket 3 - Legal notice issued
+
+12.2 COLLECTION ESCALATION
+- Cases reaching 31+ DPD: Escalation to Collections Manager mandatory
+- Escalation delay beyond 5 days: Process violation
+
+================================================================================

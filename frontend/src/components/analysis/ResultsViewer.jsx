@@ -865,10 +865,10 @@ const MLStatisticsTab = ({ patterns, deviations }) => {
 
         {/* Row 1: Line Charts - Temporal Trends */}
         <div className="grid grid-cols-2 gap-4">
-          {/* Chart 1: Hourly Deviation Trend */}
+          {/* Chart 1: Hourly Working Trend */}
           {temporalPatterns?.hour_distribution && Object.keys(temporalPatterns.hour_distribution).length > 0 ? (
             <div className="widget-transparent rounded-lg shadow-xl p-3 border border-primary-300">
-              <h4 className="text-sm font-semibold text-primary-600 mb-2">Hourly Deviation Trend</h4>
+              <h4 className="text-sm font-semibold text-primary-600 mb-2">Hourly Working Trend</h4>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={
                   Object.entries(temporalPatterns.hour_distribution)
@@ -905,17 +905,17 @@ const MLStatisticsTab = ({ patterns, deviations }) => {
             </div>
           ) : (
             <div className="widget-transparent rounded-lg shadow-xl p-3 border border-primary-300">
-              <h4 className="text-sm font-semibold text-primary-600 mb-2">Hourly Deviation Trend</h4>
+              <h4 className="text-sm font-semibold text-primary-600 mb-2">Hourly Working Trend</h4>
               <div className="flex items-center justify-center h-[200px] text-xs text-gray-500">
                 No hourly temporal data available
               </div>
             </div>
           )}
 
-          {/* Chart 2: Daily Deviation Trend */}
+          {/* Chart 2: Daily Working Trend */}
           {temporalPatterns?.day_distribution && Object.keys(temporalPatterns.day_distribution).length > 0 ? (
             <div className="widget-transparent rounded-lg shadow-xl p-3 border border-primary-300">
-              <h4 className="text-sm font-semibold text-primary-600 mb-2">Daily Deviation Trend</h4>
+              <h4 className="text-sm font-semibold text-primary-600 mb-2">Daily Working Trend</h4>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={
                   ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -951,7 +951,7 @@ const MLStatisticsTab = ({ patterns, deviations }) => {
             </div>
           ) : (
             <div className="widget-transparent rounded-lg shadow-xl p-3 border border-primary-300">
-              <h4 className="text-sm font-semibold text-primary-600 mb-2">Daily Deviation Trend</h4>
+              <h4 className="text-sm font-semibold text-primary-600 mb-2">Daily Working Trend</h4>
               <div className="flex items-center justify-center h-[200px] text-xs text-gray-500">
                 No daily temporal data available
               </div>
@@ -1043,7 +1043,7 @@ const MLStatisticsTab = ({ patterns, deviations }) => {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percentage }) => `${percentage}%`}
+                      label={false}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"

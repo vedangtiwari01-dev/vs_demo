@@ -1,0 +1,55 @@
+================================================================================
+                    STANDARD OPERATING PROCEDURE
+                       SECURED PERSONAL LOAN - TEST VERSION
+================================================================================
+
+Document Reference: SOP-SPL-TEST-001
+Version: 1.0
+Effective Date: January 15, 2026
+Document Owner: Chief Credit Officer
+
+================================================================================
+SECTION 1: CUSTOMER ELIGIBILITY CRITERIA
+================================================================================
+
+1.1 AGE ELIGIBILITY
+- Minimum Age: 21 years at the time of application
+- Maximum Age: 65 years at loan maturity
+
+1.2 INCOME REQUIREMENTS
+- Minimum Monthly Income for Salaried: INR 25,000 per month
+
+1.3 EMI-TO-INCOME RATIO
+- Maximum EMI-to-Income Ratio: 55% of net monthly income for salaried customers
+
+1.4 CREDIT SCORE REQUIREMENTS
+- Minimum Credit Score: 650 (CIBIL score)
+
+================================================================================
+SECTION 2: APPROVAL AUTHORITY
+================================================================================
+
+2.1 APPROVAL LIMITS
+- Loans above INR 1,000,000 require Regional Credit Manager approval
+
+================================================================================
+SECTION 3: MANDATORY WORKFLOW SEQUENCE
+================================================================================
+
+3.1 WORKFLOW STEPS
+All applications must follow this sequence:
+- Step 1: Application Received and Registration
+- Step 2: Customer KYC and AML Verification
+- Step 3: Credit Approval
+
+3.2 CRITICAL DEPENDENCIES
+- KYC Verification must be completed before Credit Approval
+
+================================================================================
+SECTION 4: TIMING REQUIREMENTS
+================================================================================
+
+4.1 POST-DISBURSEMENT AUDIT
+- Post-Disbursement Quality Audit must be completed within 48 hours of disbursement
+
+================================================================================

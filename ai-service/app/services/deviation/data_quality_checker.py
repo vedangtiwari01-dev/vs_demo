@@ -1,6 +1,9 @@
 from typing import List, Dict, Any
 from collections import defaultdict
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DataQualityChecker:
     """
@@ -35,6 +38,7 @@ class DataQualityChecker:
 
         # Extract data quality rules
         dq_rules = [r for r in rules if r.get('rule_type') == 'data_quality']
+        logger.info(f"DataQualityChecker checking {len(logs)} logs (Note: audit_trail check moved to log quality report)")
 
         # Track case IDs for duplicate detection
         case_occurrences = defaultdict(int)
@@ -183,4 +187,5 @@ class DataQualityChecker:
                         }
                     })
 
+        logger.info(f"DataQualityChecker found {len(deviations)} deviations")
         return deviations
